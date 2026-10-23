@@ -35,6 +35,7 @@
 
 **Files:**
 - Create: `README.md`, `CONTRIBUTING.md`, `scripts/check.py`, `scripts/build`, `scripts/test`, `tests/test_check.py`, `.github/pull_request_template.md`, `.gitignore`
+- Modify: `AGENTS.md` (written before this plan, with `CLAUDE.md` importing it)
 
 **Interfaces:**
 - Produces: `scripts/check.py <tool dir>... [--registry ghcr.io/<owner>/<repo>]`: exit 0 when every directory passes, else prints one `tools/<name>: <reason>` line per failure and exits 1. Importable: `frontmatter(path: Path) -> dict` (the parsed block, `metadata` as a nested dict), `check_tool(tool_dir: Path, published: set[str] | None) -> list[str]` (the reasons), `published_tags(registry: str, name: str) -> set[str]` (GHCR's tags for the package, `set()` when the package does not exist).
@@ -123,6 +124,8 @@ Expected: PASS, six tests.
 `.github/pull_request_template.md`: `## Tool`, `## Test output` (where it was run, pasted output), `## Checklist` (version bumped; skill examples run; test passes with no network).
 
 `.gitignore`: `__pycache__/`.
+
+`AGENTS.md`: drop "once it exists" from its pointer to `CONTRIBUTING.md`. Its rules stay short and binding; the step-by-step lives in CONTRIBUTING and is not repeated in AGENTS.md.
 
 - [ ] **Step 7: Commit and push**
 
