@@ -2,6 +2,7 @@ import unittest, tempfile, sys, io, json, urllib.error
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import check  # noqa: E402
+from helpers import git  # noqa: E402
 
 SKILL = "---\nname: {name}\ndescription: A tool.\nmetadata:\n  version: {version}\n---\n# {name}\n"
 
@@ -53,10 +54,45 @@ class FrontmatterTests(unittest.TestCase):
         (d / "SKILL.md").write_text("---\nname: esm2-650m\n# no closing line\n")
         self.assertEqual(check.check_tool(d, published=set()), ["SKILL.md has no frontmatter block (--- ... ---)"])
 
+def record(root, name="esm2-650m", version="1.0.0", digest="sha256:a", exit="0"):
+    r = root / "results" / name / f"{version}.txt"
+    r.parent.mkdir(parents=True, exist_ok=True)
+    r.write_text(f"---\ntool: {name}\nversion: {version}\ndigest: {digest}\nexit: {exit}\n---\nok\n")
+
+class CandidateTests(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp()); self.d = tool(self.root)
+    def reasons(self, candidate):
+        return check.check_candidate(self.d, "src-x", candidate)
+    def test_registry_of_https_and_ssh_remotes(self):
+        for url in ("https://github.com/BrineyLab/ToolShed.git", "https://github.com/BrineyLab/ToolShed", "git@github.com:BrineyLab/ToolShed.git"):
+            self.assertEqual(check.registry_of(url), "ghcr.io/brineylab/toolshed")
+    def test_candidate_tag_is_the_committed_tree(self):
+        git(self.root, "init", "-q"); git(self.root, "add", "-A"); git(self.root, "commit", "-qm", "x")
+        tree = git(self.root, "rev-parse", "HEAD:tools/esm2-650m").strip()
+        self.assertEqual(check.candidate_tag(self.d), f"src-{tree}")
+    def test_a_good_candidate_and_record_pass(self):
+        record(self.root)
+        self.assertEqual(self.reasons(("sha256:a", "amd64")), [])
+    def test_a_candidate_not_readable_anonymously_is_reported(self):
+        self.assertEqual(self.reasons(None), ["candidate src-x is not in the registry or not public; push it with scripts/push esm2-650m and make its package public"])
+    def test_a_candidate_not_amd64_is_refused(self):
+        record(self.root)
+        self.assertEqual(self.reasons(("sha256:a", "arm64")), ["candidate src-x is arm64, not amd64; rebuild it with scripts/build esm2-650m"])
+    def test_a_missing_record_is_refused(self):
+        self.assertEqual(self.reasons(("sha256:a", "amd64")), ["results/esm2-650m/1.0.0.txt is missing; test the candidate with scripts/test esm2-650m"])
+    def test_a_record_of_another_digest_is_refused(self):
+        record(self.root, digest="sha256:old")
+        self.assertEqual(self.reasons(("sha256:a", "amd64")), ["results/esm2-650m/1.0.0.txt is of sha256:old, not the candidate sha256:a; test the current candidate"])
+    def test_a_failed_record_is_refused(self):
+        record(self.root, exit="1")
+        self.assertEqual(self.reasons(("sha256:a", "amd64")), ["results/esm2-650m/1.0.0.txt shows exit 1, not 0"])
+
 class Response(io.BytesIO):
-    def __init__(self, body, link=None):
+    def __init__(self, body, link=None, headers=None):
         super().__init__(json.dumps(body).encode())
         self.headers = {"Link": link} if link else {}
+        self.headers.update(headers or {})
 
 class PublishedTagsTests(unittest.TestCase):
     def stub(self, fake):
@@ -76,6 +112,31 @@ class PublishedTagsTests(unittest.TestCase):
             raise urllib.error.HTTPError(str(req), 403, "Forbidden", {}, None)
         self.stub(fake)
         self.assertEqual(check.published_tags("ghcr.io/o/r", "t"), set())
+    def test_inspect_reads_digest_and_architecture(self):
+        def fake(req):
+            url = req if isinstance(req, str) else req.full_url
+            if "/token?" in url:
+                return Response({"token": "x"})
+            if url.endswith("/v2/o/r/t/manifests/src-x"):
+                return Response({"mediaType": "application/vnd.oci.image.manifest.v1+json", "config": {"digest": "sha256:c"}},
+                                headers={"Docker-Content-Digest": "sha256:m"})
+            if url.endswith("/v2/o/r/t/blobs/sha256:c"):
+                return Response({"architecture": "amd64"})
+            raise AssertionError(url)
+        self.stub(fake)
+        self.assertEqual(check.inspect("ghcr.io/o/r", "t", "src-x"), ("sha256:m", "amd64"))
+    def test_inspect_of_a_private_or_missing_candidate_is_none(self):
+        def refused_token(req):
+            raise urllib.error.HTTPError(str(req), 403, "Forbidden", {}, None)
+        self.stub(refused_token)
+        self.assertIsNone(check.inspect("ghcr.io/o/r", "t", "src-x"))
+        def missing_manifest(req):
+            url = req if isinstance(req, str) else req.full_url
+            if "/token?" in url:
+                return Response({"token": "x"})
+            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+        self.stub(missing_manifest)
+        self.assertIsNone(check.inspect("ghcr.io/o/r", "t", "src-x"))
     def test_a_bad_name_is_reported_without_asking_the_registry(self):
         def fake(req):
             raise AssertionError("registry asked about an invalid name")

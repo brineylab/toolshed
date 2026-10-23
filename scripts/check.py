@@ -1,13 +1,20 @@
-"""A tool directory's rules, and whether its version is already published.
+"""A tool directory's rules, its candidate, its record, and whether its version is already published.
 
     python3 -I scripts/check.py tools/<name>... [--registry ghcr.io/<owner>/<repo>]
+    python3 -I scripts/check.py --candidate tools/<name>   prints <registry>/<name>:src-<tree>
+    python3 -I scripts/check.py --resolve tools/<name>     prints <registry>/<name>@<digest>
 
-Exits 0 when every directory passes, else prints one `tools/<name>: <reason>`
-line per failure and exits 1. Without --registry the version rule is skipped.
+Checking exits 0 when every directory passes, else prints one `tools/<name>: <reason>`
+line per failure and exits 1. Without --registry the version, candidate, and record
+rules are skipped. --candidate and --resolve take the registry from the origin remote
+unless --registry is given. Runs on Python 3.8 or later, since a cluster's login node runs it.
 """
+from __future__ import annotations
+
 import argparse
 import json
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -82,6 +89,89 @@ def check_tool(tool_dir: Path, published: set[str] | None) -> list[str]:
     return reasons
 
 
+def check_candidate(tool_dir: Path, tag: str, candidate: tuple[str, str] | None) -> list[str]:
+    """The reasons the candidate (its digest and architecture, or None when unreadable) or its record fail."""
+    name = tool_dir.name
+    if candidate is None:
+        return [f"candidate {tag} is not in the registry or not public; push it with scripts/push {name} and make its package public"]
+    digest, arch = candidate
+    reasons = []
+    if arch != "amd64":
+        reasons.append(f"candidate {tag} is {arch}, not amd64; rebuild it with scripts/build {name}")
+    version = frontmatter(tool_dir / "SKILL.md")["metadata"]["version"]
+    rel = f"results/{name}/{version}.txt"
+    path = tool_dir.parents[1] / rel
+    if not path.is_file():
+        return reasons + [f"{rel} is missing; test the candidate with scripts/test {name}"]
+    rec = frontmatter(path)
+    if rec.get("digest") != digest:
+        reasons.append(f"{rel} is of {rec.get('digest')}, not the candidate {digest}; test the current candidate")
+    if rec.get("exit") != "0":
+        reasons.append(f"{rel} shows exit {rec.get('exit')}, not 0")
+    return reasons
+
+
+def registry_of(remote: str) -> str:
+    """ghcr.io/<owner>/<repo>, lowercased, from a GitHub remote URL (https or ssh)."""
+    m = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?/?$", remote.strip())
+    if not m:
+        raise ValueError(f"not a GitHub remote: {remote}")
+    return f"ghcr.io/{m.group(1).lower()}"
+
+
+def candidate_tag(tool_dir: Path) -> str:
+    """src-<git's hash of the committed tools/<name>/ directory>."""
+    root = tool_dir.resolve().parents[1]
+    tree = subprocess.run(["git", "-C", str(root), "rev-parse", f"HEAD:tools/{tool_dir.name}"],
+                          check=True, capture_output=True, text=True).stdout.strip()
+    return f"src-{tree}"
+
+
+def _token(host: str, repo: str, name: str) -> str | None:
+    """An anonymous pull token; None when refused, which is how GHCR answers a private or missing package."""
+    try:
+        with urllib.request.urlopen(f"https://{host}/token?scope=repository:{repo}/{name}:pull") as r:
+            return json.load(r)["token"]
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403, 404):
+            return None
+        raise
+
+
+ACCEPT = ", ".join([
+    "application/vnd.oci.image.index.v1+json",
+    "application/vnd.oci.image.manifest.v1+json",
+    "application/vnd.docker.distribution.manifest.list.v2+json",
+    "application/vnd.docker.distribution.manifest.v2+json",
+])
+
+
+def inspect(registry: str, name: str, tag: str) -> tuple[str, str] | None:
+    """The digest and architecture of <registry>/<name>:<tag>, anonymously; None when it cannot be read."""
+    host, _, repo = registry.partition("/")
+    token = _token(host, repo, name)
+    if token is None:
+        return None
+
+    def get(path: str, accept: str | None = None):
+        headers = {"Authorization": f"Bearer {token}"}
+        if accept:
+            headers["Accept"] = accept
+        return urllib.request.urlopen(urllib.request.Request(f"https://{host}/v2/{repo}/{name}/{path}", headers=headers))
+
+    try:
+        with get(f"manifests/{tag}", ACCEPT) as r:
+            digest, manifest = r.headers.get("Docker-Content-Digest"), json.load(r)
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403, 404):
+            return None
+        raise
+    if "manifests" in manifest:  # an index: one entry per platform
+        return digest, ",".join(m.get("platform", {}).get("architecture", "?") for m in manifest["manifests"])
+    with get(f"blobs/{manifest['config']['digest']}") as r:
+        return digest, json.load(r).get("architecture", "?")
+
+
 def published_tags(registry: str, name: str) -> set[str]:
     """GHCR's tags for <registry>/<name>, anonymously; set() when the package does not exist.
 
@@ -89,13 +179,9 @@ def published_tags(registry: str, name: str) -> set[str]:
     tags through the Link header.
     """
     host, _, repo = registry.partition("/")
-    try:
-        with urllib.request.urlopen(f"https://{host}/token?scope=repository:{repo}/{name}:pull") as r:
-            token = json.load(r)["token"]
-    except urllib.error.HTTPError as e:
-        if e.code in (403, 404):
-            return set()
-        raise
+    token = _token(host, repo, name)
+    if token is None:
+        return set()
     tags, path = set(), f"/v2/{repo}/{name}/tags/list?n=1000"
     while path:
         req = urllib.request.Request(f"https://{host}{path}", headers={"Authorization": f"Bearer {token}"})
@@ -110,12 +196,33 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("tools", nargs="*", type=Path)
     p.add_argument("--registry")
+    one = p.add_mutually_exclusive_group()
+    one.add_argument("--candidate", type=Path, metavar="TOOL_DIR")
+    one.add_argument("--resolve", type=Path, metavar="TOOL_DIR")
     args = p.parse_args()
+    if args.candidate or args.resolve:
+        d = args.candidate or args.resolve
+        registry = (args.registry or registry_of(subprocess.run(
+            ["git", "-C", str(d), "remote", "get-url", "origin"], check=True, capture_output=True, text=True).stdout)).lower()
+        tag = candidate_tag(d)
+        if args.candidate:
+            print(f"{registry}/{d.name}:{tag}")
+            return 0
+        found = inspect(registry, d.name, tag)
+        if found is None:
+            print(f"candidate {tag} is not in the registry or not public", file=sys.stderr)
+            return 1
+        print(f"{registry}/{d.name}@{found[0]}")
+        return 0
     failed = False
     for d in args.tools:
         ask = args.registry and NAME.match(d.name)  # an invalid name is already a failure, and GHCR rejects it
         published = published_tags(args.registry.lower(), d.name) if ask else None
-        for reason in check_tool(d, published):
+        reasons = check_tool(d, published)
+        if ask and not reasons:
+            tag = candidate_tag(d)
+            reasons = check_candidate(d, tag, inspect(args.registry.lower(), d.name, tag))
+        for reason in reasons:
             print(f"tools/{d.name}: {reason}")
             failed = True
     return 1 if failed else 0

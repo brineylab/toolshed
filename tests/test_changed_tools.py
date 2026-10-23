@@ -1,11 +1,9 @@
 import unittest, tempfile, shutil, subprocess
 from pathlib import Path
+from helpers import git
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "changed-tools"
 
-def git(repo, *args):
-    return subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", *args],
-                          check=True, capture_output=True, text=True).stdout
 
 class ChangedToolsTests(unittest.TestCase):
     def test_changed_tools_that_still_exist_once_each(self):
