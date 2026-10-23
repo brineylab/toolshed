@@ -42,6 +42,17 @@ class CheckTests(unittest.TestCase):
         reasons = check.check_tool(tool(self.root), published={"1.0.0"})
         self.assertEqual(reasons, ["version 1.0.0 is already published; bump metadata.version"])
 
+class FrontmatterTests(unittest.TestCase):
+    def test_quoted_values_are_unquoted(self):
+        d = tool(Path(tempfile.mkdtemp()))
+        (d / "SKILL.md").write_text('---\nname: esm2-650m\ndescription: "ESM-2: a model."\nmetadata:\n  version: \'1.0.0\'\n---\n')
+        self.assertEqual(check.frontmatter(d / "SKILL.md"), {"name": "esm2-650m", "description": "ESM-2: a model.", "metadata": {"version": "1.0.0"}})
+        self.assertEqual(check.check_tool(d, published=set()), [])
+    def test_a_skill_without_frontmatter_gets_one_reason(self):
+        d = tool(Path(tempfile.mkdtemp()))
+        (d / "SKILL.md").write_text("---\nname: esm2-650m\n# no closing line\n")
+        self.assertEqual(check.check_tool(d, published=set()), ["SKILL.md has no frontmatter block (--- ... ---)"])
+
 class Response(io.BytesIO):
     def __init__(self, body, link=None):
         super().__init__(json.dumps(body).encode())

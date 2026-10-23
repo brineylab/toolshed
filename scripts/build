@@ -5,4 +5,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 secret=()
 [[ -n "${HF_TOKEN:-}" ]] && secret=(--secret id=hf_token,env=HF_TOKEN)
-podman build "${secret[@]}" -t "$2" -f "tools/$1/Containerfile" "tools/$1"
+podman build ${secret[@]+"${secret[@]}"} -t "$2" -f "tools/$1/Containerfile" "tools/$1"

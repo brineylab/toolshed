@@ -32,10 +32,10 @@ The same flags work as `#SBATCH` lines. Mount every directory the command reads 
 
 ```bash
 git clone https://github.com/brineylab/toolshed && cd toolshed
-mkdir -p ~/.claude/skills && for t in tools/*; do ln -s "$PWD/$t" ~/.claude/skills/; done
+mkdir -p ~/.claude/skills && for t in tools/*; do ln -sfn "$PWD/$t" ~/.claude/skills/; done
 ```
 
-For Codex and OpenCode, link into `~/.agents/skills/` instead. `git pull` keeps the skills current.
+For Codex and OpenCode, link into `~/.agents/skills/` instead. `git pull` updates the linked skills; run the loop again after a pull that adds a tool.
 
 ## Checking an image
 

@@ -17,9 +17,19 @@ NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 
 
+def unquote(value: str) -> str:
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        return value[1:-1]
+    return value
+
+
 def frontmatter(path: Path) -> dict:
-    """The first `---` block: `key: value` lines, and `key:` opening a dict of two-space-indented lines."""
-    lines = path.read_text().splitlines()
+    """The first `---` block: `key: value` lines, and `key:` opening a dict of two-space-indented lines.
+
+    One pair of matching quotes around a value is removed. {} when there is no block.
+    """
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
     out, nested = {}, None
@@ -30,11 +40,11 @@ def frontmatter(path: Path) -> dict:
             continue
         if line.startswith("  ") and nested is not None:
             key, _, value = line.strip().partition(":")
-            nested[key.strip()] = value.strip()
+            nested[key.strip()] = unquote(value)
             continue
         key, _, value = line.partition(":")
         if value.strip():
-            out[key.strip()], nested = value.strip(), None
+            out[key.strip()], nested = unquote(value), None
         else:
             nested = out[key.strip()] = {}
     return {}  # no closing ---
@@ -42,22 +52,24 @@ def frontmatter(path: Path) -> dict:
 
 def check_tool(tool_dir: Path, published: set[str] | None) -> list[str]:
     """The reasons this directory breaks the rules; empty when it passes."""
-    name, reasons = tool_dir.name, []
+    name, reasons, version = tool_dir.name, [], None
     if not NAME.match(name):
         reasons.append(f"name {name!r} is not lowercase words joined by hyphens")
     skill = tool_dir / "SKILL.md"
     meta = frontmatter(skill) if skill.is_file() else None
     if meta is None:
         reasons.append("SKILL.md is missing")
+    elif not meta:
+        reasons.append("SKILL.md has no frontmatter block (--- ... ---)")
     else:
         if meta.get("name") != name:
             reasons.append(f"SKILL.md name {meta.get('name')!r} is not the directory's name {name!r}")
         if not meta.get("description"):
             reasons.append("SKILL.md description is empty")
-    metadata = meta.get("metadata") if meta else None
-    version = metadata.get("version") if isinstance(metadata, dict) else None
-    if meta is not None and not (isinstance(version, str) and VERSION.match(version)):
-        reasons.append(f"SKILL.md metadata.version {version!r} is not MAJOR.MINOR.PATCH")
+        metadata = meta.get("metadata")
+        version = metadata.get("version") if isinstance(metadata, dict) else None
+        if not (isinstance(version, str) and VERSION.match(version)):
+            reasons.append(f"SKILL.md metadata.version {version!r} is not MAJOR.MINOR.PATCH")
     containerfile = tool_dir / "Containerfile"
     if not containerfile.is_file():
         reasons.append("Containerfile is missing")

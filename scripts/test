@@ -4,4 +4,4 @@ set -euo pipefail
 [[ $# -eq 1 ]] || { echo "usage: scripts/test <image>" >&2; exit 2; }
 gpu=()
 command -v nvidia-smi >/dev/null && gpu=(--device nvidia.com/gpu=all)
-podman run --rm --network none "${gpu[@]}" "$1" bash /toolshed/test/run.sh
+podman run --rm --network none ${gpu[@]+"${gpu[@]}"} "$1" bash /toolshed/test/run.sh
