@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# scripts/test <image>: run the image's own test with no network, with the GPU when this machine has one.
+set -euo pipefail
+[[ $# -eq 1 ]] || { echo "usage: scripts/test <image>" >&2; exit 2; }
+gpu=()
+command -v nvidia-smi >/dev/null && gpu=(--device nvidia.com/gpu=all)
+podman run --rm --network none "${gpu[@]}" "$1" bash /toolshed/test/run.sh

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# scripts/build <name> <image>: build tools/<name> as <image>; HF_TOKEN, when set, is the build secret hf_token.
+set -euo pipefail
+[[ $# -eq 2 ]] || { echo "usage: scripts/build <name> <image>" >&2; exit 2; }
+cd "$(dirname "$0")/.."
+secret=()
+[[ -n "${HF_TOKEN:-}" ]] && secret=(--secret id=hf_token,env=HF_TOKEN)
+podman build "${secret[@]}" -t "$2" -f "tools/$1/Containerfile" "tools/$1"

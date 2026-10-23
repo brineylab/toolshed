@@ -7,7 +7,7 @@ Read before changing anything:
 - `docs/VISION.md`: what the shed is for and what it is not.
 - `docs/DESIGN.md`: what a tool is, the repository, the workflow, review.
 - `docs/plans/toolshed-a.md`: the plan that builds the shed. Work it task by task; its Global Constraints are binding.
-- `CONTRIBUTING.md`, once it exists: how to add a tool, step by step. The rules below are the binding summary.
+- `CONTRIBUTING.md`: how to add a tool, step by step. The rules below are the binding summary.
 
 `docs/VISION.md` and `docs/DESIGN.md` are approved by the lab. Do not edit them unless asked to. If the work shows the design is wrong, stop and say so.
 
