@@ -6,9 +6,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 image=$(python3 -I scripts/check.py --candidate "tools/$1")
 podman push "$image"
-if ref=$(python3 -I scripts/check.py --resolve "tools/$1" 2> /dev/null); then
-  echo "$ref"; exit 0
-fi
+err=$(mktemp)
+set +e
+ref=$(python3 -I scripts/check.py --resolve "tools/$1" 2> "$err")
+code=$?
+set -e
+if [[ $code -eq 0 ]]; then echo "$ref"; exit 0; fi
+if [[ $code -ne 4 ]]; then cat "$err" >&2; exit "$code"; fi  # an error, not a private package
 path=${image#*/}; owner=${path%%/*}; repo=${path#*/}; repo=${repo%%/*}
 echo "pushed, but the package is private: make it public at https://github.com/orgs/$owner/packages/container/$repo%2F$1/settings"
 exit 3

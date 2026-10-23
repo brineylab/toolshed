@@ -7,7 +7,7 @@ usage() { echo "usage: scripts/test <name> podman | scripts/test <name> srun [sr
 [[ $# -ge 2 ]] || usage
 name=$1 runner=$2; shift 2
 cd "$(dirname "$0")/.."
-ref=$(python3 -I scripts/check.py --resolve "tools/$name")
+ref=$(python3 -I scripts/check.py --resolve "tools/$name") || exit 1
 version=$(python3 -I -c "import sys; sys.path.insert(0, 'scripts'); import check, pathlib; print(check.frontmatter(pathlib.Path('tools/$name/SKILL.md'))['metadata']['version'])")
 inner='echo "node: $(hostname)"; nvidia-smi -L 2>/dev/null || echo "gpu: none"; bash /toolshed/test/run.sh'
 case "$runner" in

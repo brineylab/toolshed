@@ -16,8 +16,10 @@ if __name__ == "__main__":
         print("ghcr.io/owner/repo/t:src-abc")
     elif os.environ.get("FAKE_PUBLIC"):
         print("ghcr.io/owner/repo/t@sha256:d")
+    elif os.environ.get("FAKE_NETWORK_DOWN"):
+        raise OSError("network is unreachable")
     else:
-        print("candidate src-abc is not in the registry or not public", file=sys.stderr); sys.exit(1)
+        print("candidate src-abc is not in the registry or not public", file=sys.stderr); sys.exit(4)
 """
 
 # podman and srun: log the arguments, print a line, exit as told.
@@ -65,6 +67,18 @@ class ScriptTests(unittest.TestCase):
         self.assertEqual(r.returncode, 3)
         self.assertIn("https://github.com/orgs/owner/packages/container/repo%2Ft/settings", r.stdout)
         self.assertEqual(self.log(), ["push ghcr.io/owner/repo/t:src-abc"])
+    def test_push_does_not_call_a_registry_error_private(self):
+        r = self.run_script("push", "t", FAKE_NETWORK_DOWN="1")
+        self.assertNotIn(r.returncode, (0, 3))
+        self.assertNotIn("private", r.stdout)
+        self.assertIn("network is unreachable", r.stderr)
+    def test_build_refuses_ignored_files_in_the_tool(self):
+        (self.repo / ".gitignore").write_text("__pycache__/\n")
+        git(self.repo, "add", ".gitignore"); git(self.repo, "commit", "-qm", "ignore")
+        (self.repo / "tools/t/test/__pycache__").mkdir()
+        (self.repo / "tools/t/test/__pycache__/x.pyc").write_text("x")
+        r = self.run_script("build", "t")
+        self.assertEqual(r.returncode, 1); self.assertIn("tools/t has uncommitted changes", r.stderr); self.assertEqual(self.log(), [])
     def test_push_of_a_public_candidate_succeeds(self):
         self.assertEqual(self.run_script("push", "t", FAKE_PUBLIC="1").returncode, 0)
     def test_test_runs_by_digest_and_writes_the_record(self):

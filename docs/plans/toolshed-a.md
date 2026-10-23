@@ -157,7 +157,7 @@ git push -u origin main
   - `candidate_tag(tool_dir: Path) -> str`: `"src-" + git -C <repo root> rev-parse HEAD:tools/<name>`, with the repo root `tool_dir.parents[1]`.
   - `inspect(registry: str, name: str, tag: str) -> tuple[str, str] | None`: the manifest's digest (the `Docker-Content-Digest` header) and its architecture (from the config blob's `architecture`, or for an index the platforms' architectures joined by `,`), read anonymously as `published_tags` does; `None` when the token or the manifest is refused (401, 403, 404).
   - `check_candidate(tool_dir: Path, tag: str, candidate: tuple[str, str] | None) -> list[str]`: the reasons, from the strings below.
-  - The command line: `check.py <tool dir>... [--registry R]` as before, and with `--registry` it also runs `check_candidate` with `inspect`'s answer for each tool `check_tool` found no reason against. `check.py --candidate <tool dir> [--registry R]` prints `<registry>/<name>:<candidate_tag>`. `check.py --resolve <tool dir> [--registry R]` prints `<registry>/<name>@<digest>`, or prints `candidate <tag> is not in the registry or not public` to stderr and exits 1. Without `--registry`, both take `registry_of(git remote get-url origin)`.
+  - The command line: `check.py <tool dir>... [--registry R]` as before, and with `--registry` it also runs `check_candidate` with `inspect`'s answer for each tool `check_tool` found no reason against. `check.py --candidate <tool dir> [--registry R]` prints `<registry>/<name>:<candidate_tag>`. `check.py --resolve <tool dir> [--registry R]` prints `<registry>/<name>@<digest>`, or prints `candidate <tag> is not in the registry or not public` to stderr and exits 4 (distinct from a crash, so `scripts/push` tells a private package from an error). Without `--registry`, both take `registry_of(git remote get-url origin)`.
 - The reasons, exactly (`{name}`, `{tag}`, `{version}`, `{arch}`, `{got}`, `{want}`, `{code}` filled in):
   - `candidate {tag} is not in the registry or not public; push it with scripts/push {name} and make its package public` (and no record reasons follow)
   - `candidate {tag} is {arch}, not amd64; rebuild it with scripts/build {name}`
@@ -239,7 +239,7 @@ git commit -m "check reads a tool's candidate from the registry and its committe
 **Interfaces:**
 - Consumes: `check.py --candidate`, `check.py --resolve`, `frontmatter` (Task 2).
 - Produces:
-  - `scripts/build <name>`: exits 1 with `tools/<name> has uncommitted changes; commit them first` when `git status --porcelain -- tools/<name>` prints anything. Otherwise `podman build --platform linux/amd64 --label org.opencontainers.image.source=https://github.com/<owner>/<repo> [--secret id=hf_token,env=HF_TOKEN] -t <candidate> -f tools/<name>/Containerfile tools/<name>`, with `<candidate>` from `check.py --candidate` and `<owner>/<repo>` taken from it, the secret only when `HF_TOKEN` is set.
+  - `scripts/build <name>`: exits 1 with `tools/<name> has uncommitted changes; commit them first` when `git status --porcelain --ignored -- tools/<name>` prints anything (ignored files would be in the build context too). Otherwise `podman build --platform linux/amd64 --label org.opencontainers.image.source=https://github.com/<owner>/<repo> [--secret id=hf_token,env=HF_TOKEN] -t <candidate> -f tools/<name>/Containerfile tools/<name>`, with `<candidate>` from `check.py --candidate` and `<owner>/<repo>` taken from it, the secret only when `HF_TOKEN` is set.
   - `scripts/push <name>`: `podman push <candidate>`, then `check.py --resolve`. Exit 0 printing the resolved reference when it resolves. Otherwise exit 3 printing `pushed, but the package is private: make it public at https://github.com/orgs/<owner>/packages/container/<repo>%2F<name>/settings`.
   - `scripts/test <name> podman` or `scripts/test <name> srun [srun flags...]`: resolves the candidate (exit 1 if it does not), runs `bash -c 'echo "node: $(hostname)"; nvidia-smi -L 2>/dev/null || echo "gpu: none"; bash /toolshed/test/run.sh'` in it by digest, the output shown as it runs and kept. The podman form is `podman run --rm --network none [--device nvidia.com/gpu=all when nvidia-smi is on PATH] <ref>`. The srun form is `srun <flags> --container-image=<ref with its first / as #>`. Then it writes `results/<name>/<version>.txt`: frontmatter `tool`, `version`, `image` (the resolved reference), `digest`, `runner` (`podman`, or `srun` and its flags), `host` (`hostname -f`), `started` (UTC, `date -u +%Y-%m-%dT%H:%M:%SZ`), `exit`, then the output. It exits with the test's exit code.
 
@@ -313,7 +313,7 @@ git commit -m "A contributor builds a tool's candidate for amd64 from committed 
 - Delete: `.github/actionlint.yaml`
 
 **Interfaces:**
-- Consumes: `check.py --registry` and `--candidate` (Task 2), `scripts/changed-tools` and `scripts/promote <repository> <candidate tag> <version tag>` (the original Task 2, unchanged).
+- Consumes: `check.py --registry` and `--candidate` (Task 2), `scripts/changed-tools` and `scripts/promote <repository> <candidate tag> <tested digest> <version tag>` (the original Task 2's, which now refuses unless the candidate tag still names the record's digest, and copies by that digest).
 - Produces: the jobs `check` and `promote`, nothing else; the required status check `check` on `main`.
 
 - [ ] **Step 1: Rewrite the workflow**
@@ -350,7 +350,7 @@ git push origin main
 
 - [ ] **Step 6 [human, or an agent with the user's go-ahead]: Require `check` on `main`**
 
-Run: `gh api -X PUT repos/brineylab/toolshed/branches/main/protection --input -` with `{"required_status_checks": {"strict": false, "contexts": ["check"]}, "enforce_admins": false, "required_pull_request_reviews": null, "restrictions": null}`.
+Run: `gh api -X PUT repos/brineylab/toolshed/branches/main/protection --input -` with `{"required_status_checks": {"strict": true, "contexts": ["check"]}, "enforce_admins": false, "required_pull_request_reviews": null, "restrictions": null}`.
 Expected: the response names `check` under `required_status_checks.contexts`.
 
 ---

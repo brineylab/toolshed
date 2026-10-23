@@ -16,14 +16,14 @@ fi
 """
 
 class PromoteTests(unittest.TestCase):
-    def promote(self, tags):
+    def promote(self, tags, tested="sha256:a"):
         d = Path(tempfile.mkdtemp())
         (d / "bin").mkdir(); (d / "tags").mkdir()
         (d / "bin" / "skopeo").write_text(FAKE); (d / "bin" / "skopeo").chmod(0o755)
         for tag, digest in tags.items():
             (d / "tags" / tag).write_text(digest)
         env = {**os.environ, "PATH": f"{d / 'bin'}:{os.environ['PATH']}", "FAKE_DIR": str(d / "tags"), "FAKE_LOG": str(d / "log")}
-        r = subprocess.run(["bash", str(SCRIPT), "ghcr.io/o/r/t", "pr-1-abc", "1.0.0"], env=env, capture_output=True, text=True)
+        r = subprocess.run(["bash", str(SCRIPT), "ghcr.io/o/r/t", "pr-1-abc", tested, "1.0.0"], env=env, capture_output=True, text=True)
         log = (d / "log").read_text() if (d / "log").exists() else ""
         copies = [l for l in log.splitlines() if l.startswith("copy")]
         return r.returncode, copies, r.stdout + r.stderr
@@ -31,7 +31,11 @@ class PromoteTests(unittest.TestCase):
     def test_an_unpublished_version_is_copied_from_the_candidate_with_its_digest(self):
         code, copies, _ = self.promote({"pr-1-abc": "sha256:a"})
         self.assertEqual(code, 0)
-        self.assertEqual(copies, ["copy --preserve-digests docker://ghcr.io/o/r/t:pr-1-abc docker://ghcr.io/o/r/t:1.0.0"])
+        self.assertEqual(copies, ["copy --preserve-digests docker://ghcr.io/o/r/t@sha256:a docker://ghcr.io/o/r/t:1.0.0"])
+    def test_a_candidate_rebuilt_after_its_test_is_refused(self):
+        code, copies, out = self.promote({"pr-1-abc": "sha256:b"}, tested="sha256:a")
+        self.assertEqual((code, copies), (1, []))
+        self.assertIn("the record tested sha256:a", out)
     def test_a_version_already_promoted_from_this_candidate_passes_without_copying(self):
         code, copies, out = self.promote({"pr-1-abc": "sha256:a", "1.0.0": "sha256:a"})
         self.assertEqual((code, copies), (0, []))

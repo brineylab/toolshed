@@ -62,6 +62,7 @@ jobs:
           for t in $tools; do
             VERSION=$(python3 -I -c "import sys; sys.path.insert(0, 'scripts'); import check, pathlib; print(check.frontmatter(pathlib.Path('tools/$t/SKILL.md'))['metadata']['version'])")
             TAG=$(python3 -I scripts/check.py --candidate "tools/$t" --registry "$REGISTRY/${GITHUB_REPOSITORY,,}")
-            scripts/promote "${TAG%:*}" "${TAG##*:}" "$VERSION"
+            TESTED=$(python3 -I -c "import sys; sys.path.insert(0, 'scripts'); import check, pathlib; print(check.frontmatter(pathlib.Path('results/$t/$VERSION.txt'))['digest'])")
+            scripts/promote "${TAG%:*}" "${TAG##*:}" "$TESTED" "$VERSION"
             echo "published: \`${TAG%:*}:$VERSION\` from \`${TAG##*:}\`" >> "$GITHUB_STEP_SUMMARY"
           done

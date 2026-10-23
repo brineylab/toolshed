@@ -84,6 +84,11 @@ class CandidateTests(unittest.TestCase):
     def test_a_record_of_another_digest_is_refused(self):
         record(self.root, digest="sha256:old")
         self.assertEqual(self.reasons(("sha256:a", "amd64")), ["results/esm2-650m/1.0.0.txt is of sha256:old, not the candidate sha256:a; test the current candidate"])
+    def test_a_record_with_bytes_that_are_not_utf8_still_reads(self):
+        record(self.root)
+        r = self.root / "results/esm2-650m/1.0.0.txt"
+        r.write_bytes(r.read_bytes() + b"\xff\xfe progress\n")
+        self.assertEqual(self.reasons(("sha256:a", "amd64")), [])
     def test_a_failed_record_is_refused(self):
         record(self.root, exit="1")
         self.assertEqual(self.reasons(("sha256:a", "amd64")), ["results/esm2-650m/1.0.0.txt shows exit 1, not 0"])

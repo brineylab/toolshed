@@ -21,18 +21,18 @@ tools/<name>/bin/            the wrapper program, only where upstream has none
 results/<name>/<version>.txt the record of a candidate's test
 scripts/check.py             a tool directory's rules, its candidate, its record, and whether its version is published
 scripts/changed-tools <range>  the tools a git diff range changed, for CI
-scripts/promote <repo> <candidate> <version>  copy a tested candidate to its version tag, never overwriting
+scripts/promote <repo> <candidate> <tested digest> <version>  copy the tested image to its version tag, never overwriting
 scripts/build <name>         build the candidate, <name>:src-<tree>, for amd64 from committed source
 scripts/push <name>          push it, and say whether its package is public
 scripts/test <name> podman|srun [flags]  test it by digest and write its record
-tests/test_check.py
+tests/                       unit tests of the scripts, with registry, podman, srun, and skopeo stubbed
 .github/workflows/tools.yml  check and promote, on hosted runners
 ```
 
 ## Commands
 
 ```bash
-python3 -I -m unittest discover tests          # check.py's unit test: the only test the shed has
+python3 -I -m unittest discover tests          # the scripts' unit tests: the only tests the shed has
 python3 -I scripts/check.py tools/<name>       # a tool's rules; add --registry ghcr.io/<owner>/<repo> for the version, candidate, and record
 scripts/build <name> && scripts/push <name>     # from committed source; a new package is made public by hand once
 scripts/test <name> srun --partition=<p> --gres=gpu:1 --time=00:30:00   # on a login node; or `podman` on a laptop
@@ -63,4 +63,4 @@ A tool exists because a question needed it. Do not add tools, commands, or optio
 
 ## Commits and pull requests
 
-A commit message is one sentence stating the behavior. A tool arrives as a pull request from a branch in this repository (a fork's pull request does not build). Merge with a merge commit (`gh pr merge --merge`): `promote` runs on the merge commit, and flyloft watches that check.
+A commit message is one sentence stating the behavior. A tool arrives as a pull request whose record is committed with it. Merge with a merge commit (`gh pr merge --merge`): `promote` runs on the merge commit, and flyloft watches that check.

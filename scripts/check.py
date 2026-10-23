@@ -2,7 +2,7 @@
 
     python3 -I scripts/check.py tools/<name>... [--registry ghcr.io/<owner>/<repo>]
     python3 -I scripts/check.py --candidate tools/<name>   prints <registry>/<name>:src-<tree>
-    python3 -I scripts/check.py --resolve tools/<name>     prints <registry>/<name>@<digest>
+    python3 -I scripts/check.py --resolve tools/<name>     prints <registry>/<name>@<digest>; exits 4 when not readable anonymously
 
 Checking exits 0 when every directory passes, else prints one `tools/<name>: <reason>`
 line per failure and exits 1. Without --registry the version, candidate, and record
@@ -36,7 +36,7 @@ def frontmatter(path: Path) -> dict:
 
     One pair of matching quotes around a value is removed. {} when there is no block.
     """
-    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    lines = path.read_text(encoding="utf-8-sig", errors="replace").splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
     out, nested = {}, None
@@ -211,7 +211,7 @@ def main() -> int:
         found = inspect(registry, d.name, tag)
         if found is None:
             print(f"candidate {tag} is not in the registry or not public", file=sys.stderr)
-            return 1
+            return 4  # distinct from a crash (1), so scripts/push can tell a private package from an error
         print(f"{registry}/{d.name}@{found[0]}")
         return 0
     failed = False
