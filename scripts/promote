@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# scripts/promote <repository> <candidate tag> <version tag>: copy the candidate to the version tag,
+# which is never overwritten. Re-running after a promote that already succeeded passes.
+set -euo pipefail
+[[ $# -eq 3 ]] || { echo "usage: scripts/promote <repository> <candidate tag> <version tag>" >&2; exit 2; }
+src="docker://$1:$2" dst="docker://$1:$3" err=$(mktemp)
+want=$(skopeo inspect --format '{{.Digest}}' "$src")
+if have=$(skopeo inspect --format '{{.Digest}}' "$dst" 2> "$err"); then
+  if [[ "$have" == "$want" ]]; then echo "$1:$3 already promoted from $2"; exit 0; fi
+  echo "$1:$3 is already published as a different image" >&2; exit 1
+fi
+grep -q "manifest unknown" "$err" || { cat "$err" >&2; exit 1; }
+skopeo copy --preserve-digests "$src" "$dst"

@@ -68,6 +68,8 @@ Any change under `tools/<name>/` bumps `metadata.version`, prose included. A pub
 4. Paste the output into the pull request, with where it ran.
 5. Someone other than you reviews it: does the skill describe what the Containerfile builds, does the test exercise every documented command, are the weights in the image, is every example a full command line, did the test pass where it ran. They merge with a merge commit, and CI publishes the version.
 
+A maintainer never approves the workflow run of a fork's pull request that changes `.github/`: for a pull request, GitHub runs the fork's own copy of the workflow, and it could send any job to the lab's runner.
+
 ## Weights behind a login
 
 For a gated Hugging Face repository, the build takes the token as a secret, never as an argument or a layer:

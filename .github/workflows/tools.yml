@@ -37,7 +37,8 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch -q origin "$BASE_REF"
-          echo "tools=$(scripts/changed-tools "origin/$BASE_REF...HEAD" | xargs)" >> "$GITHUB_OUTPUT"
+          tools=$(scripts/changed-tools "origin/$BASE_REF...HEAD")
+          echo "tools=${tools//$'\n'/ }" >> "$GITHUB_OUTPUT"
       - run: python3 -I -m unittest discover tests
       - env:
           TOOLS: ${{ steps.changed.outputs.tools }}
@@ -47,11 +48,16 @@ jobs:
           python3 -I scripts/check.py "${dirs[@]}" --registry "$REGISTRY/${GITHUB_REPOSITORY,,}"
 
   # Only a branch in this repository builds: only organization members can push one, so a
-  # fork's pull request never runs on the lab's machine. A candidate whose pull request closes
-  # unmerged stays in the registry as a dangling pr-<n> tag; delete it from the package's page
-  # if it matters.
+  # fork's pull request never runs on the lab's machine. On pull_request a fork's own copy of
+  # this file runs, so never approve the run of a fork's pull request that changes .github/.
+  # Each build pushes pr-<n> (the candidate people test) and pr-<n>-<head sha> (the one promote
+  # copies, so the published image is the merged source's). A candidate whose pull request
+  # closes unmerged stays in the registry; delete it from the package's page if it matters.
   build:
     needs: check
+    concurrency:
+      group: build-${{ github.event.number }}
+      cancel-in-progress: true
     if: >-
       github.event_name == 'pull_request'
       && github.event.pull_request.head.repo.full_name == github.repository
@@ -65,16 +71,19 @@ jobs:
       - env:
           TOOLS: ${{ needs.check.outputs.tools }}
           NUMBER: ${{ github.event.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           for t in $TOOLS; do
             IMAGE="$REGISTRY/${GITHUB_REPOSITORY,,}/$t:pr-$NUMBER"
             scripts/build "$t" "$IMAGE"
+            podman tag "$IMAGE" "$IMAGE-${HEAD_SHA:0:12}"
             podman push "$IMAGE"
-            echo "candidate: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+            podman push "$IMAGE-${HEAD_SHA:0:12}"
+            echo "candidate: \`$IMAGE\` (\`pr-$NUMBER-${HEAD_SHA:0:12}\`)" >> "$GITHUB_STEP_SUMMARY"
           done
       - if: always()
-        run: podman image prune -f --filter until=168h
+        run: podman image prune -a -f --filter until=168h
 
   promote:
     if: github.event_name == 'push'
@@ -91,14 +100,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BEFORE: ${{ github.event.before }}
         run: |
-          NUMBER=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number // empty')
-          [[ -n "$NUMBER" ]] || { echo "$GITHUB_SHA has no pull request, so no candidate to promote" >&2; exit 1; }
-          for t in $(scripts/changed-tools "$BEFORE" "$GITHUB_SHA"); do
+          tools=$(scripts/changed-tools "$BEFORE" "$GITHUB_SHA")
+          [[ -n "$tools" ]] || { echo "no tool to promote"; exit 0; }
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0] // empty | "\(.number) \(.head.sha)"')
+          [[ -n "$pr" ]] || { echo "$GITHUB_SHA has no pull request, so no candidate to promote" >&2; exit 1; }
+          read -r NUMBER HEAD_SHA <<< "$pr"
+          for t in $tools; do
             VERSION=$(python3 -I -c "import sys; sys.path.insert(0, 'scripts'); import check, pathlib; print(check.frontmatter(pathlib.Path('tools/$t/SKILL.md'))['metadata']['version'])")
-            REPO="docker://$REGISTRY/${GITHUB_REPOSITORY,,}/$t"
-            if skopeo inspect "$REPO:$VERSION" > /dev/null 2>&1; then
-              echo "$t:$VERSION already published" >&2; exit 1
-            fi
-            skopeo copy --preserve-digests "$REPO:pr-$NUMBER" "$REPO:$VERSION"
-            echo "published: \`${REPO#docker://}:$VERSION\` from pr-$NUMBER" >> "$GITHUB_STEP_SUMMARY"
+            scripts/promote "$REGISTRY/${GITHUB_REPOSITORY,,}/$t" "pr-$NUMBER-${HEAD_SHA:0:12}" "$VERSION"
+            echo "published: \`$REGISTRY/${GITHUB_REPOSITORY,,}/$t:$VERSION\` from pr-$NUMBER-${HEAD_SHA:0:12}" >> "$GITHUB_STEP_SUMMARY"
           done
