@@ -18,22 +18,24 @@ tools/<name>/SKILL.md        the skill: what the tool is for, how to call it, wh
 tools/<name>/Containerfile
 tools/<name>/test/run.sh     plus a tiny fixture; exit 0 iff the tool works
 tools/<name>/bin/            the wrapper program, only where upstream has none
-scripts/check.py             a tool directory's rules, and whether its version is published
+results/<name>/<version>.txt the record of a candidate's test
+scripts/check.py             a tool directory's rules, its candidate, its record, and whether its version is published
 scripts/changed-tools <range>  the tools a git diff range changed, for CI
 scripts/promote <repo> <candidate> <version>  copy a tested candidate to its version tag, never overwriting
-scripts/build <name> <image>
-scripts/test <image>
+scripts/build <name>         build the candidate, <name>:src-<tree>, for amd64 from committed source
+scripts/push <name>          push it, and say whether its package is public
+scripts/test <name> podman|srun [flags]  test it by digest and write its record
 tests/test_check.py
-.github/workflows/tools.yml  check, build (lab runner), promote
+.github/workflows/tools.yml  check and promote, on hosted runners
 ```
 
 ## Commands
 
 ```bash
 python3 -I -m unittest discover tests          # check.py's unit test: the only test the shed has
-python3 -I scripts/check.py tools/<name>       # a tool's rules; add --registry ghcr.io/<owner>/<repo> to check the version
-scripts/build <name> ghcr.io/brineylab/toolshed/<name>:dev
-scripts/test ghcr.io/brineylab/toolshed/<name>:dev   # the image's own test, --network none
+python3 -I scripts/check.py tools/<name>       # a tool's rules; add --registry ghcr.io/<owner>/<repo> for the version, candidate, and record
+scripts/build <name> && scripts/push <name>     # from committed source; a new package is made public by hand once
+scripts/test <name> srun --partition=<p> --gres=gpu:1 --time=00:30:00   # on a login node; or `podman` on a laptop
 ```
 
 ## Rules a tool must keep
@@ -49,10 +51,10 @@ scripts/test ghcr.io/brineylab/toolshed/<name>:dev   # the image's own test, --n
 
 ## Rules the shed keeps
 
-- `scripts/` is Python 3.11 stdlib (run with `python3 -I`) or bash with `set -euo pipefail`. No third-party package in the repository itself.
+- `scripts/` is Python stdlib (run with `python3 -I`; `check.py` must run on Python 3.8, since login nodes run it) or bash with `set -euo pipefail` that works under bash 3.2. No third-party package in the repository itself.
 - Nothing in `scripts/` or `.github/` names the lab. The registry is `ghcr.io/${GITHUB_REPOSITORY,,}/<name>`, so a fork is its own shed with no edits.
-- CI never runs a tool's test: it has no GPU and no cluster. Whoever asks for the tool runs the candidate (`<name>:pr-<n>`) where it will be used and pastes the output into the pull request. An agent cannot claim a tool works from a local build alone.
-- No cluster ever builds an image. Builds happen on the lab's self-hosted runner, or locally with `scripts/build`.
+- CI runs on hosted runners and never builds, pulls, or runs an image. Whoever builds a tool tests its candidate where it will be used and commits the record; an agent cannot claim a tool works without one.
+- No cluster ever builds an image. The contributor builds with `scripts/build`, from committed source.
 - Every tool is reviewed by someone other than its builder before it merges.
 
 ## What not to build

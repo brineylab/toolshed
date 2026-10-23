@@ -1,8 +1,10 @@
 name: tools
 
-# check: every pull request, on a hosted runner. build: a pull request that changes a tool,
-# on the lab's runner, from a branch in this repository only. promote: a push to main that
-# changes a tool, copying the tested candidate to its version tag.
+# On GitHub's hosted runners only. CI never builds, pulls, or runs an image: it reads the
+# registry, and promote copies within it. check: every pull request, the changed tools' rules,
+# an unpublished version, a public amd64 candidate, and a record of that candidate's passing
+# test. promote: a push to main that changes a tool, copying the candidate the merge commit's
+# source names to its version tag.
 
 on:
   pull_request:
@@ -12,8 +14,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
-  pull-requests: read
 
 env:
   REGISTRY: ghcr.io
@@ -26,68 +26,26 @@ jobs:
   check:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    outputs:
-      tools: ${{ steps.changed.outputs.tools }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - id: changed
-        env:
+      - run: python3 -I -m unittest discover tests
+      - env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch -q origin "$BASE_REF"
           tools=$(scripts/changed-tools "origin/$BASE_REF...HEAD")
-          echo "tools=${tools//$'\n'/ }" >> "$GITHUB_OUTPUT"
-      - run: python3 -I -m unittest discover tests
-      - env:
-          TOOLS: ${{ steps.changed.outputs.tools }}
-        run: |
-          [[ -n "$TOOLS" ]] || { echo "no tool changed"; exit 0; }
-          dirs=(); for t in $TOOLS; do dirs+=("tools/$t"); done
+          [[ -n "$tools" ]] || { echo "no tool changed"; exit 0; }
+          dirs=(); for t in $tools; do dirs+=("tools/$t"); done
           python3 -I scripts/check.py "${dirs[@]}" --registry "$REGISTRY/${GITHUB_REPOSITORY,,}"
-
-  # Only a branch in this repository builds: only organization members can push one, so a
-  # fork's pull request never runs on the lab's machine. On pull_request a fork's own copy of
-  # this file runs, so never approve the run of a fork's pull request that changes .github/.
-  # Each build pushes pr-<n> (the candidate people test) and pr-<n>-<head sha> (the one promote
-  # copies, so the published image is the merged source's). A candidate whose pull request
-  # closes unmerged stays in the registry; delete it from the package's page if it matters.
-  build:
-    needs: check
-    concurrency:
-      group: build-${{ github.event.number }}
-      cancel-in-progress: true
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.pull_request.head.repo.full_name == github.repository
-      && needs.check.outputs.tools != ''
-    runs-on: [self-hosted, builder]
-    steps:
-      - uses: actions/checkout@v7
-      - env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: podman login "$REGISTRY" -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
-      - env:
-          TOOLS: ${{ needs.check.outputs.tools }}
-          NUMBER: ${{ github.event.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          for t in $TOOLS; do
-            IMAGE="$REGISTRY/${GITHUB_REPOSITORY,,}/$t:pr-$NUMBER"
-            scripts/build "$t" "$IMAGE"
-            podman tag "$IMAGE" "$IMAGE-${HEAD_SHA:0:12}"
-            podman push "$IMAGE"
-            podman push "$IMAGE-${HEAD_SHA:0:12}"
-            echo "candidate: \`$IMAGE\` (\`pr-$NUMBER-${HEAD_SHA:0:12}\`)" >> "$GITHUB_STEP_SUMMARY"
-          done
-      - if: always()
-        run: podman image prune -a -f --filter until=168h
 
   promote:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -97,16 +55,13 @@ jobs:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: skopeo login "$REGISTRY" -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
       - env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BEFORE: ${{ github.event.before }}
         run: |
           tools=$(scripts/changed-tools "$BEFORE" "$GITHUB_SHA")
           [[ -n "$tools" ]] || { echo "no tool to promote"; exit 0; }
-          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0] // empty | "\(.number) \(.head.sha)"')
-          [[ -n "$pr" ]] || { echo "$GITHUB_SHA has no pull request, so no candidate to promote" >&2; exit 1; }
-          read -r NUMBER HEAD_SHA <<< "$pr"
           for t in $tools; do
             VERSION=$(python3 -I -c "import sys; sys.path.insert(0, 'scripts'); import check, pathlib; print(check.frontmatter(pathlib.Path('tools/$t/SKILL.md'))['metadata']['version'])")
-            scripts/promote "$REGISTRY/${GITHUB_REPOSITORY,,}/$t" "pr-$NUMBER-${HEAD_SHA:0:12}" "$VERSION"
-            echo "published: \`$REGISTRY/${GITHUB_REPOSITORY,,}/$t:$VERSION\` from pr-$NUMBER-${HEAD_SHA:0:12}" >> "$GITHUB_STEP_SUMMARY"
+            TAG=$(python3 -I scripts/check.py --candidate "tools/$t" --registry "$REGISTRY/${GITHUB_REPOSITORY,,}")
+            scripts/promote "${TAG%:*}" "${TAG##*:}" "$VERSION"
+            echo "published: \`${TAG%:*}:$VERSION\` from \`${TAG##*:}\`" >> "$GITHUB_STEP_SUMMARY"
           done

@@ -2,12 +2,13 @@
 
 <!-- Which tool, which version, and the question it is for. -->
 
-## Test output
+## Record
 
-<!-- Where it ran (cluster and partition, or laptop), the command, and the pasted output of `bash /toolshed/test/run.sh` in the candidate image. -->
+<!-- results/<name>/<version>.txt, and where it ran (cluster and partition, or laptop). -->
 
 ## Checklist
 
 - [ ] `metadata.version` is bumped
+- [ ] Candidate pushed and its package public
 - [ ] Every example in the skill runs as written
 - [ ] The test passes with no network

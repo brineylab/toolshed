@@ -39,15 +39,26 @@ metadata:
 
 `test/run.sh` runs the commands the skill documents on a fixture of kilobytes with a known answer, and checks the answer. It exits 0 iff the tool works, writes only under `/tmp`, passes with no network, and fits in one GPU and 30 minutes. It checks the environment, the weights, and that the skill's examples are true, in one step.
 
-## Building and testing locally
+## Building, pushing, and testing
 
-```bash
-scripts/build <name> ghcr.io/brineylab/toolshed/<name>:dev
-scripts/test ghcr.io/brineylab/toolshed/<name>:dev
-python3 -I scripts/check.py tools/<name>
-```
+You build your tool's image, push it, and test it where it will be used. CI never builds or runs an image.
 
-`scripts/test` runs the test with `--network none`, with the GPU when the machine has one.
+1. **Commit** the tool directory. The image's tag is the candidate, `<name>:src-<tree>`, where `<tree>` is git's hash of the committed `tools/<name>/`, so `scripts/build` refuses uncommitted changes there.
+2. **Build:** `scripts/build <name>`. It builds for `linux/amd64` (the clusters' architecture, even on an Apple Silicon Mac), labels the image with this repository, and prints the candidate's name.
+3. **Try it:** `podman run --rm --network none <candidate> bash /toolshed/test/run.sh`.
+4. **Push:** `scripts/push <name>`. A new tool's first push creates its package, which GitHub makes private. `scripts/push` says so and prints the package's settings link: make it public there, once, then run `scripts/push <name>` again. It exits 0 when the candidate can be pulled with no login.
+5. **Test it where it will be used**, from a clone of your branch. On a cluster's login node:
+
+   ```bash
+   scripts/test <name> srun --partition=<partition> --gres=gpu:1 --time=00:30:00
+   ```
+
+   or `scripts/test <name> podman` where a laptop is where the tool will be used. It runs the candidate by digest and writes the record, `results/<name>/<version>.txt`: the digest, where it ran, the time, the output, and the exit code.
+6. **Commit the record:** `git add results/<name>/<version>.txt`.
+
+`python3 -I scripts/check.py tools/<name> --registry ghcr.io/<owner>/<repo>` runs CI's check on your machine.
+
+A change after testing changes the tree, so build, push, and test again. A prose-only change that rebuilds from cache to the same digest may copy its earlier record to the new version's path, since the same image was tested.
 
 ## Versions
 
@@ -55,20 +66,10 @@ Any change under `tools/<name>/` bumps `metadata.version`, prose included. A pub
 
 ## The pull request
 
-1. Push a branch to this repository, not a fork: a fork's pull request is checked but not built.
-2. CI checks the directory and builds the candidate, `ghcr.io/brineylab/toolshed/<name>:pr-<n>`; the build's summary names it.
-3. Test the candidate where you will use it. CI has no GPU and no cluster, so this is yours:
-
-   ```bash
-   srun --partition=<partition> --gres=gpu:1 --time=00:30:00 \
-     --container-image=ghcr.io#brineylab/toolshed/<name>:pr-<n> bash /toolshed/test/run.sh
-   ```
-
-   or `scripts/test ghcr.io/brineylab/toolshed/<name>:pr-<n>` on a laptop.
-4. Paste the output into the pull request, with where it ran.
-5. Someone other than you reviews it: does the skill describe what the Containerfile builds, does the test exercise every documented command, are the weights in the image, is every example a full command line, did the test pass where it ran. They merge with a merge commit, and CI publishes the version.
-
-A maintainer never approves the workflow run of a fork's pull request that changes `.github/`: for a pull request, GitHub runs the fork's own copy of the workflow, and it could send any job to the lab's runner.
+1. Push your branch and open the pull request.
+2. `check` runs: the tool's rules, an unpublished version, a public amd64 candidate for the branch's source, and a record of that candidate's passing test.
+3. A member other than you reviews it: does the skill describe what the Containerfile builds, does the test exercise every documented command, are the weights in the image, is every example a full command line, and does the record show the test ran where the tool will be used and gave the known answers. They merge with a merge commit.
+4. `promote` copies the candidate to `<name>:<version>`.
 
 ## Weights behind a login
 
@@ -78,4 +79,4 @@ For a gated Hugging Face repository, the build takes the token as a secret, neve
 RUN --mount=type=secret,id=hf_token HF_TOKEN=$(cat /run/secrets/hf_token) HF_HUB_OFFLINE=0 python -c "..."
 ```
 
-Locally, export `HF_TOKEN` before `scripts/build`. In CI, the repository secret `HF_TOKEN` is passed to the runner.
+Export `HF_TOKEN` before `scripts/build`, which passes it as the build secret. The token stays with whoever builds; it is never a GitHub secret.
