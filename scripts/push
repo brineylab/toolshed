@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# scripts/push <name>: push tools/<name>'s candidate. Exits 0 when it can then be pulled with no
+# credential, and 3, with the package's settings link, while its package is private.
+set -euo pipefail
+[[ $# -eq 1 ]] || { echo "usage: scripts/push <name>" >&2; exit 2; }
+cd "$(dirname "$0")/.."
+image=$(python3 -I scripts/check.py --candidate "tools/$1")
+podman push "$image"
+if ref=$(python3 -I scripts/check.py --resolve "tools/$1" 2> /dev/null); then
+  echo "$ref"; exit 0
+fi
+path=${image#*/}; owner=${path%%/*}; repo=${path#*/}; repo=${repo%%/*}
+echo "pushed, but the package is private: make it public at https://github.com/orgs/$owner/packages/container/$repo%2F$1/settings"
+exit 3

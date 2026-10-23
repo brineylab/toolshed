@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
-# scripts/build <name> <image>: build tools/<name> as <image>; HF_TOKEN, when set, is the build secret hf_token.
+# scripts/build <name>: build tools/<name> for linux/amd64 as its candidate, <registry>/<name>:src-<tree>,
+# from committed source only. HF_TOKEN, when set, is the build secret hf_token.
 set -euo pipefail
-[[ $# -eq 2 ]] || { echo "usage: scripts/build <name> <image>" >&2; exit 2; }
+[[ $# -eq 1 ]] || { echo "usage: scripts/build <name>" >&2; exit 2; }
 cd "$(dirname "$0")/.."
+if [[ -n "$(git status --porcelain -- "tools/$1")" ]]; then
+  echo "tools/$1 has uncommitted changes; commit them first" >&2; exit 1
+fi
+image=$(python3 -I scripts/check.py --candidate "tools/$1")
+repo=${image#*/}; repo=${repo%/"$1":*}
 secret=()
 [[ -n "${HF_TOKEN:-}" ]] && secret=(--secret id=hf_token,env=HF_TOKEN)
-podman build ${secret[@]+"${secret[@]}"} -t "$2" -f "tools/$1/Containerfile" "tools/$1"
+podman build --platform linux/amd64 --label "org.opencontainers.image.source=https://github.com/$repo" \
+  ${secret[@]+"${secret[@]}"} -t "$image" -f "tools/$1/Containerfile" "tools/$1"
+echo "$image"
