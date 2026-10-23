@@ -1,6 +1,6 @@
 # The toolshed
 
-Status: approved 2026-10-23, from the flyloft toolshed brainstorm. Change only with the lab.
+Status: approved 2026-10-23, from the flyloft toolshed brainstorm; amended 2026-10-23 so that a tool's builder, not the shed's CI, builds its image. Change only with the lab.
 
 ## What it is
 
@@ -21,7 +21,7 @@ The toolshed belongs to the lab, not to a project and not to flyloft. flyloft is
 
 A tool is built because a question required it, not because it might be useful, and it is kept because it is used. Every tool is tested where it will be used, on a tiny input with a known answer, and reviewed by someone other than its builder before it is published. A tool nobody calls, or whose test no longer passes, is retired rather than left to mislead.
 
-Tools arrive two ways. A person builds one with their own agent, following the guidance in this repository, and opens a pull request. A flyloft campaign that needs a tool the shed lacks builds it the same way: its implementer writes the tool, flyloft opens the pull request and runs the test as one of the campaign's runs, a critic reviews it, and flyloft merges. Either way the shed's CI builds the image and publishes the version.
+Tools arrive two ways. A person builds one with their own agent, following the guidance in this repository, and opens a pull request. A flyloft campaign that needs a tool the shed lacks builds it the same way: its implementer writes the tool, flyloft builds the image and runs the test as one of the campaign's runs, opens the pull request with the test's record, a critic reviews it, and flyloft merges. Either way whoever built the tool pushes its image and records its test, the shed's CI checks that the record is of that image, and merging publishes the version. Nothing in a pull request runs on the lab's machines.
 
 ## What it is not
 

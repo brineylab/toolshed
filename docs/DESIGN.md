@@ -1,6 +1,6 @@
 # The toolshed: Design
 
-Status: approved 2026-10-23. The plan is [plans/toolshed-a.md](plans/toolshed-a.md). The flyloft side (calling tools from a campaign, building one when the shed lacks it) is designed in flyloft's repository, `docs/design/toolshed.md`; §6 below is its summary.
+Status: approved 2026-10-23; amended 2026-10-23 so that contributors build and test candidates and CI never builds or runs one (§2). The plan is [plans/toolshed-a.md](plans/toolshed-a.md). The flyloft side (calling tools from a campaign, building one when the shed lacks it) is designed in flyloft's repository, `docs/design/toolshed.md`; §6 below is its summary.
 
 ## 1. A tool
 
@@ -38,41 +38,47 @@ Public, one directory per tool:
 
 ```
 README.md                 what the shed is; finding and running a tool from anywhere; installing the skills
-CONTRIBUTING.md           adding a tool: the layout, the conventions, the test, versions, the review
-docs/                     this design, the vision, the plans, the builder's setup
+CONTRIBUTING.md           adding a tool: the layout, the conventions, building, the test and its record, versions, the review
+docs/                     this design, the vision, the plans
 tools/<name>/SKILL.md     the skill (§1)
 tools/<name>/Containerfile
 tools/<name>/test/        run.sh and a tiny fixture: exits 0 iff the tool works
 tools/<name>/bin/         the wrapper program, where upstream has none
-scripts/check.py          a tool directory's rules, and whether its version is already published
-scripts/build <name> <image>   podman build
-scripts/test <image>      the image's test with podman on this machine
+results/<name>/<version>.txt   the record of the candidate's test: digest, where it ran, output, exit code
+scripts/check.py          a tool directory's rules, its candidate, its record, and whether its version is already published
+scripts/build <name>      podman build for linux/amd64, tagged as the candidate
+scripts/push <name>       push the candidate to the registry
+scripts/test <name>       the candidate's test, run by digest where the tool will be used, written to its record
+scripts/promote           copy a candidate to its version tag, never overwriting
 .github/workflows/tools.yml
 ```
 
 **Versions.** `metadata.version` is the image tag, `ghcr.io/<owner>/<repo>/<name>:<version>`, with the owner and repository from the shed's own GitHub path, so a fork is its own shed and registry with no edits. A published tag is never overwritten: any change under `tools/<name>/` bumps the version, prose included, and CI refuses a pull request whose version is already in the registry. Callers always name a version, never a floating tag.
 
-**The registry** is GHCR. Packages are public: free in storage and transfer, and pulled by enroot on cluster nodes and podman on laptops with no credential. The organization's package default is set to public once. A tool whose license forbids redistribution is the exception, handled when it arrives (likely a squashfs on the cluster's shared storage), not designed for now.
+**The candidate** is the image a pull request proposes to publish, tagged `<name>:src-<tree>`, where `<tree>` is git's hash of the committed `tools/<name>/` directory (`git rev-parse HEAD:tools/<name>`). The tag names the source, so the image a pull request tested is the image its source describes, whatever else the branch does, and a rebase that leaves the directory alone leaves the tag alone. `scripts/build` refuses a directory with uncommitted changes, since the tag would then name source the image was not built from.
 
-**The test** is the documented commands on a tiny fixture with a known answer, run inside the built image: it checks the environment, the weights, and that the skill's examples are true, in one step. It must pass on a cluster under pyxis, because that is where an image must work and where it differs from `podman run`: entrypoints ignored, home mounted, the job's environment propagated, the node's driver. So the test is not CI's: CI has no GPU and no cluster. Whoever asks for the tool runs it where they will use it. A flyloft campaign runs it as one of its runs (§6); a person runs `srun --container-image=... bash /toolshed/test/run.sh` on their cluster, or the `podman run` form on a laptop, and pastes the output into the pull request. One GPU and 30 minutes is the expectation; the test passes with no network.
+**The registry** is GHCR. Packages are public: free in storage and transfer, and pulled by enroot on cluster nodes and podman on laptops with no credential. GitHub makes a new package private on its first push and offers no setting per package or per repository and no API to change that, and the organization's other packages stay as their owners set them. So **a new tool's package is made public by hand, once**: after the first push of a tool's first candidate, the member whose credential pushed it (for flyloft, the campaign's owner) opens the package's settings and sets its visibility to public, before the candidate is tested, since the cluster pulls with no credential. Later versions of the tool are tags in the same package and need nothing. `scripts/push` checks with an anonymous pull after pushing and, while the package is private, prints the package's settings link and says so; `check` reports a candidate it cannot read anonymously as missing or not public. `scripts/build` labels each image with the shed's repository (`org.opencontainers.image.source`), which links a new package to the repository so that `promote`'s workflow token can write to it. A tool whose license forbids redistribution is the exception, handled when it arrives (likely a squashfs on the cluster's shared storage), not designed for now.
 
-**The builder** is a self-hosted GitHub Actions runner on a lab machine, as its own OS user with podman and nothing else: no cluster key, no other service's configuration, no tokens but the workflow's own. Builds go there because images with weights are 5 to 25 GB, beyond a hosted runner's disk. A cluster is never asked to build: rootless podman on compute nodes is the one thing this design does not require of it, and enroot cannot build at all.
+**Building is the contributor's.** Whoever writes a tool builds it and pushes its candidate: a person on their own machine, flyloft on its own host (§6). Images with weights are 5 to 25 GB, which is why the building happens where there is disk, and why it is not CI's. Every image is `linux/amd64`, the clusters' architecture, whatever machine builds it. Pushing takes the contributor's own GitHub credential with package write access; only organization members can push to the organization's packages. A cluster is never asked to build: rootless podman on compute nodes is the one thing this design does not require of it, and enroot cannot build at all.
 
-**The workflow**, `tools.yml`, with the tools a pull request changes as its unit:
+**The test** is the documented commands on a tiny fixture with a known answer, run inside the candidate: it checks the environment, the weights, and that the skill's examples are true, in one step. It must pass where the tool will be used, which for most tools is a cluster under pyxis, because that is where an image differs from `podman run`: entrypoints ignored, home mounted, the job's environment propagated, the node's driver. So the test is not CI's: CI has no GPU and no cluster. One GPU and 30 minutes is the expectation; the test passes with no network.
 
-- `check`, on a hosted runner, on every pull request: the skill's frontmatter parses and its name is the directory's; a Containerfile and `test/run.sh` exist; the version is not in the registry.
-- `build`, on the self-hosted runner, only for a pull request whose branch is in this repository (`github.event.pull_request.head.repo.full_name == github.repository`): build, then push as `<name>:pr-<number>`, the candidate. A candidate is pullable like any published image, so the test can run against it anywhere.
-- `promote`, on a push to `main`, for the tools the push changed: the candidate tag copied to the version tag (`skopeo copy` within the registry writes a manifest and moves no layers). It runs on the push, not on the pull request's close, so that its check attaches to the merge commit, which is what flyloft watches.
+**The record.** `scripts/test <name>` resolves the candidate's tag to its digest, runs `bash /toolshed/test/run.sh` in the image by that digest (under `srun` with pyxis on a cluster's login node, or `podman run` on a laptop), and writes `results/<name>/<version>.txt`: the digest, the machine or cluster and partition, the GPU, the time, the command, its full output, and its exit code. Its job flags (partition, account, GPU request) are the caller's, passed through to `srun` and written into the record. Running by digest assumes the cluster's enroot accepts `@sha256:` references; the first tool's test confirms it, and where it does not, `scripts/test` runs the tag and records the digest it resolved before and after the job, failing if they differ. The contributor commits the record to the pull request. The record lives outside `tools/<name>/`, so committing it does not change the candidate's tag. A record is a statement by whoever ran the test, not a proof; it guards against honest mistakes (testing an older image, not testing, testing somewhere the tool will not be used), which is what a shed with only the lab's contributors needs. A prose-only change that rebuilds from cache to the same digest can carry its earlier record forward under the new version, since the same image was tested.
 
-**Guards.** Only organization members can push branches into the repository, so only their pull requests build; a fork's pull request gets `check` and nothing runs on the lab's machine. The repository setting that requires approval for all outside collaborators' workflows is a second belt. A lab member who wants an outsider's tool pushes the branch into the repository. The runner builds whatever a member's Containerfile says, as its own user, with the disk and network that implies and nothing more.
+**The workflow**, `tools.yml`, on hosted runners only, with the tools a pull request changes as its unit. It never builds, pulls, or runs an image; it reads the registry.
+
+- `check`, on every pull request: the skill's frontmatter parses and its name is the directory's; a Containerfile and `test/run.sh` exist; the version is not in the registry; the candidate `src-<tree>` is in the registry and is `linux/amd64`; the record exists for this version, names the candidate's digest, and shows exit code 0.
+- `promote`, on a push to `main`, for the tools the push changed: the candidate tag, computed from the merge commit's tree, copied to the version tag (`skopeo copy` within the registry writes a manifest and moves no layers). A version tag that already holds the candidate's digest passes, so a re-run after a partial failure completes; one that holds anything else fails. It runs on the push, not on the pull request's close, so that its check attaches to the merge commit, which is what flyloft watches.
+
+**Guards.** Nothing a pull request contains runs on the lab's machines: CI builds nothing and runs nothing but the check script and its unit test, on GitHub's hosted runners. A fork's pull request gets `check` with a read-only token and the public registry. What a published image contains is what an organization member built and pushed, as for any of the lab's code. The trust boundary is the organization's membership. `main` requires `check` to pass and takes no other required approval: flyloft merges as the campaign's owner, a member, after its critic's review, and a person's pull request is merged by a member other than its builder (§3).
 
 **From a laptop.** The skill's `podman run` line is the interface. To give an agent the shed's skills: clone the repository and symlink each `tools/<name>` into the harness's skills directory (the README has the line). No `toolshed` command until the prose proves insufficient.
 
-**Weights behind a login** (Hugging Face gated repositories): the Containerfile takes the token as a build secret from the repository's secrets.
+**Weights behind a login** (Hugging Face gated repositories): the Containerfile takes the token as a build secret, which `scripts/build` passes from the builder's `HF_TOKEN`. The token stays with whoever builds; it is never a GitHub secret.
 
 ## 3. Review
 
-Every tool is reviewed by someone other than its builder before it is published: a lab member for a person's pull request, a flyloft critic for a campaign's. The reviewer asks: does the skill describe what the Containerfile builds, and is every command it documents exercised by the test; are the weights fetched at build time, so the image is self-contained; is every example a full command line; is the version new and the name the directory's; did the test pass where it was run, and does its output show the commands ran. The reviewer never asks for more than a working, truthfully documented tool.
+Every tool is reviewed by someone other than its builder before it is published: a lab member for a person's pull request, a flyloft critic for a campaign's. The reviewer asks: does the skill describe what the Containerfile builds, and is every command it documents exercised by the test; are the weights fetched at build time, so the image is self-contained; is every example a full command line; is the version new and the name the directory's; did the test run where the tool will be used, and does the record's output show the commands ran and gave the known answers. The reviewer never asks for more than a working, truthfully documented tool.
 
 ## 4. The first tools
 
@@ -80,11 +86,11 @@ Every tool is reviewed by someone other than its builder before it is published:
 
 ## 5. Tests
 
-The shed has no test tier of its own beyond `scripts/check.py`'s unit test: it is a repository, a workflow, and tools. Its acceptance is live, in [plans/toolshed-a.md](plans/toolshed-a.md): a pull request builds on the lab's runner and pushes its candidate; the candidate's test passes on the cluster under pyxis; merge promotes the tag; the published image runs from a laptop with the skill's line; a changed tool without a version bump is refused; a fork's pull request runs nothing on the lab's machine.
+The shed has no test tier of its own beyond the unit tests of its scripts: it is a repository, a workflow, and tools. Its acceptance is live, in [plans/toolshed-a.md](plans/toolshed-a.md): a contributor builds and pushes a candidate and its test passes on the cluster under pyxis, writing its record; `check` passes the pull request; merge promotes the tag; the published image runs from a laptop with the skill's line; a changed tool without a version bump is refused; a pull request whose record names another digest, or whose candidate is missing, is refused.
 
 ## 6. How flyloft uses the shed
 
-Designed in flyloft's `docs/design/toolshed.md`. In short: flyloft keeps a clone at `origin/main` and renders the catalogue (name, version, description, skill path) into its implementers' assignments; a run may name `tool="name@version"`, and its job then runs inside the tool's image with the work directory mounted; an implementer that needs a tool the shed lacks writes it in a worktree of the shed and submits it; flyloft pushes the branch, opens the pull request, waits for `build`, runs `bash tools/<name>/test/run.sh` inside the candidate image as a run of the campaign on the campaign's cluster and budget, has its critic review the pull request and the test run, merges with a merge commit, and watches the merge commit's `promote` check; then the campaign calls the published version. One tool build at a time per campaign.
+Designed in flyloft's `docs/design/toolshed.md`. In short: flyloft keeps a clone at `origin/main` and renders the catalogue (name, version, description, skill path) into its implementers' assignments; a run may name `tool="name@version"`, and its job then runs inside the tool's image with the work directory mounted; an implementer that needs a tool the shed lacks writes it in a worktree of the shed and submits it; flyloft builds and pushes the candidate on its host; for a new tool, waits for its owner to make the package public, posting the package's settings link and checking with an anonymous pull each tick; runs `scripts/test` against it as a run of the campaign on the campaign's cluster and budget, commits the record, pushes the branch and opens the pull request, waits for `check`, has its critic review the pull request and the record, merges with a merge commit, and watches the merge commit's `promote` check; then the campaign calls the published version. One tool build at a time per campaign.
 
 ## 7. Deferred
 
@@ -98,3 +104,6 @@ Designed in flyloft's `docs/design/toolshed.md`. In short: flyloft keeps a clone
 | A tool whose test needs more than one GPU or 30 minutes | When one is built |
 | Retiring tools nobody calls: a count of callers | When the shed is big enough to need one |
 | Running the test on CPU in CI where a tool allows it | When a broken candidate reaches a cluster often enough to matter |
+| A shed in its own organization whose package creation is public only, so a new tool's package needs no hand step | When making packages public by hand is seen to hold up campaigns |
+| Signed test records (an in-toto test-result attestation attached to the candidate with cosign), so a record proves who vouched for it | When contributors from outside the lab arrive |
+| Builds by CI on a builder the lab controls, so an image's contents do not depend on its contributor's machine | When contributors from outside the lab arrive, or builds by different machines are seen to differ |
