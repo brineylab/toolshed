@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# scripts/changed-tools <git diff range>: the tools whose directories changed and still exist, one per line.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+git diff --name-only "$@" -- tools/ | cut -d/ -f2 | sort -u | while read -r t; do
+  if [[ -d "tools/$t" ]]; then echo "$t"; fi
+done

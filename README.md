@@ -44,3 +44,5 @@ Every image carries its own test: `bash /toolshed/test/run.sh` inside it exits 0
 ## Versions
 
 A tool's version is its image tag, and a published tag is never overwritten. Always name a version; there is no `latest`.
+
+CI checks every pull request, refusing a changed tool whose version is already published. It builds a pull request's changed tools on the lab's runner as `<name>:pr-<n>`, and on merge copies that tested candidate to `<name>:<version>`.

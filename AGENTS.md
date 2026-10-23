@@ -19,6 +19,7 @@ tools/<name>/Containerfile
 tools/<name>/test/run.sh     plus a tiny fixture; exit 0 iff the tool works
 tools/<name>/bin/            the wrapper program, only where upstream has none
 scripts/check.py             a tool directory's rules, and whether its version is published
+scripts/changed-tools <range>  the tools a git diff range changed, for CI
 scripts/build <name> <image>
 scripts/test <image>
 tests/test_check.py
