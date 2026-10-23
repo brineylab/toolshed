@@ -33,7 +33,7 @@ metadata:
 ---
 ```
 
-`name` is the directory's name, `description` is the line the catalogue shows, and `metadata.version` is the image tag. Then the body, in this order: `Image:` (the full reference with its version), `## Commands`, `## Inputs and outputs`, `## Compute` (GPUs, memory, a measured rate), `## Running it` (the laptop line and the cluster line, with real commands), `## Gotchas`. No declared parameter lists: prose, until agents are seen misusing commands from it.
+`name` is the directory's name, `description` is the line the catalogue shows, and `metadata.version` is the image tag. The frontmatter is YAML: quote the description in double quotes when it holds a colon. Then the body, in this order: `Image:` (the full reference with its version), `## Commands`, `## Inputs and outputs`, `## Compute` (GPUs, memory, a measured rate), `## Running it` (the laptop line and the cluster line, with real commands), `## Gotchas`. No declared parameter lists: prose, until agents are seen misusing commands from it.
 
 ## The test
 

@@ -200,7 +200,7 @@ Steps 1 to 3 as prose a lab operator follows, plus: how to see the runner's logs
 
 - [ ] **Step 5: Write the `hello` tool**
 
-`tools/hello/SKILL.md`: `name: hello`, `description: Checks that this machine or cluster runs toolshed images: prints the OS, the user, and the GPU it sees. Reach for it first on a new cluster, before any real tool.`, `metadata: {version: 1.0.0}`; body: Image, Commands (`hello` prints three lines: `os=<id>`, `user=<uid>`, `gpu=<nvidia-smi name or none>`), Running it (the laptop line and the `srun --container-image=ghcr.io#brineylab/toolshed/hello:1.0.0 hello` line), Gotchas (under pyxis the user is the node user, not root).
+`tools/hello/SKILL.md`: `name: hello`, `description: "Checks that this machine or cluster runs toolshed images: prints the OS, the user, and the GPU it sees. Reach for it first on a new cluster, before any real tool."`, `metadata: {version: 1.0.0}`; body: Image, Commands (`hello` prints three lines: `os=<id>`, `user=<uid>`, `gpu=<nvidia-smi name or none>`), Running it (the laptop line and the `srun --container-image=ghcr.io#brineylab/toolshed/hello:1.0.0 hello` line), Gotchas (under pyxis the user is the node user, not root).
 
 `tools/hello/Containerfile`: `FROM docker.io/library/alpine:3.20`; `COPY bin/hello /usr/local/bin/hello`; `RUN chmod +x /usr/local/bin/hello`; `COPY test /toolshed/test`. `tools/hello/bin/hello`: a `sh` script printing the three lines (`gpu=` from `nvidia-smi --query-gpu=name --format=csv,noheader` when present, else `none`). `tools/hello/test/run.sh`: `set -eu; out=$(hello); echo "$out"; case "$out" in *"os="*"user="*"gpu="*) ;; *) exit 1;; esac`.
 

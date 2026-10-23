@@ -17,7 +17,7 @@ A tool is **an OCI image whose entrypoint is nothing and whose PATH holds a comm
 ```markdown
 ---
 name: esm2-650m
-description: ESM-2 650M protein language model: per-residue embeddings, pseudo-log-likelihoods, and masked-position infilling for protein sequences. Reach for it for a sequence score or an embedding when a structure is not needed.
+description: "ESM-2 650M protein language model: per-residue embeddings, pseudo-log-likelihoods, and masked-position infilling for protein sequences. Reach for it for a sequence score or an embedding when a structure is not needed."
 metadata:
   version: 1.0.0
 ---
