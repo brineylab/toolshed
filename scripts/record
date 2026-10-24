@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# scripts/record <name> <image@digest> <exit> <runner> <host> <started> < output: write tools/<name>'s
+# test record, results/<name>/<version>.txt, from a test's output on stdin. scripts/test calls it; so
+# does a caller that ran the test some other way (flyloft, through sbatch), so the format has one owner.
+set -euo pipefail
+usage() { echo "usage: scripts/record <name> <image@sha256:...> <exit> <runner> <host> <started> < output" >&2; exit 2; }
+[[ $# -eq 6 ]] || usage
+name=$1 ref=$2 code=$3 runner=$4 host=$5 started=$6
+[[ "$ref" == *@sha256:* ]] || { echo "scripts/record: $ref is not named by digest" >&2; usage; }
+[[ "$code" =~ ^[0-9]+$ ]] || { echo "scripts/record: exit $code is not a number" >&2; usage; }
+cd "$(dirname "$0")/.."
+version=$(python3 -I -c "import sys; sys.path.insert(0, 'scripts'); import check, pathlib; print(check.frontmatter(pathlib.Path('tools/$name/SKILL.md'))['metadata']['version'])")
+mkdir -p "results/$name"
+{
+  printf -- '---\n'
+  printf 'tool: %s\nversion: %s\nimage: %s\ndigest: %s\n' "$name" "$version" "$ref" "${ref#*@}"
+  printf 'runner: %s\nhost: %s\nstarted: %s\nexit: %s\n' "$runner" "$host" "$started" "$code"
+  printf -- '---\n'
+  cat
+} > "results/$name/$version.txt"
+echo "results/$name/$version.txt"
