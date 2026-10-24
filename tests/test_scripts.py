@@ -35,7 +35,7 @@ class ScriptTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp)
         self.repo, self.bin = self.tmp / "repo", self.tmp / "bin"
         (self.repo / "scripts").mkdir(parents=True); self.bin.mkdir()
-        for s in ("build", "push", "test"):
+        for s in ("build", "push", "test", "record"):
             shutil.copy(SCRIPTS / s, self.repo / "scripts")
         (self.repo / "scripts" / "check.py").write_text(FAKE_CHECK)
         for prog in ("podman", "srun"):
@@ -93,6 +93,23 @@ class ScriptTests(unittest.TestCase):
         r = self.run_script("test", "t", "podman", FAKE_PUBLIC="1", FAKE_EXIT="7")
         self.assertEqual(r.returncode, 7)
         self.assertEqual(check.frontmatter(self.repo / "results/t/1.0.0.txt")["exit"], "7")
+    def test_record_writes_the_record_from_output_on_stdin(self):
+        r = subprocess.run(["bash", str(self.repo / "scripts" / "record"), "t", "ghcr.io/owner/repo/t@sha256:d", "0",
+                            "sbatch --partition=gpu", "slinky", "2026-10-23T12:00:00Z"],
+                           input="node: gpu-1\nok\n", capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        path = self.repo / "results/t/1.0.0.txt"
+        self.assertEqual(check.frontmatter(path), {"tool": "t", "version": "1.0.0", "image": "ghcr.io/owner/repo/t@sha256:d", "digest": "sha256:d",
+                                                   "runner": "sbatch --partition=gpu", "host": "slinky", "started": "2026-10-23T12:00:00Z", "exit": "0"})
+        self.assertTrue(path.read_text().endswith("---\nnode: gpu-1\nok\n"))
+    def test_record_refuses_an_image_not_named_by_digest(self):
+        r = subprocess.run(["bash", str(self.repo / "scripts" / "record"), "t", "ghcr.io/owner/repo/t:src-abc", "0", "podman", "h", "now"],
+                           input="ok\n", capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2); self.assertFalse((self.repo / "results/t/1.0.0.txt").exists())
+    def test_record_refuses_an_exit_that_is_not_a_number(self):
+        r = subprocess.run(["bash", str(self.repo / "scripts" / "record"), "t", "ghcr.io/owner/repo/t@sha256:d", "ok", "podman", "h", "now"],
+                           input="ok\n", capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
     def test_test_refuses_a_candidate_it_cannot_resolve(self):
         self.assertEqual(self.run_script("test", "t", "podman").returncode, 1); self.assertEqual(self.log(), [])
 

@@ -25,6 +25,7 @@ scripts/promote <repo> <candidate> <tested digest> <version>  copy the tested im
 scripts/build <name>         build the candidate, <name>:src-<tree>, for amd64 from committed source
 scripts/push <name>          push it, and say whether its package is public
 scripts/test <name> podman|srun [flags]  test it by digest and write its record
+scripts/record <name> <image@digest> <exit> <runner> <host> <started> < output  write a record from a test run some other way
 tests/                       unit tests of the scripts, with registry, podman, srun, and skopeo stubbed
 .github/workflows/tools.yml  check and promote, on hosted runners
 ```

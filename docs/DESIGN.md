@@ -49,6 +49,7 @@ scripts/check.py          a tool directory's rules, its candidate, its record, a
 scripts/build <name>      podman build for linux/amd64, tagged as the candidate
 scripts/push <name>       push the candidate to the registry
 scripts/test <name>       the candidate's test, run by digest where the tool will be used, written to its record
+scripts/record            a record from a test's output, for scripts/test and for a caller that ran the test itself (flyloft, through sbatch)
 scripts/promote           copy a candidate to its version tag, never overwriting
 .github/workflows/tools.yml
 ```
