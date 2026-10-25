@@ -61,7 +61,7 @@ class ScriptTests(unittest.TestCase):
         self.assertEqual(r.returncode, 1); self.assertIn("tools/t has uncommitted changes", r.stderr); self.assertEqual(self.log(), [])
     def test_build_targets_amd64_with_the_source_label(self):
         self.assertEqual(self.run_script("build", "t").returncode, 0)
-        self.assertEqual(self.log(), ["build --platform linux/amd64 --label org.opencontainers.image.source=https://github.com/owner/repo -t ghcr.io/owner/repo/t:src-abc -f tools/t/Containerfile tools/t"])
+        self.assertEqual(self.log(), ["build --platform linux/amd64 --label org.opencontainers.image.source=https://github.com/owner/repo --annotation org.opencontainers.image.source=https://github.com/owner/repo -t ghcr.io/owner/repo/t:src-abc -f tools/t/Containerfile tools/t"])
     def test_push_says_when_the_package_is_private(self):
         r = self.run_script("push", "t")
         self.assertEqual(r.returncode, 3)
