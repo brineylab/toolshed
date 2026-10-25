@@ -13,7 +13,7 @@ Image: `ghcr.io/brineylab/toolshed/hello:1.0.0`
 `hello` prints three lines and exits 0:
 
 ```
-os=<the image's OS id, alpine>
+os=<the image's OS id, debian>
 user=<the uid the container runs as>
 gpu=<the first GPU's name from nvidia-smi, or none>
 ```
@@ -42,5 +42,5 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/hello:1.0.0 hello
 
 ## Gotchas
 
-- Under pyxis the user is the node user (`user=` your uid), not root as under podman.
-- `gpu=none` on a GPU node means the job did not request one (`--gres=gpu:1`) or the node's driver is not visible in the container.
+- `user=` is 0 under podman and under pyxis on a cluster that maps you to root in the container (slinky does); files written to a mount are still yours.
+- `gpu=none` on a GPU node means the job did not request one (`--gres=gpu:1`) or the node's driver is not visible in the container. Enroot mounts the driver only into an image that sets `NVIDIA_VISIBLE_DEVICES`, and its `nvidia-smi` needs glibc, so hello is built on debian, not alpine.

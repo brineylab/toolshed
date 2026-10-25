@@ -15,6 +15,7 @@ Copy the nearest sibling's directory to `tools/<name>/`, where `<name>` is lower
 
 - **The environment first, the weights last**, then `COPY test /toolshed/test` as the last line. Size variants then share their base layers.
 - **Weights are fetched at build time, never at run time.** Set `HF_HUB_OFFLINE=1` in the image, and `TRANSFORMERS_OFFLINE=1` where transformers is used.
+- **A GPU tool sets `NVIDIA_VISIBLE_DEVICES=all` and `NVIDIA_DRIVER_CAPABILITIES=compute,utility`** in the image, on a glibc base. NVIDIA's CUDA images already do; a plain `python:*-slim` does not, and under pyxis it then sees no GPU though podman does.
 - **Pin everything**: the base image and every package, at the versions current when you build.
 - **One image per size variant.** `esm2-650m` and a future `esm2-3b` are two tools; the second is a copy of the first with the weights line and the skill's numbers changed.
 - **A wrapper only where upstream has none.** Where upstream is a library, `bin/` holds one short program exposing what the lab wants as subcommands (`esm2 pll`, `esm2 embed`). Where upstream ships a program (`boltz predict`), the image makes it runnable and the skill says which commands matter.
