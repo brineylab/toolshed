@@ -11,6 +11,9 @@ image=$(python3 -I scripts/check.py --candidate "tools/$1")
 repo=${image#*/}; repo=${repo%/"$1":*}
 secret=()
 [[ -n "${HF_TOKEN:-}" ]] && secret=(--secret id=hf_token,env=HF_TOKEN)
-podman build --platform linux/amd64 --label "org.opencontainers.image.source=https://github.com/$repo" \
+# The label and the manifest annotation both name this repository: GHCR links a new package by the
+# annotation, which a base image's own annotation (alpine's names alpine's repository) would otherwise win.
+source="org.opencontainers.image.source=https://github.com/$repo"
+podman build --platform linux/amd64 --label "$source" --annotation "$source" \
   ${secret[@]+"${secret[@]}"} -t "$image" -f "tools/$1/Containerfile" "tools/$1"
 echo "$image"
