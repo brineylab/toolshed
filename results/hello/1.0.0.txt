@@ -1,0 +1,18 @@
+---
+tool: hello
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/hello@sha256:ecce789aaa36c3f4af9ceb69497ae1c3a0180562dd56bb04ae836596bd53666f
+digest: sha256:ecce789aaa36c3f4af9ceb69497ae1c3a0180562dd56bb04ae836596bd53666f
+runner: srun -p l40s --gres=gpu:1 --time=00:10:00
+host: slurm-login-slinky-db689f69b-57nbw
+started: 2026-10-25T05:18:37Z
+exit: 0
+---
+srun: note: containerized steps start in your home (/mnt/home/briney), not the directory you submitted from (~/toolshed). Relative paths in an srun line resolve in your home; pass --container-workdir="$(pwd -P)" or use absolute paths.
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/hello@sha256:ecce789aaa36c3f4af9ceb69497ae1c3a0180562dd56bb04ae836596bd53666f
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/hello@sha256:ecce789aaa36c3f4af9ceb69497ae1c3a0180562dd56bb04ae836596bd53666f
+node: gpu-swann-0
+GPU 0: NVIDIA L40S (UUID: GPU-ab31b94e-1404-7858-604e-4f2a6b62d33e)
+os=debian
+user=0
+gpu=NVIDIA L40S
