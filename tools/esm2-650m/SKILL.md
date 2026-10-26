@@ -50,6 +50,6 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/esm2-650m:1.0.0 \
 ## Gotchas
 
 - The mask token is `<mask>`, lowercase as written; other residue letters are case-insensitive.
-- A sequence longer than 1022 residues is refused, naming it; the model has 1024 positions. Split it or crop it.
+- A sequence longer than 1022 residues is refused, naming it; the model has 1024 positions. Split it or crop it first.
 - Sequences run one at a time: a large FASTA through `pll` is hours, so submit it as a job, not an interactive `srun`.
 - `fill` predicts all masks at once, each without seeing the others' predictions.
