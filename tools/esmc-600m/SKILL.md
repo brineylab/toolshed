@@ -29,7 +29,7 @@ Each takes `--device cuda` or `--device cpu`; the default is the GPU when one is
 
 ## Compute
 
-One GPU, any of the cluster's; MEM of GPU memory. `pll` costs one forward pass per residue, so it is the slow command: RATE. `embed` and `fill` are one pass per sequence, fast at any length. A few short sequences are fine on CPU.
+One GPU, any of the cluster's; about 8 GB of GPU memory at the longest sequence. `pll` costs one forward pass per residue, so it is the slow command: on an L40S, about 3 s per 250-residue sequence (some 1,000 an hour), about a minute at 1022 residues, and about 5 minutes at 2046. Loading the model adds about 5 s to each command. `embed` and `fill` are one pass per sequence, fast at any length. A few short sequences are fine on CPU.
 
 ## Running it
 
