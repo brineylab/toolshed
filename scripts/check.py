@@ -25,7 +25,8 @@ from pathlib import Path
 NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 
-# What a credential looks like, per line. A value that starts with `$` (the build secret's
+# What a credential looks like, per line. An assignment's name may carry a prefix (AWS_SECRET_ACCESS_KEY=,
+# WANDB_API_KEY=, as a job's environment prints); a value that starts with `$` (the build secret's
 # `$(cat /run/secrets/...)`) is not an assignment of one.
 SECRETS = [(what, re.compile(rx)) for what, rx in [
     ("a GitHub token", r"\b(gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{80,})"),
@@ -34,14 +35,16 @@ SECRETS = [(what, re.compile(rx)) for what, rx in [
     ("an OpenAI or Anthropic key", r"\bsk-(ant-)?[A-Za-z0-9_-]{20,}"),
     ("a Slack token", r"\bxox[abprs]-[A-Za-z0-9-]{10,}"),
     ("a private key", r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-    ("a password or token assignment", r"(?i)\b(password|passwd|secret|token|api[_-]?key)\s*[=:]\s*['\"]?[A-Za-z0-9/+_\-]{16,}"),
+    ("a password or token assignment", r"(?i)(?<![a-z0-9])[a-z0-9_]*?(password|passwd|secret|token|api[_-]?key|access[_-]?key)[\"']?\s*[=:]\s*['\"]?[A-Za-z0-9/+_\-]{16,}"),
 ]]
 # An ARG stays in an image's history and an ENV in the image, whatever its value. The word must stand
 # alone between underscores, so TOKENIZERS_PARALLELISM is not a credential.
 ARG_ENV = re.compile(r"^\s*(ARG|ENV)\s+(.*)", re.I)
 CREDENTIAL_NAME = re.compile(r"(^|_)(TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIALS?|API_KEY|ACCESS_KEY|PRIVATE_KEY)(_|$)", re.I)
 CREDENTIAL_FILES = {".netrc", ".npmrc", ".pypirc", "id_rsa", "id_ed25519", "id_ecdsa", "credentials.json", "kaggle.json", "token.txt"}
-BUILD_SECRET = 'pass it as the build secret (CONTRIBUTING, "Weights behind a login")'
+BUILD_SECRET = 'pass a credential as the build secret (CONTRIBUTING, "Weights behind a login")'
+# build sees only committed source, so a credential it refuses is already in a commit.
+UNCOMMIT = "remove it from the commit that added it (amend or rebase) before you push, and revoke it if it was ever pushed"
 RECORD_LEAK = "{}:{} holds what looks like {}; the test's output must not print a credential or the job's environment"
 
 
@@ -99,7 +102,9 @@ def secrets_in(paths: list[Path], root: Path | None) -> list[tuple[str, int, str
         if b"\0" in data[:8192]:
             continue
         for n, line in enumerate(data.decode("utf-8", "replace").splitlines(), 1):
-            hits += [(rel, n, what) for what, rx in SECRETS if rx.search(line)]
+            what = next((what for what, rx in SECRETS if rx.search(line)), None)  # the most specific shape, once a line
+            if what:
+                hits.append((rel, n, what))
     return hits
 
 
@@ -130,7 +135,14 @@ def check_tool(tool_dir: Path, published: set[str] | None) -> list[str]:
         text = containerfile.read_text(encoding="utf-8", errors="replace")
         if "COPY test /toolshed/test" not in text:
             reasons.append("Containerfile does not COPY test /toolshed/test")
-        for n, line in enumerate(text.splitlines(), 1):
+        lines = text.splitlines()
+        for n, line in enumerate(lines, 1):
+            if n > 1 and lines[n - 2].endswith("\\"):
+                continue  # part of the instruction above
+            for more in lines[n:]:  # an instruction continued over lines with a backslash
+                if not line.endswith("\\"):
+                    break
+                line = line[:-1] + " " + more
             m = ARG_ENV.match(line)
             if not m:
                 continue
@@ -138,14 +150,14 @@ def check_tool(tool_dir: Path, published: set[str] | None) -> list[str]:
             for var in ([first.group(0)] if first else []) + re.findall(r"\s([A-Za-z_]\w*)=", m.group(2)):
                 if CREDENTIAL_NAME.search(var):
                     reasons.append(f"Containerfile:{n} declares {m.group(1).upper()} {var}: an ARG stays in the image's history "
-                                   f"and an ENV in the image; {BUILD_SECRET}")
+                                   f"and an ENV in the image; {BUILD_SECRET}; {UNCOMMIT}")
     if not (tool_dir / "test" / "run.sh").is_file():
         reasons.append("test/run.sh is missing")
     if published is not None and version in published:
         reasons.append(f"version {version} is already published; bump metadata.version")
     for rel, n, what in secrets_in(sorted(p for p in tool_dir.rglob("*") if p.is_file()), tool_dir):
-        reasons.append(f"{rel} is a credential file by name; a tool never carries one" if n == 0 else
-                       f"{rel}:{n} holds what looks like {what}; a tool never carries a credential: {BUILD_SECRET}")
+        reasons.append(f"{rel} is a credential file by name; a tool never carries one; {UNCOMMIT}" if n == 0 else
+                       f"{rel}:{n} holds what looks like {what}; a tool never carries a credential: {BUILD_SECRET}; {UNCOMMIT}")
     return reasons
 
 

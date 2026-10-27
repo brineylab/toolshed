@@ -44,13 +44,16 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(reasons, ["version 1.0.0 is already published; bump metadata.version"])
     def test_a_tool_holding_a_credential_is_refused_with_the_file_and_line(self):
         cases = [  # (what to write, where, the words the reason must hold)
-            ("export HF_TOKEN=hf_" + "a" * 34 + "\n", "bin/x", ("bin/x:1", "Hugging Face token", "build secret")),
-            ("FROM x\nARG HF_TOKEN\nCOPY test /toolshed/test\n", "Containerfile", ("Containerfile:2", "ARG HF_TOKEN", "history")),
+            ("export HF_TOKEN=hf_" + "a" * 34 + "\n", "bin/x", ("bin/x:1", "Hugging Face token", "build secret", "revoke")),
+            ("FROM x\nARG HF_TOKEN\nCOPY test /toolshed/test\n", "Containerfile", ("Containerfile:2", "ARG HF_TOKEN", "history", "revoke")),
+            ("FROM x\nENV HF_HUB_OFFLINE=1 \\\n    HF_TOKEN=abc\nCOPY test /toolshed/test\n", "Containerfile", ("Containerfile:2", "ENV HF_TOKEN")),
+            ("export WANDB_API_KEY=" + "0" * 40 + "\n", "test/run.sh", ("test/run.sh:1", "password or token")),
+            ('{"token": "' + "t" * 21 + '"}\n', "test/cfg.json", ("test/cfg.json:1", "password or token")),
             ("FROM x\nENV GITHUB_TOKEN=abc\nCOPY test /toolshed/test\n", "Containerfile", ("Containerfile:2", "ENV GITHUB_TOKEN")),
             ("FROM x\nENV HF_HUB_OFFLINE=1 HF_TOKEN=abc\nCOPY test /toolshed/test\n", "Containerfile", ("Containerfile:2", "ENV HF_TOKEN")),
             ("-----BEGIN RSA PRIVATE KEY-----\nMIIE...\n", "test/fixture.txt", ("test/fixture.txt:1", "private key")),
             ('password = "' + "p" * 20 + '"\n', "bin/x", ("bin/x:1", "password or token")),
-            ("machine api.example login me password x\n", "test/.netrc", ("test/.netrc", "credential file by name")),
+            ("machine api.example login me password x\n", "test/.netrc", ("test/.netrc", "credential file by name", "revoke")),
             ("AKIAIOSFODNN7EXAMPLE\n", "test/run.sh", ("test/run.sh:1", "AWS")),
         ]
         for text, where, words in cases:
@@ -63,7 +66,7 @@ class CheckTests(unittest.TestCase):
         d = tool(self.root, containerfile=(
             "FROM x\nRUN --mount=type=secret,id=hf_token HF_TOKEN=$(cat /run/secrets/hf_token) HF_HUB_OFFLINE=0 python -c 'x'\n"
             "ENV HF_HUB_OFFLINE=1 TOKENIZERS_PARALLELISM=false\nCOPY test /toolshed/test\n"))
-        (d / "SKILL.md").write_text(SKILL.format(name="esm2-650m", version="1.0.0") + "The token stays with whoever builds. password: see the README.\n")
+        (d / "SKILL.md").write_text(SKILL.format(name="esm2-650m", version="1.0.0") + "The token stays with whoever builds. password: see the README. max_tokens: 12345678901234567890\n")
         (d / "test" / "weights.npz").write_bytes(b"\x00PK" + b"hf_" + b"a" * 40)
         self.assertEqual(check.check_tool(d, published=set()), [])
 
@@ -116,6 +119,11 @@ class CandidateTests(unittest.TestCase):
     def test_a_failed_record_is_refused(self):
         record(self.root, exit="1")
         self.assertEqual(self.reasons(("sha256:a", "amd64")), ["results/esm2-650m/1.0.0.txt shows exit 1, not 0"])
+    def test_a_record_holding_a_prefixed_credential_from_the_jobs_environment_is_refused(self):
+        record(self.root)
+        r = self.root / "results/esm2-650m/1.0.0.txt"
+        r.write_text(r.read_text() + "AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n")
+        self.assertEqual(len(self.reasons(("sha256:a", "amd64"))), 1)
     def test_a_record_holding_a_credential_is_refused(self):
         record(self.root)
         r = self.root / "results/esm2-650m/1.0.0.txt"
