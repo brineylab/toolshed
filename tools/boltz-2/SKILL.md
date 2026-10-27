@@ -8,7 +8,7 @@ metadata:
 
 Image: `ghcr.io/brineylab/toolshed/boltz-2:1.0.0`
 
-Boltz-2, the open-source biomolecular interaction model (the `boltz` package, version 2.2.1 on PyPI, from the Boltz line of models out of MIT and Baidu research; MIT licensed), run through its own `boltz predict` program. The weights and CCD data from Hugging Face's `boltz-community/boltz-2` at revision `6fdef46d763fee7fbb83ca5501ccceff43b85607` (`boltz2_conf.ckpt`, the affinity checkpoint `boltz2_aff.ckpt`, and `mols.tar`, extracted) are in the image at `$BOLTZ_CACHE` (`/opt/boltz-cache`); it needs no network.
+Boltz-2, the open-source biomolecular interaction model (the `boltz` package, version 2.2.1 on PyPI, from the Boltz line of models out of MIT and Baidu research; MIT licensed), run through its own `boltz predict` program on PyTorch 2.7.1 (the CUDA 12.6 image) with the cuEquivariance kernels at 0.6.1, the release current when boltz 2.2.1 shipped. The weights and CCD data from Hugging Face's `boltz-community/boltz-2` at revision `6fdef46d763fee7fbb83ca5501ccceff43b85607` (`boltz2_conf.ckpt`, the affinity checkpoint `boltz2_aff.ckpt`, and `mols.tar`, extracted) are in the image at `$BOLTZ_CACHE` (`/opt/boltz-cache`); it needs no network.
 
 ## Commands
 
@@ -64,4 +64,5 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/boltz-2:1.0.0 \
 - `--use_msa_server` needs the network and the public ColabFold API; nothing else this skill shows does.
 - The affinity checkpoint is carried only so that nothing downloads at run time; affinity predictions (YAML `properties: affinity` on a small-molecule binder) are not exercised by this tool's test.
 - On GPUs older than Ampere, pass `--no_kernels` to disable the cuEquivariance kernels.
+- The cuEquivariance stack is pinned at 0.6.1 on purpose: every release from 0.11.1 requires torch>=2.11, which this image's torch 2.7.1 — the version boltz 2.2.1 and its pytorch-lightning 2.5.0 pin were current with — does not satisfy.
 - Predictions are named after the input file's stem, so `complex.yaml` yields `boltz_results_complex/predictions/complex/`.
