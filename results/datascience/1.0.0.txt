@@ -1,20 +1,20 @@
 ---
 tool: datascience
 version: 1.0.0
-image: ghcr.io/brineylab/toolshed/datascience@sha256:e0a419842ca52488dbdfca4baa691ea79a084ebc34ced7b164c92227f3fbfd45
-digest: sha256:e0a419842ca52488dbdfca4baa691ea79a084ebc34ced7b164c92227f3fbfd45
+image: ghcr.io/brineylab/toolshed/datascience@sha256:e99d5c1ddbcc65e9de96af2fab3ca03ad499b1aa842b8dc99b7334aa8f163e92
+digest: sha256:e99d5c1ddbcc65e9de96af2fab3ca03ad499b1aa842b8dc99b7334aa8f163e92
 runner: srun --partition=hpc-low --cpus-per-task=4 --mem=16G --time=00:30:00
 host: slurm-login-0.slurm-login.tenant-slurm.svc.cluster.local
-started: 2026-11-06T18:53:56Z
+started: 2026-11-06T19:02:03Z
 exit: 0
 ---
-srun: job 348249 queued and waiting for resources
-srun: job 348249 has been allocated resources
-pyxis: importing docker image: ghcr.io#brineylab/toolshed/datascience@sha256:e0a419842ca52488dbdfca4baa691ea79a084ebc34ced7b164c92227f3fbfd45
-pyxis: imported docker image: ghcr.io#brineylab/toolshed/datascience@sha256:e0a419842ca52488dbdfca4baa691ea79a084ebc34ced7b164c92227f3fbfd45
+srun: job 348250 queued and waiting for resources
+srun: job 348250 has been allocated resources
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/datascience@sha256:e99d5c1ddbcc65e9de96af2fab3ca03ad499b1aa842b8dc99b7334aa8f163e92
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/datascience@sha256:e99d5c1ddbcc65e9de96af2fab3ca03ad499b1aa842b8dc99b7334aa8f163e92
 node: slurm-rtxp6000-137-021
 No devices found.
-LOG LOCATION: /tmp/abstar/logs/abstar.log
+LOG LOCATION: /tmp/tmp.26cJkXvmgP/abstar/logs/abstar.log
 
          __         __ 
   ____ _/ /_  _____/ /_____ ______
@@ -25,7 +25,7 @@ LOG LOCATION: /tmp/abstar/logs/abstar.log
 
 RUN PARAMETERS
 ===============
-PROJECT PATH: /tmp/abstar
+PROJECT PATH: /tmp/tmp.26cJkXvmgP/abstar
 GERMLINE DATABASE: human
 RECEPTOR: bcr
 OUTPUT FORMAT: parquet
@@ -56,11 +56,12 @@ input contained 600 sequences
 germline assignment:
   V | D | J | C
 sequence annotation:
-    0%|                         | 0/2 [00:00<?, ?it/s]   50%|████████████▌            | 1/2 [00:02<00:02,  2.35s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.58s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.69s/it]
+    0%|                         | 0/2 [00:00<?, ?it/s]   50%|████████████▌            | 1/2 [00:02<00:02,  2.47s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.64s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.73s/it]
 
 600 sequences had an identifiable rearrangement
 0 sequences unassigned
-time elapsed: 00:00:8.01 (74.91 sequences/sec)
+time elapsed: 00:00:8.09 (74.13 sequences/sec)
 abstar: 600 rows, 599 productive
 mmseqs: 44 clusters
+diamond: 300 of 300 heavy chains find themselves
 ok
