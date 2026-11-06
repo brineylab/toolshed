@@ -29,7 +29,7 @@ python3 script.py
 
 ## Compute
 
-CPU only. The test (600 contigs through abstar, then the heavy chains clustered) takes about 8 s on a laptop. abstar annotated the fixture at about 110 sequences a second, in chunks of 500 sequences across a process pool; mmseqs and diamond take `--threads`.
+CPU only. The test (600 contigs through abstar, then the heavy chains clustered with mmseqs and searched against themselves with DIAMOND) takes about 10 s. abstar annotated the fixture at about 110 sequences a second on a laptop and 75 on 4 CPUs of an hpc-low node, in chunks of 500 sequences across a process pool; mmseqs and diamond take `--threads`.
 
 ## Running it
 

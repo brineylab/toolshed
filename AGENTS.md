@@ -42,7 +42,7 @@ scripts/test <name> srun --partition=<p> --gres=gpu:1 --time=00:30:00   # on a l
 
 ## Rules a tool must keep
 
-- **Weights are in the image**, fetched at build time, never at run time. `HF_HUB_OFFLINE=1` (and `TRANSFORMERS_OFFLINE=1` with transformers) is set in the image, except in a general-purpose image (DESIGN §1), which sets neither. The test passes with `--network none`.
+- **Weights are in the image**, fetched at build time, never at run time. `HF_HUB_OFFLINE=1` (and `TRANSFORMERS_OFFLINE=1` with transformers) is set in the image, except in a general-purpose image (DESIGN §1: no weights, and work that reaches the network), which sets neither. The test passes with `--network none`.
 - **The Containerfile puts the environment first and the weights last**, then ends with `COPY test /toolshed/test`. Every package and base image is pinned.
 - **A tool never carries a credential**: not in a file, not as an `ARG` or `ENV`; gated weights take the build secret. `scripts/build`, `scripts/record`, and `check` refuse what looks like one.
 - **A GPU tool's image sets `NVIDIA_VISIBLE_DEVICES=all` and `NVIDIA_DRIVER_CAPABILITIES=compute,utility`**, on a glibc base, or pyxis gives it no GPU.
