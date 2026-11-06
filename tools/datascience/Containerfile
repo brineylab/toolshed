@@ -1,0 +1,13 @@
+FROM docker.io/library/python:3.12-slim-bookworm@sha256:0f086103b026048cc50cb5da25ec435c023c5241a83fc44daea593377abc61c4
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates wget \
+  && rm -rf /var/lib/apt/lists/* \
+  && git config --system --add safe.directory '*'
+RUN pip install --no-cache-dir abstar==0.9.0 abutils==0.6.1 numpy==2.5.4 polars==2.1.0 pandas==3.1.1 \
+  pyarrow==26.0.1 duckdb==2.0.0 scipy==1.18.1 scikit-learn==1.9.1 biopython==1.88 huggingface_hub==2.4.0 \
+  datasets==5.1.0 matplotlib==3.11.2 seaborn==0.13.2
+RUN mm="$(python3 -I -c 'import abutils, os; print(os.path.dirname(abutils.__file__))')/binaries/mmseqs_linux_amd64" \
+  && chmod 755 "$mm" && ln -s "$mm" /usr/local/bin/mmseqs && mmseqs version
+RUN wget -q -O /tmp/diamond.tgz https://github.com/bbuchfink/diamond/releases/download/v2.2.8/diamond-linux64.tar.gz \
+  && echo "33a765d192ae4f5b388f15fe2e7c23d3aaea0f9e3f6872efe8c324aec261fbc7  /tmp/diamond.tgz" | sha256sum -c - \
+  && tar -xzf /tmp/diamond.tgz -C /usr/local/bin diamond && rm /tmp/diamond.tgz && diamond version
+COPY test /toolshed/test

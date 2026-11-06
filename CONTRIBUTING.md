@@ -14,7 +14,7 @@ Copy the nearest sibling's directory to `tools/<name>/`, where `<name>` is lower
 ## The conventions
 
 - **The environment first, the weights last**, then `COPY test /toolshed/test` as the last line. Size variants then share their base layers.
-- **Weights are fetched at build time, never at run time.** Set `HF_HUB_OFFLINE=1` in the image, and `TRANSFORMERS_OFFLINE=1` where transformers is used.
+- **Weights are fetched at build time, never at run time.** Set `HF_HUB_OFFLINE=1` in the image, and `TRANSFORMERS_OFFLINE=1` where transformers is used, except in a general-purpose image (DESIGN §1), which sets neither: its work reaches the network.
 - **A tool never carries a credential**: not in a file, not as an `ARG` or `ENV`. `scripts/build` refuses one it sees and says where. Gated weights take the build secret (below), which never reaches the image.
 - **A GPU tool sets `NVIDIA_VISIBLE_DEVICES=all` and `NVIDIA_DRIVER_CAPABILITIES=compute,utility`** in the image, on a glibc base. NVIDIA's CUDA images already do; a plain `python:*-slim` does not, and under pyxis it then sees no GPU though podman does.
 - **A Python tool loads its model from a path in the image and runs under `python3 -I`**: download the weights with `snapshot_download(repo, revision=<commit>, local_dir=...)` and start the wrapper with `#!/usr/bin/env -S python3 -I`. Pyxis passes the caller's environment into the container, and their home with `~/.local`, so a caller's `HF_HUB_CACHE`, `PYTHONPATH`, or user packages would otherwise replace what was tested.
