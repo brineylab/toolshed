@@ -2,13 +2,13 @@
 name: datascience
 description: "General-purpose data work: the scientific Python stack, abstar and abutils, mmseqs2, and DIAMOND, with network access. Reach for it to annotate, cluster, search, or reshape sequence data, and to run a brineylab/datasets recipe."
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 # datascience
 
-Image: `ghcr.io/brineylab/toolshed/datascience:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/datascience:1.1.0`
 
-Python 3.12 with numpy, polars, pandas, pyarrow, duckdb, scipy, scikit-learn, biopython, matplotlib, seaborn, `huggingface_hub`, and `datasets`; abstar 0.9.0 and abutils 0.6.1 with their germline databases; mmseqs2 (abutils' bundled build, commit 7e28409); DIAMOND 2.2.8; and git. It reaches the network: a script in it may download its inputs and push its outputs.
+Python 3.12 with numpy, polars, pandas, pyarrow, duckdb, scipy, scikit-learn, biopython, matplotlib, seaborn, `huggingface_hub`, and `datasets`; abstar 0.9.0 and abutils 0.6.1 with their germline databases; MMseqs2 built from master (commit 2a3dafc), past release 18-8cc5c; DIAMOND 2.2.8; and git. It reaches the network: a script in it may download its inputs and push its outputs.
 
 ## Commands
 
@@ -36,7 +36,7 @@ CPU only. The test (600 contigs through abstar, then the heavy chains clustered 
 On a laptop, from the directory holding the inputs:
 
 ```bash
-podman run --rm -v "$PWD":/work -w /work ghcr.io/brineylab/toolshed/datascience:1.0.0 \
+podman run --rm -v "$PWD":/work -w /work ghcr.io/brineylab/toolshed/datascience:1.1.0 \
   abstar run seqs.fasta abstar_out --germline_database human -o parquet
 ```
 
@@ -44,7 +44,7 @@ On a Slurm cluster with pyxis (a CPU partition; on coreweave-rtx6000, `hpc-low`)
 
 ```bash
 srun --partition=hpc-low --cpus-per-task=8 --mem=32G \
-  --container-image=ghcr.io#brineylab/toolshed/datascience:1.0.0 \
+  --container-image=ghcr.io#brineylab/toolshed/datascience:1.1.0 \
   --container-mounts="$PWD":/work --container-workdir=/work \
   abstar run seqs.fasta abstar_out --germline_database human -o parquet
 ```
@@ -52,6 +52,6 @@ srun --partition=hpc-low --cpus-per-task=8 --mem=32G \
 ## Gotchas
 
 - A general-purpose image reaches the network and sets no `HF_HUB_OFFLINE`. Pyxis passes the caller's environment in, so a caller's `HF_HUB_OFFLINE=1` stops a script's downloads and its push to the Hub: unset it first.
-- `mmseqs` is abutils' bundled binary, the one abstar runs, so a clustering here matches abstar's.
+- `mmseqs` is MMseqs2 built from master (commit 2a3dafc) for the fix to #1092, not abutils' bundled build (commit 7e28409), which abstar still runs from its own path: the bundled build dies in `easy-cluster`'s prefilter on about 1.1M sequences of 240 residues, as does release 18. Abstar's germline searches are small and unaffected.
 - git trusts every directory (`safe.directory '*'`): a checkout owned by another user, as under pyxis or podman, still answers `git status`.
 - The test's fixture is 600 contigs from Jaffe et al. 2022 (figshare 19617633 v3, MIT), 300 droplets of sample 1279049 with one heavy and one light chain: it crosses abstar's 500-sequence chunk into its process pool, and does not reach `mmseqs_chunksize` (1,000,000), where abstar splits mmseqs' input.

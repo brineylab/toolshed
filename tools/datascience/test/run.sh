@@ -22,7 +22,7 @@ PY
 mmseqs easy-cluster "$d/heavy.fasta" "$d/mm" "$d/mmtmp" --min-seq-id 0.85 -c 0.8 --threads 2 > "$d/mm.log"
 clusters=$(cut -f1 "$d/mm_cluster.tsv" | sort -u | wc -l)
 echo "mmseqs: $clusters clusters"
-[[ $clusters -eq 44 ]]  # this mmseqs binary's answer on the fixture
+[[ $clusters -eq 39 ]]  # MMseqs2 2a3dafc's answer on the fixture; release 18 and abutils' bundled build give 44
 diamond version | grep -q '^diamond version 2\.'
 diamond makedb --in "$d/heavy.fasta" -d "$d/heavy" --quiet
 diamond blastp -d "$d/heavy.dmnd" -q "$d/heavy.fasta" -o "$d/hits.tsv" --threads 2 --quiet
