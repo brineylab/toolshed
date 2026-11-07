@@ -1,0 +1,67 @@
+---
+tool: datascience
+version: 1.1.0
+image: ghcr.io/brineylab/toolshed/datascience@sha256:9409a4c95bed1f2a6566d291c6af246c5cee4f17410a5b4eb60c264db8cd046f
+digest: sha256:9409a4c95bed1f2a6566d291c6af246c5cee4f17410a5b4eb60c264db8cd046f
+runner: srun --partition=hpc-low --cpus-per-task=4 --mem=16G --time=00:30:00
+host: slurm-login-0.slurm-login.tenant-slurm.svc.cluster.local
+started: 2026-11-07T05:43:49Z
+exit: 0
+---
+srun: job 348463 queued and waiting for resources
+srun: job 348463 has been allocated resources
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/datascience@sha256:9409a4c95bed1f2a6566d291c6af246c5cee4f17410a5b4eb60c264db8cd046f
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/datascience@sha256:9409a4c95bed1f2a6566d291c6af246c5cee4f17410a5b4eb60c264db8cd046f
+node: slurm-rtxp6000-137-021
+No devices found.
+LOG LOCATION: /tmp/tmp.22kr39IpFv/abstar/logs/abstar.log
+
+         __         __ 
+  ____ _/ /_  _____/ /_____ ______
+ / __ `/ __ \/ ___/ __/ __ `/ ___/
+/ /_/ / /_/ (__  ) /_/ /_/ / /    
+\__,_/_.___/____/\__/\__,_/_/      
+
+
+RUN PARAMETERS
+===============
+PROJECT PATH: /tmp/tmp.22kr39IpFv/abstar
+GERMLINE DATABASE: human
+RECEPTOR: bcr
+OUTPUT FORMAT: parquet
+UMI PATTERN: None
+UMI LENGTH: None
+MERGE: False
+MERGE KWARGS: {}
+INTERLEAVED FASTQ: False
+CHUNKSIZE: 500
+NUM PROCESSES: auto
+COPY INPUTS TO PROJECT: True
+VERBOSE: True
+DEBUG: False
+
+
+
+INPUT FILES
+===========
+found 1 input file:
+  pairs.fasta
+
+
+---------
+  pairs
+---------
+input contained 600 sequences
+
+germline assignment:
+  V | D | J | C
+sequence annotation:
+    0%|                         | 0/2 [00:00<?, ?it/s]   50%|████████████▌            | 1/2 [00:02<00:02,  2.40s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.64s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.72s/it]
+
+600 sequences had an identifiable rearrangement
+0 sequences unassigned
+time elapsed: 00:00:8.08 (74.30 sequences/sec)
+abstar: 600 rows, 599 productive
+mmseqs: 39 clusters
+diamond: 300 of 300 heavy chains find themselves
+ok
