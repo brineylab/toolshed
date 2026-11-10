@@ -46,22 +46,24 @@ metadata:
 
 ## Building, pushing, and testing
 
-You build your tool's image, push it, and test it where it will be used. CI never builds or runs a tool image.
+You build your tool's image, push it, and test it on the hardware it needs. No cluster is required. CI never builds or runs a tool image.
 
 1. **Commit** the tool directory. The image's tag is the candidate, `<name>:src-<tree>`, where `<tree>` is git's hash of the committed `tools/<name>/`, so `scripts/build` refuses uncommitted changes there.
 2. **Build:** `scripts/build <name>`. It builds for `linux/amd64` (the clusters' architecture, even on an Apple Silicon Mac), labels the image with this repository, and prints the candidate's name.
 3. **Try it:** `podman run --rm --network none <candidate> bash /toolshed/test/run.sh`.
 4. **Push:** once per machine, `podman login ghcr.io` as yourself with a GitHub token that has `write:packages` (`gh auth refresh -s write:packages`, then `gh auth token | podman login ghcr.io -u <you> --password-stdin`). `gh` stays signed in: a tool's first push asks this repository's `seed.yml` to create its package, public and linked, and waits for it. Then `scripts/push <name>`. It exits 0 when the candidate can be pulled with no login.
-5. **Test it where it will be used**, from a clone of your branch. On a cluster's login node:
+5. **Test it on the hardware it needs**: any linux/amd64 machine for a CPU tool, one with the GPU the tool uses for a GPU tool. Where it will be used later does not matter; the conventions above are what make an image behave the same everywhere. On your own machine:
 
    ```bash
-   scripts/test <name> srun --partition=<partition> --gres=gpu:1 --time=00:30:00
+   scripts/test <name> podman
    ```
 
-   or `scripts/test <name> podman` where a laptop is where the tool will be used. It runs the candidate by digest and writes the record, `results/<name>/<version>.txt`: the digest, where it ran, the time, the output, and the exit code.
+   It runs the candidate by digest with no network, attaching the machine's GPU when `nvidia-smi` is there (the README's CDI line sets that up once). A cluster works too, from its login node and a clone of your branch: `scripts/test <name> srun --partition=<partition> --time=00:30:00`, adding `--gres=gpu:1` for a GPU tool. Either way it writes the record, `results/<name>/<version>.txt`: the digest, where it ran, the node and GPU it saw, the time, the output, and the exit code. If you lack the hardware (a GPU tool on a laptop without one), push the candidate and ask someone who has it to run this step from a clone of your branch; the record says where it ran.
 6. **Commit the record:** `git add results/<name>/<version>.txt`.
 
 `python3 -I scripts/check.py tools/<name> --registry ghcr.io/<owner>/<repo>` runs CI's check on your machine.
+
+**An agent building a tool** follows the same steps. The push (step 4) and the pull request publish under its person's name, so it asks them first. It runs step 5 where it is when that machine has the hardware, and otherwise hands that one step to its person.
 
 A change after testing changes the tree, so build, push, and test again. A prose-only change that rebuilds from cache to the same digest may copy its earlier record to the new version's path, since the same image was tested.
 
@@ -73,7 +75,7 @@ Any change under `tools/<name>/` bumps `metadata.version`, prose included. A pub
 
 1. Push your branch and open the pull request.
 2. `check` runs: the tool's rules, an unpublished version, a public amd64 candidate for the branch's source, and a record of that candidate's passing test.
-3. A member other than you reviews it: does the skill describe what the Containerfile builds, does the test exercise every documented command, are the weights in the image, is every example a full command line, and does the record show the test ran where the tool will be used and gave the known answers. They merge with a merge commit.
+3. A member other than you reviews it: does the skill describe what the Containerfile builds, does the test exercise every documented command, are the weights in the image, is every example a full command line, and does the record show the test ran on the hardware the tool needs (its node and GPU lines) and gave the known answers. They merge with a merge commit.
 4. `promote` copies the candidate to `<name>:<version>`.
 
 ## Weights behind a login
