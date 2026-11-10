@@ -1,0 +1,68 @@
+---
+tool: datascience
+version: 1.2.0
+image: ghcr.io/brineylab/toolshed/datascience@sha256:766ad65012c2e4520fa49865bf3ba682a8f96a5b8e3ea787d73a16a615e16faf
+digest: sha256:766ad65012c2e4520fa49865bf3ba682a8f96a5b8e3ea787d73a16a615e16faf
+runner: srun --partition=hpc-low --cpus-per-task=4 --mem=16G --time=00:30:00
+host: slurm-login-0.slurm-login.tenant-slurm.svc.cluster.local
+started: 2026-11-10T03:07:49Z
+exit: 0
+---
+srun: job 351212 queued and waiting for resources
+srun: job 351212 has been allocated resources
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/datascience@sha256:766ad65012c2e4520fa49865bf3ba682a8f96a5b8e3ea787d73a16a615e16faf
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/datascience@sha256:766ad65012c2e4520fa49865bf3ba682a8f96a5b8e3ea787d73a16a615e16faf
+node: slurm-rtxp6000-137-021
+No devices found.
+LOG LOCATION: /tmp/tmp.dKHcp0ZpvQ/abstar/logs/abstar.log
+
+         __         __ 
+  ____ _/ /_  _____/ /_____ ______
+ / __ `/ __ \/ ___/ __/ __ `/ ___/
+/ /_/ / /_/ (__  ) /_/ /_/ / /    
+\__,_/_.___/____/\__/\__,_/_/      
+
+
+RUN PARAMETERS
+===============
+PROJECT PATH: /tmp/tmp.dKHcp0ZpvQ/abstar
+GERMLINE DATABASE: human
+RECEPTOR: bcr
+OUTPUT FORMAT: parquet
+UMI PATTERN: None
+UMI LENGTH: None
+MERGE: False
+MERGE KWARGS: {}
+INTERLEAVED FASTQ: False
+CHUNKSIZE: 500
+NUM PROCESSES: auto
+COPY INPUTS TO PROJECT: True
+VERBOSE: True
+DEBUG: False
+
+
+
+INPUT FILES
+===========
+found 1 input file:
+  pairs.fasta
+
+
+---------
+  pairs
+---------
+input contained 600 sequences
+
+germline assignment:
+  V | D | J | C
+sequence annotation:
+    0%|                         | 0/2 [00:00<?, ?it/s]   50%|████████████▌            | 1/2 [00:02<00:02,  2.51s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.70s/it]  100%|█████████████████████████| 2/2 [00:05<00:00,  2.79s/it]
+
+600 sequences had an identifiable rearrangement
+0 sequences unassigned
+time elapsed: 00:00:8.21 (73.07 sequences/sec)
+abstar: 600 rows, 599 productive
+anarcii: 599 of 599 chain types and 599 of 599 CDR3s agree with abstar
+mmseqs: 39 clusters
+diamond: 300 of 300 heavy chains find themselves
+ok
