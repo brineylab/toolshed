@@ -37,7 +37,7 @@ tests/                       unit tests of the scripts, with registry, podman, s
 python3 -I -m unittest discover tests          # the scripts' unit tests: the only tests the shed has
 python3 -I scripts/check.py tools/<name>       # a tool's rules; add --registry ghcr.io/<owner>/<repo> for the version, candidate, and record
 scripts/build <name> && scripts/push <name>     # from committed source; push needs gh signed in
-scripts/test <name> srun --partition=<p> --gres=gpu:1 --time=00:30:00   # on a login node; or `podman` on a laptop
+scripts/test <name> podman                    # on any machine with the tool's hardware; or `srun <flags>` from a cluster's login node
 ```
 
 ## Rules a tool must keep
@@ -58,7 +58,7 @@ scripts/test <name> srun --partition=<p> --gres=gpu:1 --time=00:30:00   # on a l
 
 - `scripts/` is Python stdlib (run with `python3 -I`; `check.py` must run on Python 3.8, since login nodes run it) or bash with `set -euo pipefail` that works under bash 3.2. No third-party package in the repository itself.
 - Nothing in `scripts/` or `.github/` names the lab. The registry is `ghcr.io/${GITHUB_REPOSITORY,,}/<name>`, so a fork is its own shed with no edits.
-- CI runs on hosted runners and never builds, pulls, or runs a tool image; `seed.yml` pushes only a `FROM scratch` placeholder. Whoever builds a tool tests its candidate where it will be used and commits the record; an agent cannot claim a tool works without one.
+- CI runs on hosted runners and never builds, pulls, or runs a tool image; `seed.yml` pushes only a `FROM scratch` placeholder. Whoever builds a tool tests its candidate on the hardware it needs, on any machine that has it, and commits the record; an agent cannot claim a tool works without one.
 - No cluster ever builds an image. The contributor builds with `scripts/build`, from committed source.
 - Every tool is reviewed by someone other than its builder before it merges.
 

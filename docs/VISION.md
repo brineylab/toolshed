@@ -19,7 +19,7 @@ The toolshed belongs to the lab, not to a project and not to flyloft. flyloft is
 
 ## How it grows
 
-A tool is built because a question required it, not because it might be useful, and it is kept because it is used. Every tool is tested where it will be used, on a tiny input with a known answer, and reviewed by someone other than its builder before it is published. A tool nobody calls, or whose test no longer passes, is retired rather than left to mislead.
+A tool is built because a question required it, not because it might be useful, and it is kept because it is used. Every tool is tested on the hardware it needs, on a tiny input with a known answer, and reviewed by someone other than its builder before it is published. A tool nobody calls, or whose test no longer passes, is retired rather than left to mislead.
 
 Tools arrive two ways. A person builds one with their own agent, following the guidance in this repository, and opens a pull request. A flyloft campaign that needs a tool the shed lacks builds it the same way: its implementer writes the tool, flyloft builds the image and runs the test as one of the campaign's runs, opens the pull request with the test's record, a critic reviews it, and flyloft merges. Either way whoever built the tool pushes its image and records its test, the shed's CI checks that the record is of that image, and merging publishes the version. Nothing in a pull request runs on the lab's machines.
 
