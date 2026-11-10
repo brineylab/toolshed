@@ -12,6 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
 RUN pip install --no-cache-dir abstar==0.9.0 abutils==0.6.1 numpy==2.5.4 polars==2.1.0 pandas==3.1.1 \
   pyarrow==26.0.1 duckdb==2.0.0 scipy==1.18.1 scikit-learn==1.9.1 biopython==1.88 huggingface_hub==2.4.0 \
   datasets==5.1.0 matplotlib==3.11.2 seaborn==0.13.2
+# ANARCII numbers amino-acid antibody sequences; its weights ship in the package. CPU torch keeps the image GPU-free
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple \
+  torch==2.15.0+cpu \
+  networkx==3.7 sympy==1.14.0 mpmath==1.3.0 jinja2==3.1.6 markupsafe==3.0.4 setuptools==84.2.1 \
+  && pip install --no-cache-dir anarcii==2.0.8 gemmi==0.7.5 msgpack==1.2.4 psutil==7.2.2 sortedcontainers==2.4.0
 COPY --from=mmseqs /build/src/mmseqs /usr/local/bin/mmseqs
 RUN mmseqs version
 RUN wget -q -O /tmp/diamond.tgz https://github.com/bbuchfink/diamond/releases/download/v2.2.8/diamond-linux64.tar.gz \
