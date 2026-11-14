@@ -23,6 +23,16 @@ Copy the nearest sibling's directory to `tools/<name>/`, where `<name>` is lower
 - **A wrapper only where upstream has none.** Where upstream is a library, `bin/` holds one short program exposing what the lab wants as subcommands (`esm2 pll`, `esm2 embed`). Where upstream ships a program (`boltz predict`), the image makes it runnable and the skill says which commands matter.
 - **Every example in the skill is a full command line**: the program on the image's PATH with its arguments. Pyxis ignores entrypoints.
 
+## Licenses
+
+Images are public, so a tool publishes its weights. Apply these rules as written:
+
+1. **A permissive license** on the weights (MIT, Apache-2.0, BSD, CC-BY): publish.
+2. **No license on the weights**: publish when the official code repository's license is permissive, and say so in the skill.
+3. **A license that allows redistribution under conditions**: publish with every condition met. Copy the upstream license, notice, and attribution files into the image; name any attribution the license requires in the skill; and if it requires a notice where the model runs, have the program print it to stderr each time it starts.
+4. **A license that forbids redistribution**: do not build the tool. Say so to whoever asked for it (DESIGN's private-tool row covers what comes later).
+5. **Every tool** states its weights' license in `SKILL.md`, under *Gotchas* or beside the weights' source, and copies the upstream license files into the image beside the weights.
+
 ## The skill
 
 Frontmatter has three fields a machine reads:
