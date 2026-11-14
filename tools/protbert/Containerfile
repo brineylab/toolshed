@@ -2,19 +2,28 @@ FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PROTBERT_MODEL=/opt/model
-# scripts/build passes HF_TOKEN as the build secret hf_token; the Hub throttles anonymous
-# downloads, so use it when it is there and retry either way. An empty token means anonymous,
-# and the secret never reaches a layer.
+# The Hub throttles anonymous downloads, and a throttled fetch either fails fast or stalls
+# without an error, so every attempt gets a hard timeout and a socket read timeout, the loop
+# resumes the incomplete files the last attempt left behind, and each failure is printed to
+# the build log. scripts/build passes HF_TOKEN as the build secret hf_token when it is set;
+# an empty token falls through to anonymous, and the secret never reaches a layer.
 RUN --mount=type=secret,id=hf_token \
-    for i in 1 2 3 4 5; do \
-      if HF_TOKEN=$(cat /run/secrets/hf_token 2>/dev/null || true) HF_HUB_OFFLINE=0 \
-        python3 -I -c "from huggingface_hub import snapshot_download; snapshot_download('Rostlab/prot_bert', revision='7a894481acdc12202f0a415dd567f6cfdb698908', local_dir='/opt/model', allow_patterns=['*.json', '*.txt', 'pytorch_model.bin'])"; then \
-        exit 0; \
+    if [ -s /run/secrets/hf_token ]; then echo "hf_token build secret: present"; \
+    else echo "hf_token build secret: absent, downloading anonymously"; fi; \
+    ok=0; \
+    for i in 1 2 3 4 5 6; do \
+      if HF_TOKEN=$(cat /run/secrets/hf_token 2>/dev/null || true) \
+          HF_HUB_OFFLINE=0 HF_HUB_DOWNLOAD_TIMEOUT=30 HF_HUB_ETAG_TIMEOUT=30 \
+          timeout 240 python3 -I -c "from huggingface_hub import snapshot_download; snapshot_download('Rostlab/prot_bert', revision='7a894481acdc12202f0a415dd567f6cfdb698908', local_dir='/opt/model', allow_patterns=['*.json', '*.txt', 'pytorch_model.bin'])"; then \
+        ok=1; \
+        echo "weights downloaded on attempt $i of 6"; \
+        break; \
       fi; \
-      echo "weights download attempt $i of 5 failed; retrying in 30s" >&2; \
-      sleep 30; \
+      echo "weights download attempt $i of 6 failed at $(date -u '+%H:%M:%S') UTC; retrying in 45s" >&2; \
+      sleep 45; \
     done; \
-    exit 1
+    ls -laR /opt/model >&2 || true; \
+    [ "$ok" = 1 ]
 COPY LICENSE /opt/model/LICENSE
 COPY --chmod=755 bin/protbert /usr/local/bin/protbert
 COPY test /toolshed/test
