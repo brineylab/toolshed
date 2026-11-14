@@ -2,18 +2,23 @@ FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PROTBERT_MODEL=/opt/model
-# The weights step, in the base image's own python: four builds of this image died
-# downloading from huggingface.co on the build machine -- connections open and then
-# move no bytes, for the 1.7 GB checkpoint and the 81-byte vocab.txt alike -- while
-# pip, the base image and ghcr.io all pull fine, and the cluster fetches the same repo
-# in half a minute. fetch_weights.py takes the checkpoint from the pinned
-# huggingface.co URL first and then from ProtTrans's own Zenodo record 4633691, a
-# different network end to end, and ships it only when its sha256 is the pinned
-# 6ea3edd2...; the four config and tokenizer files are 640 bytes in all and are
-# committed in model/ (hashes checked by the script), so the network moves one file.
+# The weights step is the last instruction, and nothing follows it. Two builds
+# of this image (87ec561, 567fbb0) put the 1.7 GB checkpoint in place, its
+# layer committed, and then died at the first instruction after it -- a COPY
+# of a 10 KB license file -- while the same COPYs run fine ahead of the
+# weights. Whatever the builder pays per step after a big layer (a full
+# rootfs snapshot per step, on storage that pays for every build it has
+# already run), the way through is to owe it nothing: every small file is
+# copied first -- the license rides in model/, checked by fetch_weights.py,
+# so a context that dropped it fails loudly rather than silently -- and the
+# checkpoint is converted to bf16 safetensors in the same step that fetches
+# it, so the layer holds 0.84 GB, not 1.68 GB: the same bf16 the computation
+# requires, half the bytes to build, push and pull. The earlier builds also
+# died downloading from huggingface.co (connections that open and then move
+# no bytes), so fetch_weights.py resumes across attempts and falls back to
+# ProtTrans's own Zenodo record, a different network end to end.
 COPY model/ /opt/model/
-COPY fetch_weights.py /tmp/fetch_weights.py
-RUN python3 -I /tmp/fetch_weights.py && rm -f /tmp/fetch_weights.py
-COPY LICENSE /opt/model/LICENSE
 COPY --chmod=755 bin/protbert /usr/local/bin/protbert
 COPY test /toolshed/test
+COPY fetch_weights.py /tmp/fetch_weights.py
+RUN python3 -I /tmp/fetch_weights.py && rm -f /tmp/fetch_weights.py

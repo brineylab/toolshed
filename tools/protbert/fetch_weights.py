@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
-"""Fetch ProtBERT's pytorch_model.bin into /opt/model, pinned by its sha256.
+"""Put ProtBERT's weights in /opt/model as one bf16 safetensors file, pinned by sha256.
 
 Four builds of this image died in the weights step: on the machine that
-builds it, connections to huggingface.co open and then move no bytes -- for
-the 1.7 GB checkpoint and for the 81-byte vocab.txt alike -- while PyPI, the
-base image and ghcr.io all pull normally, and the cluster pulls the same
-repo in half a minute. So this script, stdlib only (the base image's
-python3, nothing new installed, no curl, no apt), takes the checkpoint
-from the first of two sources that can deliver it:
+builds them, connections to huggingface.co open and then move no bytes --
+for the 1.7 GB checkpoint and the 81-byte vocab.txt alike -- while PyPI,
+the base image and ghcr.io all pull normally, and the cluster fetches the
+same repo in half a minute. So the checkpoint is taken (in the base image's
+own python, nothing new installed, no curl, no apt) from the first of two
+sources that can deliver it:
 
   1. the pinned huggingface.co URL, the same bytes every sibling tool uses;
   2. ProtTrans's own Zenodo record 4633691 (the project's prot_bert.zip),
      a different network end to end.
 
-and ships it only when its sha256 is the pinned one, whichever source
+and ships only when its sha256 is the pinned one, whichever source
 delivered the bytes. Every event goes to stderr with a timestamp, so a
 build log says exactly which source, attempt and byte count failed.
 
-The tokenizer and config files are not fetched: the four of them are
-640 bytes in all, committed in tools/protbert/model/ (their sha256s are
-checked below), so the network moves one file, the checkpoint.
+The fp32 checkpoint is then converted, in this same step, to a bf16
+safetensors file and deleted, so the layer the image carries holds the
+0.84 GB the computation wants rather than the 1.68 GB fp32 original: the
+same bf16 the wrapper would otherwise cast to at load time, so the weights
+are bit for bit what a bf16 load of the fp32 checkpoint gives, at half the
+bytes to build, push and pull.
+
+The tokenizer and config files are not fetched: the four of them, and the
+license, are 11 KB in all and are committed in tools/protbert/model/
+(their sha256s are checked below), so the network moves one file, the
+checkpoint.
 """
 import hashlib
 import os
@@ -34,14 +42,17 @@ import zipfile
 
 MODEL_DIR = "/opt/model"
 OUT = os.path.join(MODEL_DIR, "pytorch_model.bin")
+SAFETENSORS = os.path.join(MODEL_DIR, "model.safetensors")
 TMP_DIR = os.path.join(MODEL_DIR, ".downloads")
 
 # Rostlab/prot_bert @ 7a894481acdc12202f0a415dd567f6cfdb698908
 PINNED_SHA256 = "6ea3edd26cfefc3111176100ee2a027ed510f9c86b63e5b53a2a050b59f2af9d"
 PINNED_SIZE = 1684058277  # the LFS oid and byte count of that revision's pytorch_model.bin
 
-# tools/protbert/model/, as committed: the small files of the same revision.
+# tools/protbert/model/, as committed: the small files of the same revision,
+# and the license that ships beside the weights.
 SMALL_FILES_SHA256 = {
+    "LICENSE": "77b837ef9c78d0bdf63dad6c2db164de950ccbf56feaacd1436bb0a3feb3630b",
     "config.json": "44c1e1229d520841e5b29f1dd2292595219061daf0c5f5dacb4f68d1272d69a3",
     "tokenizer_config.json": "73f5e97ab29042bac49dc96f7b8a7a790994509bbd2fe3e9cd4f59affc46c2ce",
     "special_tokens_map.json": "303df45a03609e4ead04bc3dc1536d0ab19b5358db685b6f3da123d05ec200e3",
@@ -158,6 +169,31 @@ def extract_bin(zip_path):
     return True
 
 
+def to_bf16_safetensors(bin_path, out_path):
+    """The checkpoint as one bf16 safetensors file: every floating tensor
+    cast to bf16 (the cast a `dtype=torch.bfloat16` load would do), every
+    other tensor as it is. Returns (tensors, float tensors)."""
+    import torch
+    from safetensors.torch import save_file
+
+    state = torch.load(bin_path, map_location="cpu", weights_only=True)
+    if not isinstance(state, dict) or not state:
+        raise ValueError("the checkpoint is not a state dict: %s" % type(state))
+    tensors, n_float = {}, 0
+    for key in sorted(state):
+        tensor = state.pop(key)  # pop, so the fp32 dict shrinks as the bf16 one grows
+        if not torch.is_tensor(tensor):
+            raise ValueError("%s is a %s, not a tensor" % (key, type(tensor)))
+        if torch.is_floating_point(tensor):
+            tensor = tensor.to(torch.bfloat16)
+            n_float += 1
+        # clone, so no two keys share storage (safetensors refuses that) and
+        # the saved tensors hold no reference into the fp32 checkpoint
+        tensors[key] = tensor.clone().contiguous()
+    save_file(tensors, out_path, metadata={"format": "pt"})
+    return len(tensors), n_float
+
+
 def main():
     log("python %s; model dir %s" % (sys.version.split()[0], MODEL_DIR))
     for name, want in sorted(SMALL_FILES_SHA256.items()):
@@ -166,50 +202,61 @@ def main():
         if got != want:
             log("FATAL: %s is missing or changed (sha256 %s, expected %s)" % (name, got, want))
             return 1
-    log("the four committed config and tokenizer files match the pinned revision")
+    log("the committed config, tokenizer and license files match the pinned revision")
 
-    if os.path.exists(OUT):
-        got = file_digest(OUT, "sha256")
-        if got == PINNED_SHA256:
-            log("%s is already the pinned checkpoint" % OUT)
-            return 0
-        log("%s exists but is not the pinned checkpoint; refetching" % OUT)
-        os.remove(OUT)
+    if os.path.exists(SAFETENSORS):
+        log("%s is already in place; nothing to do" % SAFETENSORS)
+        return 0
 
-    os.makedirs(TMP_DIR, exist_ok=True)
-    for src in SOURCES:
-        log("source: %s" % src["name"])
-        tmp = os.path.join(TMP_DIR, "weights.bin" if src["kind"] == "bin" else "prot_bert.zip")
-        if not download(src["url"], tmp, src["size"], src["deadline_s"]):
-            log("the source could not deliver its file in %d s: %s" % (src["deadline_s"], src["name"]))
-            continue
-        algo, want = src["hash"]
-        got = file_digest(tmp, algo)
-        log("%s of the downloaded file: %s (expected %s)" % (algo, got, want))
-        if got != want:
-            log("hash mismatch; these bytes are not shipped")
-            os.remove(tmp)
-            continue
-        if src["kind"] == "bin":
-            os.replace(tmp, OUT)
-        else:
-            if not extract_bin(tmp):
+    if not (os.path.exists(OUT) and file_digest(OUT, "sha256") == PINNED_SHA256):
+        if os.path.exists(OUT):
+            log("%s exists but is not the pinned checkpoint; refetching" % OUT)
+            os.remove(OUT)
+        delivered = False
+        os.makedirs(TMP_DIR, exist_ok=True)
+        for src in SOURCES:
+            log("source: %s" % src["name"])
+            tmp = os.path.join(TMP_DIR, "weights.bin" if src["kind"] == "bin" else "prot_bert.zip")
+            if not download(src["url"], tmp, src["size"], src["deadline_s"]):
+                log("the source could not deliver its file in %d s: %s" % (src["deadline_s"], src["name"]))
+                continue
+            algo, want = src["hash"]
+            got = file_digest(tmp, algo)
+            log("%s of the downloaded file: %s (expected %s)" % (algo, got, want))
+            if got != want:
+                log("hash mismatch; these bytes are not shipped")
                 os.remove(tmp)
                 continue
-            os.remove(tmp)
-        got = file_digest(OUT, "sha256")
-        log("pytorch_model.bin: %d bytes, sha256 %s (pinned %s)" % (os.path.getsize(OUT), got, PINNED_SHA256))
-        if got != PINNED_SHA256:
-            os.remove(OUT)  # wrong bytes never stay in the model dir
-            log("FATAL: the delivered checkpoint does not match the pinned sha256")
+            if src["kind"] == "bin":
+                os.replace(tmp, OUT)
+            else:
+                if not extract_bin(tmp):
+                    os.remove(tmp)
+                    continue
+                os.remove(tmp)
+            if file_digest(OUT, "sha256") != PINNED_SHA256:
+                os.remove(OUT)  # wrong bytes never stay in the model dir
+                log("FATAL: the delivered checkpoint does not match the pinned sha256")
+                return 1
+            delivered = True
+            break
+        if not delivered:
+            log("FATAL: no source delivered the pinned checkpoint")
             return 1
-        with open(os.path.join(MODEL_DIR, ".weights_source"), "w") as f:
-            f.write("%s\nsha256 %s\n" % (src["url"], PINNED_SHA256))
-        shutil.rmtree(TMP_DIR, ignore_errors=True)
-        log("weights in place at %s" % OUT)
-        return 0
-    log("FATAL: no source delivered the pinned checkpoint")
-    return 1
+        log("the pinned fp32 checkpoint is in place; converting to bf16")
+
+    n_tensors, n_float = to_bf16_safetensors(OUT, SAFETENSORS)
+    os.remove(OUT)
+    shutil.rmtree(TMP_DIR, ignore_errors=True)
+    digest = file_digest(SAFETENSORS, "sha256")
+    with open(os.path.join(MODEL_DIR, ".weights_source"), "w") as f:
+        f.write("Rostlab/prot_bert @ 7a894481acdc12202f0a415dd567f6cfdb698908\n"
+                "fp32 pytorch_model.bin sha256 %s\n"
+                "bf16 model.safetensors sha256 %s\n" % (PINNED_SHA256, digest))
+    log("model.safetensors: %d tensors (%d float), %d bytes, sha256 %s"
+        % (n_tensors, n_float, os.path.getsize(SAFETENSORS), digest))
+    log("weights in place at %s" % SAFETENSORS)
+    return 0
 
 
 if __name__ == "__main__":
