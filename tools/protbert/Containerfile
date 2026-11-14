@@ -1,0 +1,8 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PROTBERT_MODEL=/opt/model
+RUN HF_HUB_OFFLINE=0 python3 -I -c "from huggingface_hub import snapshot_download; snapshot_download('Rostlab/prot_bert', revision='7a894481acdc12202f0a415dd567f6cfdb698908', local_dir='/opt/model', allow_patterns=['*.json', '*.txt', 'pytorch_model.bin'])"
+COPY LICENSE /opt/model/LICENSE
+COPY --chmod=755 bin/protbert /usr/local/bin/protbert
+COPY test /toolshed/test
