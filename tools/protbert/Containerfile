@@ -1,46 +1,19 @@
 FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PROTBERT_MODEL=/opt/model
-# curl, not the hub's python client: that client sets no timeout by default, and two
-# builds have died in this step, the download stalling without an error. Each attempt
-# here has a connect timeout, stall detection (--speed-limit aborts below 10 KB/s
-# sustained over 30 s), a hard 480 s cap, and byte-range resume (-C -), so every
-# attempt continues the last one's partial file; the download counts as complete only
-# at the pinned byte count, and its sha256 -- the repo's LFS oid, which is not the Xet
-# etag the resolve URL serves -- is checked at the end. The pinned revision is in the
-# URL, so nothing resolves over an API first. scripts/build passes HF_TOKEN as the
-# build secret hf_token when it is set; an empty token falls through to anonymous,
-# and the secret never reaches a layer. The Hub serves this repo's files itself
-# (no redirect), so the bearer header, when sent, stays on huggingface.co.
-RUN --mount=type=secret,id=hf_token \
-    mkdir -p /opt/model; \
-    if [ -s /run/secrets/hf_token ]; then echo "hf_token build secret: present"; \
-    else echo "hf_token build secret: absent, downloading anonymously"; fi; \
-    tok=$(cat /run/secrets/hf_token 2>/dev/null || true); \
-    set --; \
-    if [ -n "$tok" ]; then set -- -H "Authorization: Bearer $tok"; fi; \
-    base=https://huggingface.co/Rostlab/prot_bert/resolve/7a894481acdc12202f0a415dd567f6cfdb698908; \
-    for f in config.json tokenizer_config.json special_tokens_map.json vocab.txt; do \
-      curl -sSfL --retry 5 --retry-all-errors --connect-timeout 20 --speed-limit 1024 --speed-time 30 \
-        "$@" -o "/opt/model/$f" "$base/$f" || { echo "download of $f failed" >&2; exit 1; }; \
-      [ -s "/opt/model/$f" ] || { echo "$f downloaded empty" >&2; exit 1; }; \
-    done; \
-    ok=0; \
-    for i in 1 2 3 4 5 6 7 8; do \
-      size=$(stat -c %s /opt/model/pytorch_model.bin 2>/dev/null || echo 0); \
-      if [ "$size" = "1684058277" ]; then ok=1; echo "weights complete on attempt $i of 8"; break; fi; \
-      echo "weights attempt $i of 8: ${size} of 1684058277 bytes, resuming" >&2; \
-      timeout 480 curl -sSfL --retry 2 --retry-all-errors --connect-timeout 20 --speed-limit 10240 --speed-time 30 \
-        -C - "$@" -o /opt/model/pytorch_model.bin "$base/pytorch_model.bin" \
-        || echo "weights attempt $i of 8 failed at $(date -u '+%H:%M:%S') UTC" >&2; \
-      sleep 15; \
-    done; \
-    ls -la /opt/model >&2 || true; \
-    if [ "$ok" != 1 ]; then echo "pytorch_model.bin incomplete after 8 attempts" >&2; exit 1; fi; \
-    echo "6ea3edd26cfefc3111176100ee2a027ed510f9c86b63e5b53a2a050b59f2af9d  /opt/model/pytorch_model.bin" | sha256sum -c -
+# The weights step, in the base image's own python: four builds of this image died
+# downloading from huggingface.co on the build machine -- connections open and then
+# move no bytes, for the 1.7 GB checkpoint and the 81-byte vocab.txt alike -- while
+# pip, the base image and ghcr.io all pull fine, and the cluster fetches the same repo
+# in half a minute. fetch_weights.py takes the checkpoint from the pinned
+# huggingface.co URL first and then from ProtTrans's own Zenodo record 4633691, a
+# different network end to end, and ships it only when its sha256 is the pinned
+# 6ea3edd2...; the four config and tokenizer files are 640 bytes in all and are
+# committed in model/ (hashes checked by the script), so the network moves one file.
+COPY model/ /opt/model/
+COPY fetch_weights.py /tmp/fetch_weights.py
+RUN python3 -I /tmp/fetch_weights.py && rm -f /tmp/fetch_weights.py
 COPY LICENSE /opt/model/LICENSE
 COPY --chmod=755 bin/protbert /usr/local/bin/protbert
 COPY test /toolshed/test

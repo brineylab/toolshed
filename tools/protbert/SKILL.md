@@ -46,6 +46,7 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/protbert:1.0.0 \
 ## Gotchas
 
 - The weights are the ProtTrans pretrained models, which the ProtTrans project releases under the Academic Free License v3.0; the license is shipped beside the weights at `/opt/model/LICENSE`. Cite Elnaggar et al., ProtTrans (IEEE TPAMI 2021) when you use them.
+- The image is built with `pytorch_model.bin` pinned by the sha256 of `Rostlab/prot_bert` @ `7a894481`: the build fetches it from the Hub first and then from ProtTrans's own Zenodo record 4633691 (`prot_bert.zip`), because the machine that builds this image could not move bytes from the Hub; whichever source delivers, the checkpoint ships only when its sha256 matches the pin. The four tokenizer and config files, 640 bytes in all, are committed in `model/` from the same revision.
 - This is `Rostlab/prot_bert`, the UniRef100 model, not `prot_bert_bfd`.
 - Residues are tokenized space-separated, one token per residue between `[CLS]` and `[SEP]`; a sequence that does not tokenize that way is refused.
 - The Jacobian runs in batches of 32 mutants, and the test's fixture (ubiquitin, 76 residues; lysozyme, 129) crosses that threshold many times over, 129 mutation batches for the pair (48 and 81). Each map is checked against `test/ref.npz`, a reference computed with oplm's own functions at commit 704e01f on the same bf16 weights: exact symmetry, Pearson r >= 0.98, and top-L long-range (|i - j| >= 24) overlap >= 0.8, the tolerance for GPU kernel noise.
