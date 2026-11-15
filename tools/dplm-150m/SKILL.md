@@ -2,13 +2,13 @@
 name: dplm-150m
 description: "DPLM v1 150M protein language model (airkingbd/dplm_150m): residue-residue contact maps computed exactly as oplm does, by the categorical-Jacobian pipeline. Reach for it when plm-evals needs a contact map for DPLM."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # dplm-150m
 
-Image: `ghcr.io/brineylab/toolshed/dplm-150m:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/dplm-150m:1.0.1`
 
-DPLM v1, the sequence model (30 layers, 640-dimensional, about 150M parameters), from `airkingbd/dplm_150m`, loaded in bf16 through the modeling code vendored from bytedance/dplm. One command, `contacts`, which turns sequences into contact maps exactly the way oplm computes them. The weights are in the image; it needs no network.
+DPLM v1, the sequence model (30 layers, 640-dimensional, about 150M parameters), from `airkingbd/dplm_150m`, loaded in bf16 through the modeling code vendored from bytedance/dplm. One command, `contacts`, which turns sequences into contact maps exactly the way oplm computes them. The weights are in the image, stored already rounded to bf16 (298 MB — the same bits loading the fp32 release with `torch_dtype=bfloat16` gives); it needs no network.
 
 ## Commands
 
@@ -35,19 +35,20 @@ On a laptop, from the directory holding `seqs.fasta` (drop `--device` without a 
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/dplm-150m:1.0.0 dplm contacts --in seqs.fasta --out contacts.npz
+  ghcr.io/brineylab/toolshed/dplm-150m:1.0.1 dplm contacts --in seqs.fasta --out contacts.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/dplm-150m:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/dplm-150m:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work dplm contacts --in seqs.fasta --out contacts.npz
 ```
 
 ## Gotchas
 
 - **Licenses.** The weights (`airkingbd/dplm_150m`) carry no license of their own; this tool publishes them under CONTRIBUTING's rule 2, on the official code repository's license: github.com/bytedance/dplm is Apache-2.0, and its license is copied into the image at `/opt/model/LICENSE`. The vendored modeling code (`/opt/src/dplm_modeling_esm.py`) is from that repository, commit `8a2e15e53416b4536f03f79ad1f6f6a9cbd5e19d`, with its byprot registration lines removed, its transformers import made explicit, and one bf16 fix: the rotary rotation's fp32 cos/sin promote query and key to fp32 while the value stays bf16, a mix `scaled_dot_product_attention` refuses, so the rotated query and key are cast back to bf16 (the rotation itself stays fp32; the forward runs in bf16, the precision the weights are loaded in).
+- **The image ships the weights already cast to bf16** (298 MB, not the released 595 MB fp32): torch's fp32→bf16 cast is the same rounding `from_pretrained(torch_dtype=bfloat16)` applies at load, so the loaded weights — and the maps — are bit-identical to loading the fp32 release. Never re-quantize further; this is the model's full bf16 precision, not INT8 or any other quantization.
 - **Test tolerance.** `test/run.sh` compares the fixture's map against a reference computed once, in a campaign run, with oplm's own `compute_categorical_jacobian` and `categorical_jacobian_to_contact_map` at commit `704e01f5ed4b8322bb82e0c961b2c16361c47fa2` on the same weights in bf16 (committed as `test/reference.npz`, float16). It requires exact symmetry, Pearson r >= 0.98, and top-L long-range overlap >= 0.8 (long-range: `|i - j| >= 24`, oplm's separation), allowing GPU kernel noise.
 - **The fixture crosses the batching threshold**: 76 residues x 20 amino acids = 1520 mutants = 76 forward passes, so the mutation-batch loop runs many times, not once.
 - A sequence longer than 1024 residues is refused, naming it; the model has 1026 positions. The eval sets stay within 818.

@@ -10,10 +10,11 @@ are printed, so a build that cannot fetch its weights says why in its log.
 
 Usage: fetch_weights.py DEST [FILE ...]
 With no FILE, every pinned file is fetched. A name in CONVERT_TO_BF16 ships
-in fp32: it is downloaded to a staging directory beside DEST, verified, cast
-to bf16 -- the rounding from_pretrained applies at load -- and saved under
-DEST, with the fp32 bytes deleted before the step ends, so they never enter
-an image layer.
+upstream in fp32: it is downloaded, verified against the pin, cast to bf16 --
+the rounding from_pretrained applies at load with torch_dtype=bfloat16, so
+the loaded weights are bit-identical either way -- and saved over the fp32
+file in place, so the fp32 bytes never enter an image layer and the build's
+peak disk holds the download alone.
 """
 import hashlib
 import os
@@ -36,7 +37,9 @@ FILES = {  # file name -> (sha256, bytes), pinned from the HF tree API at REV
     "vocab.txt": ("0b82cc0a7c7cf9e567b1e5892d793285b9fbae822c964ca48696f7db44598e03", 93),
     "pytorch_model.bin": ("ea4eaa99536b60ed76f945f71a1a5e604f08447ec3def5104a93ca6001a59961", 595359662),
 }
-CONVERT_TO_BF16 = []  # names whose fp32 bytes are cast to bf16 before they enter the image
+# The fp32 checkpoint, cast to bf16 in the image: the precision the model runs
+# in, and half the bytes in the layer, the image, and the test's pull of it.
+CONVERT_TO_BF16 = ["pytorch_model.bin"]
 
 ATTEMPTS = 4          # per file
 READ_TIMEOUT = 60     # seconds, per blocking socket operation
@@ -58,6 +61,15 @@ def _host(url):
     return urllib.parse.urlsplit(url).netloc
 
 
+def disk_report():
+    for path in ("/", "/opt"):
+        try:
+            usage = shutil.disk_usage(path)
+            log(f"disk {path}: {usage.free / 2 ** 30:.1f} GiB free of {usage.total / 2 ** 30:.1f} GiB")
+        except Exception as e:
+            log(f"disk {path} FAILED: {type(e).__name__}: {e}")
+
+
 def diagnostics(need_bytes):
     log(f"python {sys.version.split()[0]}")
     try:
@@ -69,12 +81,7 @@ def diagnostics(need_bytes):
         value = os.environ.get(var)
         if value:
             log(f"env {var}={re.sub(r'//[^/@]+@', '//***@', value)}")
-    for path in ("/", "/opt"):
-        try:
-            usage = shutil.disk_usage(path)
-            log(f"disk {path}: {usage.free / 2 ** 30:.1f} GiB free of {usage.total / 2 ** 30:.1f} GiB")
-        except Exception as e:
-            log(f"disk {path} FAILED: {type(e).__name__}: {e}")
+    disk_report()
     log(f"fetching {need_bytes} bytes from {REPO}@{REV[:12]}")
 
 
@@ -186,12 +193,22 @@ def download(name, dest):
             time.sleep(min(2 ** attempt, 20))
 
 
-def to_bf16(src, dest):
+def to_bf16(path):
+    """Cast the verified fp32 checkpoint at path to bf16, in place.
+
+    torch's fp32->bf16 cast is the same rounding from_pretrained applies at
+    load with torch_dtype=bfloat16, so the loaded weights are bit-identical
+    either way. Loading to RAM, unlinking, and saving at the same path keeps
+    the build's peak disk at the fp32 download alone, and the fp32 bytes are
+    gone before the step ends, so only bf16 enters the image layer.
+    """
     import torch
 
-    state = torch.load(src, map_location="cpu", weights_only=True)
-    torch.save({k: (v.to(torch.bfloat16) if v.is_floating_point() else v) for k, v in state.items()}, dest)
-    return dest.stat().st_size
+    fp32_bytes = path.stat().st_size
+    state = torch.load(path, map_location="cpu", weights_only=True)
+    path.unlink()
+    torch.save({k: (v.to(torch.bfloat16) if v.is_floating_point() else v) for k, v in state.items()}, path)
+    return fp32_bytes, path.stat().st_size
 
 
 def main(argv):
@@ -202,21 +219,14 @@ def main(argv):
         raise SystemExit(f"unknown file(s): {unknown}")
     diagnostics(sum(FILES[n][1] for n in names))
     dest.mkdir(parents=True, exist_ok=True)
-    staging = dest.parent / (dest.name + "-fp32-staging")
     for n in names:
+        download(n, dest / n)  # the pinned bytes, verified against the pin
         if n in CONVERT_TO_BF16:
-            staging.mkdir(parents=True, exist_ok=True)
-            fp32 = staging / n
-            download(n, fp32)
-            bf16 = dest / n
-            size = to_bf16(fp32, bf16)
-            log(f"cast {n}: fp32 {fp32.stat().st_size} bytes -> bf16 {size} bytes")
-            fp32.unlink()
-            if not any(staging.iterdir()):
-                shutil.rmtree(staging)
-        else:
-            download(n, dest / n)
+            fp32_bytes, bf16_bytes = to_bf16(dest / n)
+            log(f"cast {n}: fp32 {fp32_bytes} bytes -> bf16 {bf16_bytes} bytes, in place")
     log(f"OK: {len(names)} file(s), {sum((dest / n).stat().st_size for n in names)} bytes under {dest}")
+    log("disk after everything landed:")
+    disk_report()
 
 
 if __name__ == "__main__":

@@ -2,13 +2,25 @@ FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN pip install --no-cache-dir --break-system-packages transformers==4.51.3 tokenizers==0.21.1 huggingface_hub==0.30.2 safetensors==0.5.3 numpy==2.5.4
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DPLM_MODEL=/opt/model
-# Two builds died fetching the weights and the log tail never said why, so a
-# committed script fetches them over plain resolve URLs: retries with Range
-# resume, redirect tracing, and sha256 verification of every file, logging
-# enough (DNS, proxies, disk, each hop) to name whatever blocks the fetch.
+# airkingbd/dplm_150m ships its weights as one fp32 pytorch_model.bin (595 MB).
+# The image stores them converted to bf16 (298 MB) -- the precision the model
+# runs in -- so the layer, the image, and the test's pull of it are half the
+# bytes: torch's fp32->bf16 cast is the same rounding from_pretrained applies
+# at load with torch_dtype=bfloat16, so the loaded weights are bit-identical.
+# The cast happens in place (load, unlink, save over the file), so the build's
+# peak disk holds the fp32 download alone and the fp32 bytes never enter a
+# layer. Weights fetches on the build host have died without a visible cause,
+# so a committed script fetches the pinned weights over plain resolve URLs:
+# retries with Range resume, redirect tracing, and sha256 verification of
+# every file, logging the disk before and after, DNS, proxies, and each hop.
 COPY fetch_weights.py /opt/fetch_weights.py
 RUN python3 -I /opt/fetch_weights.py /opt/model
 COPY LICENSE /opt/model/LICENSE
 COPY src /opt/src
 COPY --chmod=755 bin/dplm /usr/local/bin/dplm
+# Two builds died between these copies and the commit, their logs cut mid-line
+# and naming nothing. This step puts the build-side disk into the log right
+# before the test is copied in, so a build that dies at the end leaves the disk
+# it died on at the tail of its log.
+RUN df -h / /opt && du -sh /opt/model
 COPY test /toolshed/test
