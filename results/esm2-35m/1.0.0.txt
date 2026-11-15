@@ -1,0 +1,16 @@
+---
+tool: esm2-35m
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/esm2-35m@sha256:b6822eced4738b173b903945ffcc3cbe6ef5e512ccfc51747ef1dbf8dcd1ce9f
+digest: sha256:b6822eced4738b173b903945ffcc3cbe6ef5e512ccfc51747ef1dbf8dcd1ce9f
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T16:52:16Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esm2-35m@sha256:b6822eced4738b173b903945ffcc3cbe6ef5e512ccfc51747ef1dbf8dcd1ce9f
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esm2-35m@sha256:b6822eced4738b173b903945ffcc3cbe6ef5e512ccfc51747ef1dbf8dcd1ce9f
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-c45844e4-bbf5-52b2-663a-089a6acef17a)
+contacts ubiquitin: L=76 pearson_r=0.9985 top-76 long-range overlap 0.91
+ok: peptide pll -49.9997, reversed pll -55.7591, ubiquitin pll -111.0582 | ubiquitin -1.46/residue | filled MKTAYIAKKRQISFLKSH
