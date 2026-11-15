@@ -1,0 +1,40 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESM1B_MODEL=/opt/model
+# The weights are facebook/esm1b_t33_650M_UR50S's pytorch_model.bin (2.6 GB, fp32 as
+# released) at revision 7b37824b, crossed in twenty verified 128 MiB byte ranges, one
+# short RUN per chunk (the pattern protbert 1.0.3 proved on this builder): each range's
+# sha256 is checked before its layer is committed, a stalled step resumes from the
+# bytes it already holds, and a build that dies reuses whatever the builder cached, so
+# progress survives. The wrapper assembles the parts at load time, checks the whole
+# file's sha256, and loads it in bf16 for contacts (the same rounding oplm's own
+# computation runs on) and fp32 for pll, embed and fill. The small files -- config,
+# tokenizer, vocab, and Meta's MIT LICENSE -- are committed in model/ and copied in
+# after the chunks, so a change to them never invalidates a cached chunk, and the test
+# is last, per the conventions.
+COPY fetch_chunk.py /tmp/fetch_chunk.py
+RUN python3 -I /tmp/fetch_chunk.py 0
+RUN python3 -I /tmp/fetch_chunk.py 1
+RUN python3 -I /tmp/fetch_chunk.py 2
+RUN python3 -I /tmp/fetch_chunk.py 3
+RUN python3 -I /tmp/fetch_chunk.py 4
+RUN python3 -I /tmp/fetch_chunk.py 5
+RUN python3 -I /tmp/fetch_chunk.py 6
+RUN python3 -I /tmp/fetch_chunk.py 7
+RUN python3 -I /tmp/fetch_chunk.py 8
+RUN python3 -I /tmp/fetch_chunk.py 9
+RUN python3 -I /tmp/fetch_chunk.py 10
+RUN python3 -I /tmp/fetch_chunk.py 11
+RUN python3 -I /tmp/fetch_chunk.py 12
+RUN python3 -I /tmp/fetch_chunk.py 13
+RUN python3 -I /tmp/fetch_chunk.py 14
+RUN python3 -I /tmp/fetch_chunk.py 15
+RUN python3 -I /tmp/fetch_chunk.py 16
+RUN python3 -I /tmp/fetch_chunk.py 17
+RUN python3 -I /tmp/fetch_chunk.py 18
+RUN python3 -I /tmp/fetch_chunk.py 19
+RUN rm -f /tmp/fetch_chunk.py
+COPY model/ /opt/model/
+COPY --chmod=755 bin/esm1b /usr/local/bin/esm1b
+COPY test /toolshed/test
