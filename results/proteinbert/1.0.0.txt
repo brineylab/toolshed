@@ -1,0 +1,21 @@
+---
+tool: proteinbert
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/proteinbert@sha256:40b4ca17a7e40625208366046cfab7f2e98442748746ed91d079535492edf64d
+digest: sha256:40b4ca17a7e40625208366046cfab7f2e98442748746ed91d079535492edf64d
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T16:50:02Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/proteinbert@sha256:40b4ca17a7e40625208366046cfab7f2e98442748746ed91d079535492edf64d
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/proteinbert@sha256:40b4ca17a7e40625208366046cfab7f2e98442748746ed91d079535492edf64d
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-c45844e4-bbf5-52b2-663a-089a6acef17a)
+2026-11-15 16:51:15.404711: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2026-11-15 16:51:15.404762: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2026-11-15 16:51:15.405991: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+proteinbert: cuda (/physical_device:GPU:0)
+proteinbert: loaded and verified the weights (n_annotations=8943)
+ok: lysozyme L=129 pearson=1.0000 top-L overlap=0.977
+ok: ubiquitin L=76 pearson=0.9995 top-L overlap=0.921

@@ -1,0 +1,30 @@
+FROM docker.io/library/python:3.11-slim-bookworm
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# TF 2.15.1: the vendored model code is Keras-2-era (tensorflow.keras.backend
+# as K), and 2.15 is the last TensorFlow whose keras is that -- hence also the
+# 3.11 base, its wheels stopping at python 3.11. numpy 1.26.4: TF 2.15 needs
+# numpy < 2. The and-cuda extra brings TF's own CUDA 12.2 stack, so the image
+# needs only the host driver.
+RUN pip install --no-cache-dir "tensorflow[and-cuda]==2.15.1" "numpy==1.26.4"
+ENV TF_CPP_MIN_LOG_LEVEL=2 TF_FORCE_GPU_ALLOW_GROWTH=true PROTEINBERT_MODEL=/opt/model
+# The pretrained dump is 192 MB, an order of magnitude under the gigabyte-scale
+# steps that killed protbert's builds on the machine that builds them, so
+# unlike protbert's thirteen chunk steps it crosses the builder as one short
+# RUN step, carrying the same machinery (fetch_weights.py, which holds the
+# pin): two sources that race, byte-range resume across attempts, a read that
+# moves no bytes counted as a stalled connection, a deadline that fails the
+# step having owed the builder only that much, and the sha256 the wrapper
+# checks again before it loads the file -- so the weights are pinned twice,
+# per build and at run time. The license and notice ride in model/, copied
+# after the weights so that a change to them never invalidates the cached
+# weights layer, and the test is last, per the conventions.
+COPY fetch_weights.py /tmp/fetch_weights.py
+RUN python3 -I /tmp/fetch_weights.py
+RUN rm -f /tmp/fetch_weights.py
+COPY model/ /opt/model/
+# the vendored ProteinBERT code, into system site-packages where `import
+# proteinbert` finds it even under `python3 -I` (isolated mode drops the
+# script's directory, not system site-packages)
+COPY proteinbert/ /usr/local/lib/python3.11/site-packages/proteinbert/
+COPY --chmod=755 bin/proteinbert /usr/local/bin/proteinbert
+COPY test /toolshed/test
