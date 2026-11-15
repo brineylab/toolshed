@@ -1,0 +1,99 @@
+#!/usr/bin/env -S python3 -I
+"""dplm: contact maps from the DPLM v1 protein language model, computed exactly as oplm computes them."""
+import argparse, os, sys
+
+sys.path.insert(0, "/opt/src")
+
+import numpy as np
+import torch
+from transformers import AutoConfig, AutoTokenizer
+
+from dplm_modeling_esm import EsmForDPLM
+from oplm.eval.metrics.categorical_jacobian import (
+    CANONICAL_AMINO_ACIDS,
+    categorical_jacobian_to_contact_map,
+    compute_categorical_jacobian,
+)
+
+MODEL_DIR = os.environ.get("DPLM_MODEL", "/opt/model")
+MAX_RESIDUES = 1024  # the model's 1026 positions, less <cls> and <eos>; eval sets stay within 818
+MUTATION_BATCH = 20   # mutants per forward pass, oplm's default
+
+
+def read_fasta(path):
+    records = []
+    for line in open(path):
+        line = line.strip()
+        if line.startswith(">"):
+            records.append([line[1:].split()[0] if line[1:].strip() else f"seq{len(records) + 1}", ""])
+        elif line:
+            if not records:
+                sys.exit(f"dplm: {path} is not FASTA: sequence before the first '>'")
+            records[-1][1] += line.upper()
+    if not records:
+        sys.exit(f"dplm: {path} holds no sequences")
+    return records
+
+
+def encode(tok, name, seq):
+    if len(seq) > MAX_RESIDUES:
+        sys.exit(f"dplm: {name} has {len(seq)} residues; the model takes at most {MAX_RESIDUES}")
+    bad = sorted(set(seq) - set(CANONICAL_AMINO_ACIDS))
+    if bad:
+        sys.exit(f"dplm: {name} holds {' '.join(bad)}: only the 20 canonical amino acids are allowed")
+    return torch.tensor(tok.encode(seq), dtype=torch.long)  # <cls> residues <eos>
+
+
+def contacts(model, ids, canonical_ids, device):
+    """The (L, L) contact map: oplm's categorical-Jacobian pipeline on DPLM's bf16 logits."""
+    L = ids.shape[0] - 2
+    canonical_device = canonical_ids.to(device)
+
+    def canonical_logits(batch_input_ids):
+        """(B, T) token ids -> (B, L, 20) fp32 logits, canonical amino-acid channels only."""
+        with torch.no_grad():
+            logits = model(input_ids=batch_input_ids.to(device))["logits"]
+        return logits[:, 1:L + 1].index_select(-1, canonical_device).detach().cpu().float()
+
+    with torch.no_grad():
+        wildtype = canonical_logits(ids.unsqueeze(0))[0]
+        jacobian = compute_categorical_jacobian(
+            wildtype_input_ids=ids,
+            wildtype_logits=wildtype,
+            canonical_token_ids=canonical_ids,
+            logits_fn=canonical_logits,
+            mutation_batch_size=MUTATION_BATCH,
+        )
+        return categorical_jacobian_to_contact_map(jacobian, copy=False)
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="dplm", description=__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("contacts", help="npz: one (L, L) float32 contact map per id")
+    p.add_argument("--in", dest="inp", required=True, help="FASTA")
+    p.add_argument("--out", required=True, help="npz with one (L, L) float32 map per id")
+    p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    args = ap.parse_args()
+
+    records = read_fasta(args.inp)
+    tok = AutoTokenizer.from_pretrained(MODEL_DIR)
+    cfg = AutoConfig.from_pretrained(MODEL_DIR)
+    cfg._name_or_path = MODEL_DIR  # EsmForDPLM.__init__ loads its tokenizer from this path
+    model = EsmForDPLM.from_pretrained(MODEL_DIR, config=cfg, torch_dtype=torch.bfloat16).eval().to(args.device)
+
+    # Both Jacobian axes use this list: CANONICAL_AMINO_ACIDS order on both the
+    # substituted and the output side, mapped to DPLM's own token ids.
+    canonical_ids = torch.tensor(
+        [tok.encode(aa, add_special_tokens=False)[0] for aa in CANONICAL_AMINO_ACIDS],
+        dtype=torch.long,
+    )
+
+    maps = {}
+    for name, seq in records:
+        maps[name] = contacts(model, encode(tok, name, seq), canonical_ids, args.device).numpy().astype(np.float32)
+    np.savez(args.out, **maps)
+
+
+if __name__ == "__main__":
+    main()

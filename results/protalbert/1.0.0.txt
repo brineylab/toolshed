@@ -1,0 +1,27 @@
+---
+tool: protalbert
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/protalbert@sha256:3f31bf3a86526aa265127ca0e513729a264ff20fef19d55ce63e48edee18ea32
+digest: sha256:3f31bf3a86526aa265127ca0e513729a264ff20fef19d55ce63e48edee18ea32
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T07:04:27Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/protalbert@sha256:3f31bf3a86526aa265127ca0e513729a264ff20fef19d55ce63e48edee18ea32
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/protalbert@sha256:3f31bf3a86526aa265127ca0e513729a264ff20fef19d55ce63e48edee18ea32
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+protalbert: assembled and verified the checkpoint at /tmp/protalbert-pytorch_model-5f616acbd5007236.bin
+[transformers] [1mAlbertForMaskedLM LOAD REPORT[0m from: /tmp/protalbert-model-5z321w1s
+Key                              | Status     |  | 
+---------------------------------+------------+--+-
+albert.pooler.bias               | UNEXPECTED |  | 
+albert.pooler.weight             | UNEXPECTED |  | 
+sop_classifier.classifier.weight | UNEXPECTED |  | 
+sop_classifier.classifier.bias   | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+ok: lysozyme L=129 pearson=1.0000 top-L overlap=1.000
+ok: ubiquitin L=76 pearson=1.0000 top-L overlap=1.000

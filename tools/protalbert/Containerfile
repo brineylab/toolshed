@@ -1,0 +1,34 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4 sentencepiece==0.2.3 protobuf==7.36.2
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PROTALBERT_MODEL=/opt/model
+# Eight builds of protbert, this shed's first ProtTrans tool, died on the
+# machine that builds it -- three on connections to huggingface.co that open
+# and then move no bytes, five more silently in or just after a weights step
+# that had already run for minutes, one of them at the 10 KB COPY that
+# followed a committed layer. So this checkpoint crosses the builder in
+# seven short steps from the start, one verified 128 MiB byte range of the
+# pinned file per RUN instruction (fetch_chunk.py, which carries the
+# manifest): a step that needs nothing finishes in seconds, one the network
+# stalls fails within four minutes having owed the builder only that, every
+# committed layer is 128 MiB, and -- because these RUN instructions never
+# change between builds -- whatever a failed build leaves in the builder's
+# layer cache the next build reuses, so progress survives a build that dies.
+# Nothing is converted: the image ships the fp32 checkpoint, and the
+# wrapper assembles the seven parts at load time, checks the whole file's
+# sha256, and loads it with dtype=bfloat16 -- bit for bit the same bf16
+# weights a build-time conversion would have shipped. The small files ride
+# in model/, copied after the chunks so that a change to them never
+# invalidates a cached chunk, and the test is last, per the conventions.
+COPY fetch_chunk.py /tmp/fetch_chunk.py
+RUN python3 -I /tmp/fetch_chunk.py 0
+RUN python3 -I /tmp/fetch_chunk.py 1
+RUN python3 -I /tmp/fetch_chunk.py 2
+RUN python3 -I /tmp/fetch_chunk.py 3
+RUN python3 -I /tmp/fetch_chunk.py 4
+RUN python3 -I /tmp/fetch_chunk.py 5
+RUN python3 -I /tmp/fetch_chunk.py 6
+RUN rm -f /tmp/fetch_chunk.py
+COPY model/ /opt/model/
+COPY --chmod=755 bin/protalbert /usr/local/bin/protalbert
+COPY test /toolshed/test
