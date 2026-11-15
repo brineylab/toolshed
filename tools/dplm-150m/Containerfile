@@ -1,12 +1,23 @@
 FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DPLM_MODEL=/opt/model
-# One quiet RUN does the whole build (build.sh): the pinned packages, then the pinned
-# weights -- airkingbd/dplm_150m's 595 MB fp32 checkpoint, fetched sha256-verified into
-# /opt/model and stored exactly as released, cast to bf16 at load, the same cast the
-# test's reference map was computed with -- then the committed files laid into the image
-# (the vendored modeling code under /opt/src, the wrapper on PATH, the license beside the
-# weights). Silent on success, loud on failure: the build log stays short enough to be
-# read whole, so a build that dies says why.
-COPY src bin LICENSE fetch_weights.py build.sh /incoming/
+# One RUN does the whole build (build.sh), naming each stage as it starts, so a build
+# that dies says where. The environment is vendored: the pinned wheels under wheels/,
+# installed with --no-index, so the build's only network is the weights fetch, the one
+# route the build host has proven (about 100 MiB/s, every sha256 verified since 93eb8fa)
+# -- pip died on the build host mid-install, its log ending at pip's root-user warning
+# with no error of its own, and the package index was the one route no build ever
+# proved. The fetch pulls the pinned weights -- airkingbd/dplm_150m's 595 MB fp32
+# checkpoint, sha256-verified into /opt/model and stored exactly as released, cast to
+# bf16 at load, the same cast the test's reference map was computed with -- then the
+# committed files are laid into the image: the vendored modeling code under /opt/src,
+# the wrapper on PATH, the license beside the weights. Each directory is copied to the
+# path build.sh reads it from: COPY copies a directory's contents, not the directory,
+# so a directory source sent to a shared destination would lose its name (1.0.3's one
+# COPY into /incoming/ never created the /incoming/src its build.sh read -- no build
+# reached the cp that would have said so).
+COPY wheels /incoming/wheels/
+COPY src /incoming/src/
+COPY bin /incoming/bin/
+COPY LICENSE fetch_weights.py build.sh /incoming/
 RUN bash /incoming/build.sh
 COPY test /toolshed/test
