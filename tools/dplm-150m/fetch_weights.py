@@ -5,8 +5,9 @@ The repository, revision, and every file's sha256 and byte count are pinned
 below, from the HF tree API at that revision, and each file is verified against
 its pin after download, so the image holds exactly the pinned bytes. A failed
 attempt leaves its partial file behind and the next resumes it with a Range
-request, and each retry prints its error, so a fetch that cannot succeed says
-why. The build log stays a few lines: one per file on success.
+request. Silent on success -- the build log must stay short enough to be read
+whole -- and each retry prints its error, so a fetch that cannot succeed
+says why.
 
 Usage: fetch_weights.py DEST [FILE ...]
 With no FILE, every pinned file is fetched, verified against its pin, and left
@@ -35,7 +36,6 @@ FILES = {  # file name -> (sha256, bytes), pinned from the HF tree API at REV
 ATTEMPTS = 4          # per file
 READ_TIMEOUT = 60     # seconds, per blocking socket operation
 CHUNK = 1 << 20
-HEARTBEAT = 30.0      # seconds between progress lines while a file streams
 UA = "brineylab-toolshed-build"
 
 
@@ -74,7 +74,6 @@ def download(name, dest):
                 if size == want_bytes:
                     got = _digest(dest)
                     if got == want_sha:
-                        log(f"fetch {name}: complete ({size} bytes, sha256 verified)")
                         return
                     dest.unlink()
                     log(f"fetch {name}: complete file failed sha256; refetching")
@@ -84,8 +83,6 @@ def download(name, dest):
             headers = {"User-Agent": UA}
             if have:
                 headers["Range"] = f"bytes={have}-"
-            started = time.monotonic()
-            done = 0
             with urllib.request.urlopen(urllib.request.Request(url, headers=headers),
                                         timeout=READ_TIMEOUT) as r:
                 resume = have and r.status == 206
@@ -94,28 +91,18 @@ def download(name, dest):
                 expected = have + int(r.headers.get("Content-Length") or 0)
                 if expected and expected != want_bytes:
                     raise RuntimeError(f"server offers {expected} bytes, pinned {want_bytes}")
-                last = started
                 with open(dest, "ab" if resume else "wb") as f:
                     while True:
                         chunk = r.read(CHUNK)
                         if not chunk:
                             break
                         f.write(chunk)
-                        done += len(chunk)
-                        now = time.monotonic()
-                        if now - last > HEARTBEAT:
-                            rate = (have + done) / max(now - started, 1e-9) / 2 ** 20
-                            log(f"fetch {name}: {(have + done) / 2 ** 20:.0f} MiB at {rate:.1f} MiB/s")
-                            last = now
-            elapsed = max(time.monotonic() - started, 1e-9)
             size = dest.stat().st_size
             if size != want_bytes:
                 raise RuntimeError(f"{size} bytes on disk, pinned {want_bytes}")
             got = _digest(dest)
             if got != want_sha:
                 raise RuntimeError(f"sha256 {got}, pinned {want_sha}")
-            log(f"fetch {name}: {size} bytes in {elapsed:.1f}s ({size / elapsed / 2 ** 20:.1f} MiB/s), "
-                f"sha256 verified")
             return
         except Exception as e:
             log(f"fetch {name}: attempt {attempt}/{ATTEMPTS} failed: {type(e).__name__}: {e}")
@@ -130,12 +117,9 @@ def main(argv):
     unknown = [n for n in names if n not in FILES]
     if unknown:
         raise SystemExit(f"unknown file(s): {unknown}")
-    log(f"fetching {len(names)} file(s), {sum(FILES[n][1] for n in names)} bytes, "
-        f"from {REPO}@{REV[:12]}")
     dest.mkdir(parents=True, exist_ok=True)
     for n in names:
         download(n, dest / n)  # the pinned bytes, verified against the pin
-    log(f"OK: {len(names)} file(s), {sum((dest / n).stat().st_size for n in names)} bytes under {dest}")
 
 
 if __name__ == "__main__":
