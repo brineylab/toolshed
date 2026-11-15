@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import sys
+import tempfile
 from typing import Callable
 
 import numpy as np
@@ -50,6 +52,64 @@ CANONICAL_AMINO_ACIDS: tuple[str, ...] = (
 
 MAX_RESIDUES = 818   # the longest sequence the contacts command takes
 MUTATION_BATCH = 32  # mutant sequences per forward pass
+
+# The image ships the fp32 checkpoint as thirteen sha256-verified 128 MiB
+# chunks, each fetched by one short build step (tools/protbert/fetch_chunk.py),
+# because the machine that builds this image dies on single steps that move
+# gigabytes. The first run assembles them, checks the whole file's sha256,
+# and caches it under the system's temp directory; loaded with
+# dtype=bfloat16, the fp32 bytes are the same bf16 weights a converted file
+# would hold.
+CHECKPOINT_SHA256 = "6ea3edd26cfefc3111176100ee2a027ed510f9c86b63e5b53a2a050b59f2af9d"
+CHECKPOINT_BYTES = 1684058277
+CHECKPOINT_PARTS = 13
+SMALL_MODEL_FILES = ("config.json", "vocab.txt", "tokenizer_config.json", "special_tokens_map.json")
+
+
+def loadable_model_dir():
+    """A directory transformers loads this model from.
+
+    $PROTBERT_MODEL when it already holds pytorch_model.bin; otherwise one
+    whose pytorch_model.bin is the image's committed chunks, assembled and
+    sha256-verified once and cached under the system's temp directory.
+    """
+    src = os.environ["PROTBERT_MODEL"]
+    if os.path.exists(os.path.join(src, "pytorch_model.bin")):
+        return src
+    parts = [os.path.join(src, "pytorch_model.bin.part%02d" % i) for i in range(CHECKPOINT_PARTS)]
+    missing = [p for p in parts if not os.path.exists(p)]
+    if missing:
+        sys.exit("protbert: the image is missing checkpoint chunks: %s" % ", ".join(missing))
+    held = sum(os.path.getsize(p) for p in parts)
+    if held != CHECKPOINT_BYTES:
+        sys.exit("protbert: the image's checkpoint chunks hold %d bytes, not the pinned %d"
+                 % (held, CHECKPOINT_BYTES))
+    cache = os.path.join(tempfile.gettempdir(), "protbert-pytorch_model-%s.bin" % CHECKPOINT_SHA256[:16])
+    if not os.path.exists(cache):
+        digest = hashlib.sha256()
+        fd, tmp = tempfile.mkstemp(prefix=".protbert-assemble-", dir=tempfile.gettempdir())
+        try:
+            with os.fdopen(fd, "wb") as out:
+                for part in parts:
+                    with open(part, "rb") as f:
+                        for block in iter(lambda: f.read(8 << 20), b""):
+                            digest.update(block)
+                            out.write(block)
+                out.flush()
+            if digest.hexdigest() != CHECKPOINT_SHA256:
+                sys.exit("protbert: the assembled checkpoint hashes to %s, not the pinned %s"
+                         % (digest.hexdigest(), CHECKPOINT_SHA256))
+            os.chmod(tmp, 0o644)
+            os.replace(tmp, cache)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        print("protbert: assembled and verified the checkpoint at %s" % cache, file=sys.stderr)
+    model_dir = tempfile.mkdtemp(prefix="protbert-model-")
+    for name in SMALL_MODEL_FILES:
+        os.symlink(os.path.join(src, name), os.path.join(model_dir, name))
+    os.symlink(cache, os.path.join(model_dir, "pytorch_model.bin"))
+    return model_dir
 
 
 def apply_apc(matrix: torch.Tensor) -> torch.Tensor:
@@ -260,9 +320,10 @@ def main():
     args = ap.parse_args()
 
     records = read_fasta(args.inp)
-    tok = BertTokenizer.from_pretrained(os.environ["PROTBERT_MODEL"])
+    path = loadable_model_dir()
+    tok = BertTokenizer.from_pretrained(path)
     model = BertForMaskedLM.from_pretrained(
-        os.environ["PROTBERT_MODEL"], dtype=torch.bfloat16
+        path, dtype=torch.bfloat16
     ).eval().to(args.device)
     canonical_ids = canonical_token_ids(tok)
     maps = {}
