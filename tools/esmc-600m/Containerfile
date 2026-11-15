@@ -1,7 +1,32 @@
-FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
-ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
-RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
-ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESMC_MODEL=/opt/model
-RUN HF_HUB_OFFLINE=0 python3 -I -c "from huggingface_hub import snapshot_download; snapshot_download('biohub/ESMC-600M', revision='fcc9d36f5fff97d9bb69a36e3252de61cc78c968', local_dir='/opt/model', allow_patterns=['*.json', '*.safetensors'])"
+# 1.1.0 is 1.0.1 plus the contacts command, Biohub's license files, and the contacts
+# test -- nothing else. Nine candidate builds of this version died on the builder in or
+# after any step that moves about a GiB or more: the whole-file weights downloads
+# (hub 2.3.0's hf-xet path rate-limited; a plain-HTTPS fetch that died 1.25 GiB into the
+# 2.14 GiB file), the cross-stage copy of the assembled weights, the one-RUN fetch of all
+# nine slices, and -- every bounded step finally in place -- the push of the rebuilt
+# image's ~2.6 GB of new layers, which never reached the registry (the largest this
+# builder has pushed is 0.83 GB). The tenth, this same design, pulled the base image
+# and then died in its one RUN -- fetching the two license files from
+# raw.githubusercontent.com, a host no build of this tool ever reached, without printing
+# a line: the fetch died before its first print, the shape of a DNS lookup that never
+# answers (Python's getaddrinfo has no timeout), while huggingface.co, ghcr.io, pypi,
+# and docker.io all resolve on the builder. So the license files are committed here,
+# verbatim from upstream commit fddac936, and copied in: this build runs no command and
+# fetches nothing but the base image.
+# The weights 1.1.0 needs are 1.0.1's own, byte for byte: model.safetensors at the
+# pinned revision fcc9d36, whose sha256 the campaign's shard plan verified against the
+# Hub's LFS oid, and whose bytes this campaign's reference run computed the committed
+# contacts test's reference map from, inside the published image itself. So this image
+# builds FROM that image, by its immutable digest, and never moves the weights at all:
+# 1.0.1's pytorch 2.14.1 CUDA 13 runtime, its transformers 5.20.2 / huggingface_hub
+# 2.3.0 / numpy 2.5.4 pins (frozen with it, and immune to the base tag's later
+# spin/click conflict), and its /opt/model come along in layers the registry already
+# holds, leaving 1.1.0's own layers kilobytes small.
+FROM ghcr.io/brineylab/toolshed/esmc-600m@sha256:8cbaf4520bc4afb5010cb4728da937ecf7f23bed9a2faea6b4c05ae497d6dafe
+# Biohub's license files beside the weights (the license convention postdates 1.0.1),
+# committed verbatim from the pinned upstream commit -- the build fetches nothing.
+COPY LICENSE.md THIRD_PARTY_NOTICE.md /opt/model/
+# The wrapper with contacts, a superset of 1.0.1's commands, then the fixture with its
+# committed oplm reference.
 COPY --chmod=755 bin/esmc /usr/local/bin/esmc
 COPY test /toolshed/test
