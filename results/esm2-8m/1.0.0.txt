@@ -1,0 +1,16 @@
+---
+tool: esm2-8m
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/esm2-8m@sha256:666e882fd4fdc04a2ad6e4d2d6d70e7a18681d8a1e7b828f067f6bc0b0d3cc3a
+digest: sha256:666e882fd4fdc04a2ad6e4d2d6d70e7a18681d8a1e7b828f067f6bc0b0d3cc3a
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T07:29:35Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esm2-8m@sha256:666e882fd4fdc04a2ad6e4d2d6d70e7a18681d8a1e7b828f067f6bc0b0d3cc3a
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esm2-8m@sha256:666e882fd4fdc04a2ad6e4d2d6d70e7a18681d8a1e7b828f067f6bc0b0d3cc3a
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+contacts ubiquitin: L=76 pearson_r=0.9989 top-76 long-range overlap 0.82
+ok: peptide pll -49.9956, reversed pll -55.8285, ubiquitin pll -175.9623 | ubiquitin -2.32/residue | filled MKTAYIAKKRQISFLKSH

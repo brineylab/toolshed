@@ -1,0 +1,18 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESM2_MODEL=/opt/model
+# The weights are facebook/esm2_t6_8M_UR50D's model.safetensors (31 MB, fp32 as
+# released) at revision c731040f, fetched by fetch-weights.py over the one network
+# route this shed's builds have proved (plain HTTPS resolve URLs, as dplm and
+# protbert fetch theirs), verified against the sha256 and byte count pinned from
+# the Hub, retried and resumable; the wrapper loads them in bf16 for contacts, the
+# same rounding oplm's own computation runs on, and fp32 for pll, embed and fill.
+# The small files -- config, tokenizer, vocab, and Meta's MIT LICENSE -- are
+# committed in model/ and copied in after the fetch, so a change to them never
+# invalidates the weights layer, and the test is last, per the conventions.
+COPY fetch-weights.py /tmp/fetch-weights.py
+RUN python3 -I /tmp/fetch-weights.py /opt/model && rm -f /tmp/fetch-weights.py
+COPY model/ /opt/model/
+COPY --chmod=755 bin/esm2 /usr/local/bin/esm2
+COPY test /toolshed/test
