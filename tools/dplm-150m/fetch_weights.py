@@ -9,12 +9,9 @@ Range request. DNS, proxies, free disk, each redirect hop, and each retry
 are printed, so a build that cannot fetch its weights says why in its log.
 
 Usage: fetch_weights.py DEST [FILE ...]
-With no FILE, every pinned file is fetched. A name in CONVERT_TO_BF16 ships
-upstream in fp32: it is downloaded, verified against the pin, cast to bf16 --
-the rounding from_pretrained applies at load with torch_dtype=bfloat16, so
-the loaded weights are bit-identical either way -- and saved over the fp32
-file in place, so the fp32 bytes never enter an image layer and the build's
-peak disk holds the download alone.
+With no FILE, every pinned file is fetched, verified against its pin, and
+left exactly as released: the wrapper casts to bf16 at load, the same cast
+the test's reference map was computed with.
 """
 import hashlib
 import os
@@ -37,9 +34,8 @@ FILES = {  # file name -> (sha256, bytes), pinned from the HF tree API at REV
     "vocab.txt": ("0b82cc0a7c7cf9e567b1e5892d793285b9fbae822c964ca48696f7db44598e03", 93),
     "pytorch_model.bin": ("ea4eaa99536b60ed76f945f71a1a5e604f08447ec3def5104a93ca6001a59961", 595359662),
 }
-# The fp32 checkpoint, cast to bf16 in the image: the precision the model runs
-# in, and half the bytes in the layer, the image, and the test's pull of it.
-CONVERT_TO_BF16 = ["pytorch_model.bin"]
+# The checkpoint is stored exactly as released (fp32); the wrapper casts it to
+# bf16 at load with torch_dtype=bfloat16, as the test's reference did.
 
 ATTEMPTS = 4          # per file
 READ_TIMEOUT = 60     # seconds, per blocking socket operation
@@ -193,24 +189,6 @@ def download(name, dest):
             time.sleep(min(2 ** attempt, 20))
 
 
-def to_bf16(path):
-    """Cast the verified fp32 checkpoint at path to bf16, in place.
-
-    torch's fp32->bf16 cast is the same rounding from_pretrained applies at
-    load with torch_dtype=bfloat16, so the loaded weights are bit-identical
-    either way. Loading to RAM, unlinking, and saving at the same path keeps
-    the build's peak disk at the fp32 download alone, and the fp32 bytes are
-    gone before the step ends, so only bf16 enters the image layer.
-    """
-    import torch
-
-    fp32_bytes = path.stat().st_size
-    state = torch.load(path, map_location="cpu", weights_only=True)
-    path.unlink()
-    torch.save({k: (v.to(torch.bfloat16) if v.is_floating_point() else v) for k, v in state.items()}, path)
-    return fp32_bytes, path.stat().st_size
-
-
 def main(argv):
     dest = pathlib.Path(argv[1])
     names = argv[2:] or list(FILES)
@@ -221,9 +199,6 @@ def main(argv):
     dest.mkdir(parents=True, exist_ok=True)
     for n in names:
         download(n, dest / n)  # the pinned bytes, verified against the pin
-        if n in CONVERT_TO_BF16:
-            fp32_bytes, bf16_bytes = to_bf16(dest / n)
-            log(f"cast {n}: fp32 {fp32_bytes} bytes -> bf16 {bf16_bytes} bytes, in place")
     log(f"OK: {len(names)} file(s), {sum((dest / n).stat().st_size for n in names)} bytes under {dest}")
     log("disk after everything landed:")
     disk_report()
