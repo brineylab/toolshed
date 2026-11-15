@@ -1,0 +1,9 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN pip install --no-cache-dir --break-system-packages transformers==4.51.3 tokenizers==0.21.1 huggingface_hub==0.30.2 safetensors==0.5.3 numpy==2.5.4
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DPLM_MODEL=/opt/model
+RUN HF_HUB_OFFLINE=0 python3 -I -c "from huggingface_hub import snapshot_download; snapshot_download('airkingbd/dplm_150m', revision='49b7125a5d28c6418fcc2f3c4fe799352ac1488b', local_dir='/opt/model', allow_patterns=['config.json', 'tokenizer_config.json', 'special_tokens_map.json', 'vocab.txt', 'pytorch_model.bin'])"
+COPY LICENSE /opt/model/LICENSE
+COPY src /opt/src
+COPY --chmod=755 bin/dplm /usr/local/bin/dplm
+COPY test /toolshed/test
