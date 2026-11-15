@@ -75,12 +75,12 @@ class ScriptTests(unittest.TestCase):
         r = self.run_script("push", "t")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.log(), ["workflow run seed.yml -R owner/repo -f tool=t", "push ghcr.io/owner/repo/t:src-abc"])
-    def test_push_says_when_the_package_is_private(self):
-        # gh refuses the dispatch (no login, or no access): the push goes on and ends as before, with the settings link
+    def test_push_pushes_nothing_when_gh_refuses_the_seed(self):
+        # gh refuses the dispatch (no login, or no access): a push would create the package private, so none is made
         r = self.run_script("push", "t", FAKE_GH_EXIT="1")
-        self.assertEqual(r.returncode, 3)
-        self.assertIn("https://github.com/orgs/owner/packages/container/repo%2Ft/settings", r.stdout)
-        self.assertEqual(self.log(), ["workflow run seed.yml -R owner/repo -f tool=t", "push ghcr.io/owner/repo/t:src-abc"])
+        self.assertEqual(r.returncode, 5)
+        self.assertIn("write access to owner/repo", r.stderr)
+        self.assertEqual(self.log(), ["workflow run seed.yml -R owner/repo -f tool=t"])
     def test_push_does_not_call_a_registry_error_private(self):
         r = self.run_script("push", "t", FAKE_NETWORK_DOWN="1")
         self.assertNotIn(r.returncode, (0, 3))
