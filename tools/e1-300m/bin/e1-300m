@@ -1,0 +1,385 @@
+#!/usr/bin/env -S python3 -I
+"""e1-300m: categorical-Jacobian contact maps from Profluent's E1-300m weights in $E1_MODEL.
+
+    e1-300m contacts --in seqs.fasta --out contacts.npz [--device cuda|cpu]
+
+E1 runs in single-sequence mode only: no retrieved or MSA context.  The contact
+map is the one OPLM's structure eval computes, from github.com/briney/oplm at
+commit 704e01f5ed4b8322bb82e0c961b2c16361c47fa2: each residue is substituted by
+each of the 20 canonical amino acids (no masking), the wild type is subtracted
+from every mutant's logits, and the (L, 20, L, 20) logit-difference tensor is
+reduced to an (L, L) contact score map (centered over all four axes, symmetrized,
+root-sum-square over the amino-acid axes, zero diagonal, APC, symmetrized).
+The weights load in bf16 and the forward pass runs in bf16; logits, the Jacobian
+and the reduction are fp32.
+"""
+import argparse
+import importlib.machinery
+import os
+import sys
+import time
+import types
+
+import numpy as np
+import torch
+
+# transformers is imported before the kernels stub below lands in sys.modules:
+# its import-time availability probe (transformers.utils.import_utils) calls
+# importlib.util.find_spec("kernels"), which raises
+# ValueError("kernels.__spec__ is None") on a sys.modules entry made with
+# types.ModuleType.  E1's imports come after the stub, which is its whole
+# point.
+import transformers  # noqa: F401
+
+print(
+    "Profluent-E1: the weights in this image are Profluent Bio Inc.'s E1-300m, "
+    "licensed under the Profluent-E1 Clickthrough License Agreement; Profluent's "
+    "LICENSE, NOTICE and ATTRIBUTION are shipped beside the weights in the image, "
+    "and Profluent requires this attribution wherever Profluent-E1 is used or "
+    "redistributed.",
+    file=sys.stderr,
+    flush=True,
+)
+
+# E1's modeling module imports `kernels` unconditionally and calls
+# get_kernel("kernels-community/triton-layer-norm") at import time, which swaps
+# in an unpinned triton layer-norm fetched from the Hugging Face hub whenever
+# the network or a warm cache lets it, and only falls back to PyTorch's own
+# rms_norm when the call fails.  Which path a run takes would depend on the
+# machine, so this stub pins the deterministic one: `kernels` is importable but
+# its get_kernel raises, and E1 takes its rms_norm fallback everywhere -- the
+# path the committed reference maps were computed on.  The __spec__ keeps any
+# later find_spec("kernels") from raising on the stub.
+_kernels_stub = types.ModuleType("kernels")
+_kernels_stub.__spec__ = importlib.machinery.ModuleSpec("kernels", None)
+
+
+def _stub_get_kernel(*_args, **_kwargs):
+    raise ImportError("the hub-fetched triton layer-norm is deliberately unavailable")
+
+
+_kernels_stub.get_kernel = _stub_get_kernel
+sys.modules["kernels"] = _kernels_stub
+
+from E1.batch_preparer import E1BatchPreparer  # noqa: E402
+from E1.modeling import E1ForMaskedLM  # noqa: E402
+
+MAX_RESIDUES = 818  # the contacts contract; E1 itself takes far longer sequences
+MUTATION_BATCH = 20  # mutant sequences per forward pass
+
+# ---------------------------------------------------------------------------
+# From here to the END OF OPLM COPY marker: verbatim from briney/oplm at commit
+# 704e01f5ed4b8322bb82e0c961b2c16361c47fa2 (only the imports differ).  CANONICAL_AMINO_ACIDS,
+# compute_categorical_jacobian, center_categorical_jacobian,
+# symmetrize_categorical_jacobian and categorical_jacobian_to_contact_map are
+# src/oplm/eval/metrics/categorical_jacobian.py; apply_apc is
+# src/oplm/eval/metrics/contact.py.  Importing oplm instead of copying it pulls
+# in accelerate, omegaconf, pyarrow and rich, which this image does not carry.
+# ---------------------------------------------------------------------------
+
+from collections.abc import Callable
+
+from torch import Tensor
+
+# Matches the canonical amino-acid token ordering used by ESM-family models.
+CANONICAL_AMINO_ACIDS: tuple[str, ...] = (
+    "L",
+    "A",
+    "G",
+    "V",
+    "S",
+    "E",
+    "R",
+    "T",
+    "I",
+    "D",
+    "P",
+    "K",
+    "Q",
+    "N",
+    "F",
+    "Y",
+    "M",
+    "H",
+    "W",
+    "C",
+)
+
+
+def compute_categorical_jacobian(
+    wildtype_input_ids: Tensor,
+    wildtype_logits: Tensor,
+    canonical_token_ids: Tensor,
+    logits_fn: Callable[[Tensor], Tensor],
+    mutation_batch_size: int = 20,
+) -> Tensor:
+    """Compute the categorical Jacobian via batched finite differences.
+
+    Args:
+        wildtype_input_ids: Wild-type token IDs including special tokens,
+            shape ``(T,)``.
+        wildtype_logits: Wild-type logits restricted to canonical amino-acid
+            output channels, shape ``(L, A)``.
+        canonical_token_ids: Canonical amino-acid token IDs, shape ``(A,)``.
+        logits_fn: Function mapping a batch of mutated token IDs ``(B, T)``
+            to canonical-channel logits ``(B, L, A)``.
+        mutation_batch_size: Number of mutant sequences per forward pass.
+
+    Returns:
+        Tensor of shape ``(L, A, L, A)`` containing ``mutant - wildtype``
+        logit deltas for every input-position/amino-acid mutation.
+    """
+    if mutation_batch_size < 1:
+        raise ValueError("mutation_batch_size must be >= 1")
+
+    if wildtype_input_ids.ndim != 1:
+        raise ValueError("wildtype_input_ids must have shape (T,)")
+    if wildtype_logits.ndim != 2:
+        raise ValueError("wildtype_logits must have shape (L, A)")
+    if canonical_token_ids.ndim != 1:
+        raise ValueError("canonical_token_ids must have shape (A,)")
+
+    seq_len, alphabet_size = wildtype_logits.shape
+    if canonical_token_ids.shape[0] != alphabet_size:
+        raise ValueError("canonical_token_ids length must match wildtype_logits.shape[1]")
+    if wildtype_input_ids.shape[0] < seq_len + 2:
+        raise ValueError("wildtype_input_ids must include leading and trailing special tokens")
+
+    input_ids_cpu = wildtype_input_ids.cpu()
+    canonical_ids_cpu = canonical_token_ids.cpu()
+    wildtype_logits_cpu = wildtype_logits.cpu().float()
+
+    jacobian = torch.empty((seq_len, alphabet_size, seq_len, alphabet_size), dtype=torch.float32)
+    n_mutants = seq_len * alphabet_size
+
+    for start in range(0, n_mutants, mutation_batch_size):
+        stop = min(start + mutation_batch_size, n_mutants)
+        batch_size = stop - start
+        flat_indices = torch.arange(start, stop, dtype=torch.long)
+        position_indices = torch.div(flat_indices, alphabet_size, rounding_mode="floor")
+        amino_acid_indices = torch.remainder(flat_indices, alphabet_size)
+
+        batch_input_ids = input_ids_cpu.unsqueeze(0).repeat(batch_size, 1)
+        batch_rows = torch.arange(batch_size, dtype=torch.long)
+        batch_input_ids[batch_rows, position_indices + 1] = canonical_ids_cpu[amino_acid_indices]
+
+        batch_logits = logits_fn(batch_input_ids).cpu().float()
+        expected_shape = (batch_size, seq_len, alphabet_size)
+        if tuple(batch_logits.shape) != expected_shape:
+            raise ValueError(
+                f"logits_fn returned shape {tuple(batch_logits.shape)}, expected {expected_shape}"
+            )
+
+        jacobian[position_indices, amino_acid_indices] = (
+            batch_logits - wildtype_logits_cpu.unsqueeze(0)
+        )
+
+    return jacobian
+
+
+def center_categorical_jacobian(categorical_jacobian: Tensor, copy: bool = True) -> Tensor:
+    """Mean-center a categorical Jacobian across each of its four axes."""
+    centered = categorical_jacobian.clone() if copy else categorical_jacobian
+    centered = centered.float()
+    for dim in range(4):
+        centered -= centered.mean(dim=dim, keepdim=True)
+    return centered
+
+
+def symmetrize_categorical_jacobian(categorical_jacobian: Tensor) -> Tensor:
+    """Symmetrize a categorical Jacobian over input/output residue pairs."""
+    return (categorical_jacobian + categorical_jacobian.permute(2, 3, 0, 1)) / 2
+
+
+def apply_apc(matrix: Tensor) -> Tensor:
+    """Apply Average Product Correction to a contact score matrix.
+
+    APC removes phylogenetic and systematic biases by subtracting the
+    expected score under a null model of independent columns.
+
+    Args:
+        matrix: Score matrix ``(L, L)``.
+
+    Returns:
+        APC-corrected matrix ``(L, L)``. Returned unchanged if global mean
+        is approximately zero.
+    """
+    row_mean = matrix.mean(dim=-1, keepdim=True)  # (L, 1)
+    col_mean = matrix.mean(dim=-2, keepdim=True)  # (1, L)
+    global_mean = matrix.mean()
+
+    if global_mean.abs() < 1e-8:
+        return matrix
+
+    return matrix - (row_mean * col_mean) / global_mean
+
+
+def categorical_jacobian_to_contact_map(
+    categorical_jacobian: Tensor,
+    center: bool = True,
+    symmetrize: bool = True,
+    apc: bool = True,
+    copy: bool = True,
+) -> Tensor:
+    """Reduce a categorical Jacobian to an ``(L, L)`` contact score map.
+
+    Args:
+        categorical_jacobian: Input tensor of shape ``(L, A, L, A)``.
+        center: If True, mean-center across all four axes.
+        symmetrize: If True, symmetrize both the 4D tensor and final contact map.
+        apc: If True, apply APC to the reduced contact map.
+        copy: If True, operate on a copy of the input tensor.
+
+    Returns:
+        Contact score matrix of shape ``(L, L)``.
+    """
+    jacobian = categorical_jacobian.clone() if copy else categorical_jacobian
+    jacobian = jacobian.float()
+
+    if center:
+        jacobian = center_categorical_jacobian(jacobian, copy=False)
+    if symmetrize:
+        jacobian = symmetrize_categorical_jacobian(jacobian)
+
+    contact_scores = torch.sqrt(torch.square(jacobian).sum(dim=(1, 3)))
+    contact_scores.fill_diagonal_(0.0)
+
+    if apc:
+        contact_scores = apply_apc(contact_scores)
+    if symmetrize:
+        contact_scores = (contact_scores + contact_scores.T) / 2
+
+    return contact_scores
+
+# --------------------------- END OF OPLM COPY -----------------------------
+
+
+def read_fasta(path):
+    records = []
+    for line in open(path):
+        line = line.strip()
+        if line.startswith(">"):
+            records.append([line[1:].split()[0] if line[1:].strip() else f"seq{len(records) + 1}", ""])
+        elif line:
+            if not records:
+                sys.exit(f"e1-300m: {path} is not FASTA: sequence before the first '>'")
+            records[-1][1] += line.upper()
+    if not records:
+        sys.exit(f"e1-300m: {path} holds no sequences")
+    for name, seq in records:
+        if not seq:
+            sys.exit(f"e1-300m: {name} is empty")
+        bad = set(seq) - set(CANONICAL_AMINO_ACIDS)
+        if bad:
+            sys.exit(f"e1-300m: {name} holds non-canonical residues {sorted(bad)}; the 20 canonical amino acids only")
+        if len(seq) > MAX_RESIDUES:
+            sys.exit(f"e1-300m: {name} has {len(seq)} residues; the model takes at most {MAX_RESIDUES}")
+    return records
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="e1-300m", description=__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("contacts", help="npz: one (L, L) float32 contact map per sequence")
+    p.add_argument("--in", dest="inp", required=True, help="FASTA")
+    p.add_argument("--out", required=True, help="npz: one (L, L) float32 map per id")
+    p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu",
+                   help="cuda or cpu; the default is the GPU when one is visible")
+    args = ap.parse_args()
+
+    if args.device == "cuda" and not torch.cuda.is_available():
+        sys.exit("e1-300m: --device cuda but no GPU is visible (the default falls back to CPU)")
+    records = read_fasta(args.inp)
+    device = torch.device(args.device)
+    bp = E1BatchPreparer(device=device)
+    vocab = bp.tokenizer.get_vocab()
+    # J's amino-acid axes (substituted and output) both use oplm's CANONICAL_AMINO_ACIDS
+    # order, mapped to E1's own token ids: the 4-D symmetrization pairs these axes.
+    canonical_token_ids = torch.tensor(
+        [vocab[aa] for aa in CANONICAL_AMINO_ACIDS], dtype=torch.long
+    )
+    assert len(set(canonical_token_ids.tolist())) == 20
+    id_to_aa = {i: aa for aa, i in vocab.items()}
+
+    model_dir = os.environ.get("E1_MODEL")
+    if not model_dir:
+        sys.exit("e1-300m: E1_MODEL is not set; the image sets it to the weights' directory")
+    model = E1ForMaskedLM.from_pretrained(model_dir, torch_dtype=torch.bfloat16)
+    model = model.eval().to(device)
+
+    def run_batch(sequences):
+        """Forward one batch of single sequences; fp32 logits at every token."""
+        batch = bp.get_batch_kwargs(sequences, device=device)
+        with torch.no_grad():
+            out = model(
+                input_ids=batch["input_ids"],
+                within_seq_position_ids=batch["within_seq_position_ids"],
+                global_position_ids=batch["global_position_ids"],
+                sequence_ids=batch["sequence_ids"],
+                past_key_values=None,
+                use_cache=False,
+                output_attentions=False,
+                output_hidden_states=False,
+            )
+        return out.logits
+
+    maps = {}
+    for name, seq in records:
+        t0 = time.time()
+        L = len(seq)
+
+        # The wild type's logits at the residue positions (columns 2..L+1 of
+        # E1's <bos> 1 <residues> 2 <eos> row), restricted to the canonical
+        # amino-acid channels, in fp32: the (L, 20) array OPLM subtracts.
+        wt_logits = run_batch([seq])
+        wildtype_logits = (
+            wt_logits[0, 2 : L + 2, :]
+            .index_select(-1, canonical_token_ids.to(device))
+            .cpu()
+            .float()
+        )
+
+        # oplm's function substitutes an amino acid at position i by writing its
+        # token id at column i + 1 of a residue row, so the row below carries the
+        # residues at columns 1..L between <bos> and <eos>.  logits_fn decodes
+        # each mutated row back to letters and runs it through E1's own batch
+        # preparer, which restores E1's real tokenization, <bos> 1 <residues> 2
+        # <eos>: the same tokens, the same forward pass, in oplm's shape.
+        wildtype_input_ids = torch.empty(L + 2, dtype=torch.long)
+        wildtype_input_ids[0] = vocab["<bos>"]
+        wildtype_input_ids[1 : L + 1] = torch.tensor([vocab[c] for c in seq])
+        wildtype_input_ids[L + 1] = vocab["<eos>"]
+
+        def logits_fn(batch_input_ids):
+            """(B, L + 2) residue rows -> canonical-channel logits (B, L, 20), fp32."""
+            sequences = [
+                "".join(id_to_aa[t] for t in row[1 : L + 1].tolist())
+                for row in batch_input_ids
+            ]
+            logits = run_batch(sequences)
+            return (
+                logits[:, 2 : L + 2, :]
+                .index_select(-1, canonical_token_ids.to(device))
+                .cpu()
+                .float()
+            )
+
+        jacobian = compute_categorical_jacobian(
+            wildtype_input_ids=wildtype_input_ids,
+            wildtype_logits=wildtype_logits,
+            canonical_token_ids=canonical_token_ids,
+            logits_fn=logits_fn,
+            mutation_batch_size=MUTATION_BATCH,
+        )
+        contact_map = categorical_jacobian_to_contact_map(jacobian)
+        assert torch.isfinite(contact_map).all()
+        maps[name] = contact_map.numpy().astype(np.float32)
+        print(f"e1-300m: {name}: L={L}, jacobian + contact map in {time.time() - t0:.0f}s",
+              file=sys.stderr, flush=True)
+
+    np.savez(args.out, **maps)
+    print(f"e1-300m: wrote {args.out}: {sorted(maps)}", file=sys.stderr, flush=True)
+
+
+if __name__ == "__main__":
+    main()

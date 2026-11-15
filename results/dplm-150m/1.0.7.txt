@@ -1,0 +1,15 @@
+---
+tool: dplm-150m
+version: 1.0.7
+image: ghcr.io/brineylab/toolshed/dplm-150m@sha256:27304eeb5e5e4ae124f357e20fb75dd5972a8076c8b8fc4924ff71e67c327249
+digest: sha256:27304eeb5e5e4ae124f357e20fb75dd5972a8076c8b8fc4924ff71e67c327249
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T06:43:44Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/dplm-150m@sha256:27304eeb5e5e4ae124f357e20fb75dd5972a8076c8b8fc4924ff71e67c327249
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/dplm-150m@sha256:27304eeb5e5e4ae124f357e20fb75dd5972a8076c8b8fc4924ff71e67c327249
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+ok: ubiquitin (76 residues) symmetric, r=1.0000, top-76 overlap=1.00

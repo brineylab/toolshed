@@ -1,0 +1,27 @@
+---
+tool: protbert
+version: 1.0.3
+image: ghcr.io/brineylab/toolshed/protbert@sha256:f12acea1430d296fb76475b65b7ec5be67254292651a517c72b34458f792e700
+digest: sha256:f12acea1430d296fb76475b65b7ec5be67254292651a517c72b34458f792e700
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T06:06:27Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/protbert@sha256:f12acea1430d296fb76475b65b7ec5be67254292651a517c72b34458f792e700
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/protbert@sha256:f12acea1430d296fb76475b65b7ec5be67254292651a517c72b34458f792e700
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+protbert: assembled and verified the checkpoint at /tmp/protbert-pytorch_model-6ea3edd26cfefc31.bin
+[transformers] [1mBertForMaskedLM LOAD REPORT[0m from: /tmp/protbert-model-n4ynxxkh
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+cls.seq_relationship.weight | UNEXPECTED |  | 
+bert.pooler.dense.weight    | UNEXPECTED |  | 
+bert.pooler.dense.bias      | UNEXPECTED |  | 
+cls.seq_relationship.bias   | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+ok: lysozyme L=129 pearson=1.0000 top-L overlap=1.000
+ok: ubiquitin L=76 pearson=1.0000 top-L overlap=1.000
