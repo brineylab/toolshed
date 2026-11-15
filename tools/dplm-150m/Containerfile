@@ -1,23 +1,27 @@
 FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DPLM_MODEL=/opt/model
-# One RUN does the whole build (build.sh), naming each stage as it starts, so a build
-# that dies says where. The environment is vendored: the pinned wheels under wheels/,
-# installed with --no-index, so the build's only network is the weights fetch, the one
-# route the build host has proven (about 100 MiB/s, every sha256 verified since 93eb8fa)
-# -- pip died on the build host mid-install, its log ending at pip's root-user warning
-# with no error of its own, and the package index was the one route no build ever
-# proved. The fetch pulls the pinned weights -- airkingbd/dplm_150m's 595 MB fp32
-# checkpoint, sha256-verified into /opt/model and stored exactly as released, cast to
-# bf16 at load, the same cast the test's reference map was computed with -- then the
-# committed files are laid into the image: the vendored modeling code under /opt/src,
-# the wrapper on PATH, the license beside the weights. Each directory is copied to the
-# path build.sh reads it from: COPY copies a directory's contents, not the directory,
-# so a directory source sent to a shared destination would lose its name (1.0.3's one
-# COPY into /incoming/ never created the /incoming/src its build.sh read -- no build
-# reached the cp that would have said so).
+# Pip-free and split into small steps, each one a cacheable layer: the build
+# host has killed builds mid-step at every stage, never with an error of their
+# own, so a killed build must lose only the step it died in and the next
+# submission rides the cache of every step that finished. pip died on that
+# host twice -- once installing from the package index, once installing these
+# very wheels with --no-index --no-deps, each time right after pip's root-user
+# warning and before any error of its own -- so the wheels are unpacked
+# instead with python's own zipfile, into /opt/vendor, a directory of its own:
+# the base image's site-packages (its torch, and torch's dependencies) stay
+# untouched, and bin/dplm and test/check.py put /opt/vendor at the front of
+# sys.path ahead of them. The weights are airkingbd/dplm_150m's 595 MB fp32
+# checkpoint: fetch_weights.py fetches it over the one network route every
+# build proved (plain resolve URLs), verifies every file against its pinned
+# sha256, and leaves it exactly as released -- the wrapper casts it to bf16 at
+# load, the same cast the test's reference map was computed with.
 COPY wheels /incoming/wheels/
-COPY src /incoming/src/
-COPY bin /incoming/bin/
-COPY LICENSE fetch_weights.py build.sh /incoming/
-RUN bash /incoming/build.sh
+RUN cd /incoming/wheels && sha256sum --quiet -c SHA256SUMS && echo "dplm build: vendored wheels verified"
+RUN mkdir -p /opt/vendor && for w in /incoming/wheels/*.whl; do echo "dplm build: unpacking $(basename "$w")"; python3 -I -m zipfile -e "$w" /opt/vendor/; done && echo "dplm build: vendored wheels unpacked under /opt/vendor"
+COPY src /opt/src
+COPY --chmod=755 bin/dplm /usr/local/bin/dplm
+COPY LICENSE fetch_weights.py /incoming/
+RUN echo "dplm build: checking the unpacked environment" && python3 -I -c "import sys; sys.path.insert(0, '/opt/vendor'); import transformers, tokenizers, huggingface_hub, safetensors, numpy; assert (transformers.__version__, tokenizers.__version__, huggingface_hub.__version__, safetensors.__version__, numpy.__version__) == ('4.51.3', '0.21.1', '0.30.2', '0.5.3', '2.5.4'), 'the vendored wheels did not unpack as pinned'"
+RUN python3 -I /incoming/fetch_weights.py /opt/model && cp /incoming/LICENSE /opt/model/LICENSE && echo "dplm build: weights fetched, verified, licensed"
+RUN rm -rf /incoming && ls -l /opt/model
 COPY test /toolshed/test

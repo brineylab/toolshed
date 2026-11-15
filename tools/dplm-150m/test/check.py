@@ -7,6 +7,8 @@ and top-L long-range overlap >= 0.8, allowing GPU kernel noise; symmetry is exac
 """
 import sys
 
+sys.path[:0] = ["/opt/vendor"]  # the tool's vendored wheels, ahead of the base image's own packages
+
 import numpy as np
 
 PEARSON_FLOOR = 0.98   # the skill's tolerance for GPU kernel noise
