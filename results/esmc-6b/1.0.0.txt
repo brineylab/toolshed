@@ -1,0 +1,17 @@
+---
+tool: esmc-6b
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/esmc-6b@sha256:6b0bcb1ef05867a51017f7a290762c7292df98f05bbdf8ae34234edab54e8369
+digest: sha256:6b0bcb1ef05867a51017f7a290762c7292df98f05bbdf8ae34234edab54e8369
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T16:33:59Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esmc-6b@sha256:6b0bcb1ef05867a51017f7a290762c7292df98f05bbdf8ae34234edab54e8369
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esmc-6b@sha256:6b0bcb1ef05867a51017f7a290762c7292df98f05bbdf8ae34234edab54e8369
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-88ca7c9e-621f-a6f8-961a-fe074e3267c7)
+contacts ubiquitin: L=76 pearson_r=0.9999 top-76 long-range overlap=1.00
+contacts lysozyme: L=129 pearson_r=1.0000 top-129 long-range overlap=1.00
+ok: peptide pll -50.2500, reversed pll -60.0000, ubiquitin pll -2.5972 | ubiquitin -0.03/residue | filled MKTAYIAKNRQISFSKSH
