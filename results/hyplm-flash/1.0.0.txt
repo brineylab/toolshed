@@ -1,0 +1,16 @@
+---
+tool: hyplm-flash
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/hyplm-flash@sha256:e2b6ab447d6914d856296b1493626ea8a5caaad3e087aa79f3acc5e49c2f0c82
+digest: sha256:e2b6ab447d6914d856296b1493626ea8a5caaad3e087aa79f3acc5e49c2f0c82
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T16:05:21Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/hyplm-flash@sha256:e2b6ab447d6914d856296b1493626ea8a5caaad3e087aa79f3acc5e49c2f0c82
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/hyplm-flash@sha256:e2b6ab447d6914d856296b1493626ea8a5caaad3e087aa79f3acc5e49c2f0c82
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-88ca7c9e-621f-a6f8-961a-fe074e3267c7)
+ok: lysozyme L=129 pearson=1.0000 top-L overlap=1.000
+ok: ubiquitin L=76 pearson=1.0000 top-L overlap=1.000
