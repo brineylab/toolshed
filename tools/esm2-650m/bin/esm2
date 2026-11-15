@@ -1,5 +1,5 @@
 #!/usr/bin/env -S python3 -I
-"""esm2: pseudo-log-likelihoods, embeddings, and masked infilling with the ESM-2 model in $ESM2_MODEL."""
+"""esm2: pseudo-log-likelihoods, embeddings, masked infilling, and contact maps with the ESM-2 model in $ESM2_MODEL."""
 import argparse, os, sys
 
 import numpy as np
@@ -11,7 +11,13 @@ logging.disable_progress_bar()
 
 MAX_RESIDUES = 1022  # the model's 1024 positions, less <cls> and <eos>
 BATCH = 32           # masked copies per forward pass in pll
+MUTANTS = 20         # substituted residues per forward pass in contacts
 RESIDUES = "ACDEFGHIKLMNPQRSTVWY"
+# oplm's canonical amino-acid order (src/oplm/eval/metrics/categorical_jacobian.py at commit
+# 704e01f5ed4b8322bb82e0c961b2c16361c47fa2): contacts substitutes residues and reads logits in it,
+# through this model's own token ids, so the Jacobian's two amino-acid axes share one order.
+CANONICAL = ("L", "A", "G", "V", "S", "E", "R", "T", "I", "D",
+            "P", "K", "Q", "N", "F", "Y", "M", "H", "W", "C")
 
 
 def read_fasta(path):
@@ -64,10 +70,56 @@ def fill(model, tok, ids):
     return "".join(tok.convert_ids_to_tokens(out[1:-1].tolist()))
 
 
+def apply_apc(matrix):
+    """Average Product Correction, as oplm applies it (src/oplm/eval/metrics/contact.py, commit 704e01f)."""
+    row_mean = matrix.mean(dim=-1, keepdim=True)
+    col_mean = matrix.mean(dim=-2, keepdim=True)
+    global_mean = matrix.mean()
+    if global_mean.abs() < 1e-8:
+        return matrix
+    return matrix - (row_mean * col_mean) / global_mean
+
+
+def contact_map(jacobian):
+    """(L, A, L, A) logit deltas to an (L, L) map, as oplm's categorical_jacobian_to_contact_map does."""
+    jacobian = jacobian.float().clone()
+    for dim in range(4):  # center over all four axes
+        jacobian -= jacobian.mean(dim=dim, keepdim=True)
+    jacobian = (jacobian + jacobian.permute(2, 3, 0, 1)) / 2  # symmetrize the 4-D tensor
+    scores = torch.sqrt(torch.square(jacobian).sum(dim=(1, 3)))
+    scores.fill_diagonal_(0.0)
+    scores = apply_apc(scores)
+    return (scores + scores.T) / 2
+
+
+def contacts(model, tok, ids, device):
+    """The (L, L) contact map from the categorical Jacobian, as oplm computes it (commit 704e01f)."""
+    canonical = torch.tensor(tok.convert_tokens_to_ids(list(CANONICAL)))
+    on_device = canonical.to(device)
+    length = ids.shape[1] - 2
+    wildtype = model(input_ids=ids).logits[0, 1:length + 1].index_select(-1, on_device).float().cpu()
+
+    def logits_fn(mutants):
+        return model(input_ids=mutants.to(device)).logits[:, 1:length + 1].index_select(-1, on_device).float().cpu()
+
+    wildtype_ids = ids[0].cpu()
+    jacobian = torch.empty((length, 20, length, 20), dtype=torch.float32)
+    for start in range(0, length * 20, MUTANTS):
+        stop = min(start + MUTANTS, length * 20)
+        flat = torch.arange(start, stop, dtype=torch.long)
+        positions = torch.div(flat, 20, rounding_mode="floor")
+        amino_acids = torch.remainder(flat, 20)
+        mutants = wildtype_ids.unsqueeze(0).repeat(stop - start, 1)
+        mutants[torch.arange(stop - start), positions + 1] = canonical[amino_acids]
+        jacobian[positions, amino_acids] = logits_fn(mutants) - wildtype.unsqueeze(0)
+    return contact_map(jacobian).numpy().astype(np.float32)
+
+
 def main():
     ap = argparse.ArgumentParser(prog="esm2", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for cmd, out in (("pll", "TSV: id, pll"), ("embed", "npz: ids, embeddings"), ("fill", "FASTA")):
+    for cmd, out in (("pll", "TSV: id, pll"), ("embed", "npz: ids, embeddings"), ("fill", "FASTA"),
+                     ("contacts", "npz: one (L, L) float32 map per id")):
         p = sub.add_parser(cmd)
         p.add_argument("--in", dest="inp", required=True, help="FASTA")
         p.add_argument("--out", required=True, help=out)
@@ -76,7 +128,16 @@ def main():
 
     records = read_fasta(args.inp)
     tok = AutoTokenizer.from_pretrained(os.environ["ESM2_MODEL"])
-    model = EsmForMaskedLM.from_pretrained(os.environ["ESM2_MODEL"]).eval().to(args.device)
+    if args.cmd == "contacts":  # bf16 weights and forward passes; the Jacobian and reduction in fp32
+        try:
+            model = EsmForMaskedLM.from_pretrained(os.environ["ESM2_MODEL"], dtype=torch.bfloat16)
+        except TypeError:  # transformers before the dtype rename
+            model = EsmForMaskedLM.from_pretrained(os.environ["ESM2_MODEL"], torch_dtype=torch.bfloat16)
+        if model.dtype != torch.bfloat16:
+            model = model.to(torch.bfloat16)
+    else:
+        model = EsmForMaskedLM.from_pretrained(os.environ["ESM2_MODEL"])
+    model = model.eval().to(args.device)
     with torch.inference_mode():
         results = [(name, encode(tok, name, seq, args.device)) for name, seq in records]
         if args.cmd == "pll":
@@ -87,6 +148,16 @@ def main():
         elif args.cmd == "embed":
             np.savez(args.out, ids=np.array([n for n, _ in results]),
                      embeddings=np.stack([embed(model, ids) for _, ids in results]).astype(np.float32))
+        elif args.cmd == "contacts":
+            maps = {}
+            for (name, seq), (_, ids) in zip(records, results):
+                outside = "".join(sorted(set(seq) - set(RESIDUES)))
+                if outside:
+                    sys.exit(f"esm2: {name} holds {outside}; contacts takes only the 20 standard residues")
+                if name in maps:
+                    sys.exit(f"esm2: {name} appears twice; ids must be unique")
+                maps[name] = contacts(model, tok, ids, args.device)
+            np.savez(args.out, **maps)
         else:
             with open(args.out, "w") as f:
                 for name, ids in results:
