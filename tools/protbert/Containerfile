@@ -2,21 +2,27 @@ FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PROTBERT_MODEL=/opt/model
-# The weights step is the last instruction, and nothing follows it. Two builds
-# of this image (87ec561, 567fbb0) put the 1.7 GB checkpoint in place, its
-# layer committed, and then died at the first instruction after it -- a COPY
-# of a 10 KB license file -- while the same COPYs run fine ahead of the
-# weights. Whatever the builder pays per step after a big layer (a full
-# rootfs snapshot per step, on storage that pays for every build it has
-# already run), the way through is to owe it nothing: every small file is
-# copied first -- the license rides in model/, checked by fetch_weights.py,
-# so a context that dropped it fails loudly rather than silently -- and the
-# checkpoint is converted to bf16 safetensors in the same step that fetches
-# it, so the layer holds 0.84 GB, not 1.68 GB: the same bf16 the computation
-# requires, half the bytes to build, push and pull. The earlier builds also
-# died downloading from huggingface.co (connections that open and then move
-# no bytes), so fetch_weights.py resumes across attempts and falls back to
-# ProtTrans's own Zenodo record, a different network end to end.
+# Six builds of this image have died on the machine that builds it. Three died
+# downloading (connections to huggingface.co that open and then move no
+# bytes); three died in or just after the step that writes the 1.7 GB fp32
+# checkpoint into the layer filesystem, one of them at the 10 KB COPY that
+# followed the committed layer, one in the weights step itself once nothing
+# followed it, and the log a failed build shows ends before any of it. So this
+# Containerfile owes the builder's store as little as possible: every small
+# file is copied first -- the license rides in model/, checked by
+# fetch_weights.py, so a context that dropped it fails loudly rather than
+# silently -- and the weights step is the last instruction, and fetch_weights.py
+# stages the fp32 checkpoint in /dev/shm when that has room (RAM, not the
+# store's disk) and otherwise deletes it the moment it is loaded, so the layer
+# filesystem never holds the checkpoint and the safetensors at once and its
+# committed layer is the 0.84 GB bf16 the computation requires: bf16, never a
+# quantization, half the fp32 bytes to build, push and pull. The checkpoint is
+# fetched from huggingface.co, then its mirror hf-mirror.com, then ProtTrans's
+# own Zenodo record 4633691, sha256-pinned whichever delivered it; should the
+# bf16 conversion be unable to run, the fp32 checkpoint ships instead and the
+# wrapper casts it at load. The first lines fetch_weights.py prints are the
+# builder's own RAM and free space, the numbers that say which resource runs
+# out, because the head of the log is all a failed build shows.
 COPY model/ /opt/model/
 COPY --chmod=755 bin/protbert /usr/local/bin/protbert
 COPY test /toolshed/test
