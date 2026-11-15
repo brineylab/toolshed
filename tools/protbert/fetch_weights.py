@@ -1,44 +1,50 @@
 #!/usr/bin/env python3
-"""Put ProtBERT's weights in /opt/model as one bf16 safetensors file, pinned by sha256.
+"""Put ProtBERT's pinned fp32 checkpoint at /opt/model/pytorch_model.bin.
 
-Six builds of this image have failed on the machine that builds it, and what
+Seven builds of this image have died on the machine that builds it, and what
 they taught is this file's design:
 
 - Three died downloading (e01a2db, 80a06ff, fc447aa): connections to
   huggingface.co that open and then move no bytes, for the 1.7 GB checkpoint
   and the 81-byte vocab.txt alike, while PyPI, the base image and ghcr.io all
   pull normally. When the CDN does answer, it delivers at 60 MB/s.
-- Three died in or just after the step that writes the checkpoint into the
-  layer filesystem (87ec561, 567fbb0, f51f62e): one at a 10 KB COPY that
-  followed the committed 1.7 GB layer, one in the weights step with nothing
-  after it, all with logs unreadable past the head a failed build shows.
+- Four died in or just after the weights step (87ec561, 567fbb0, f51f62e,
+  ac2a6ca): one at the 10 KB COPY that followed a committed 1.7 GB layer,
+  two in the weights step itself, all silently, with no error a log shows.
 
-So this build spends as little as it can of the two resources that may be
-running out. The layer filesystem never holds the fp32 checkpoint and the
-safetensors at once: the checkpoint is staged in /dev/shm when that has room
-(RAM, not the builder's store), and otherwise deleted the moment it is loaded,
-so the store's peak is one checkpoint and its committed layer is the 0.84 GB
-bf16 the computation wants. The network gets three independent sources --
-huggingface.co, its mirror hf-mirror.com, and ProtTrans's own Zenodo record
-4633691 -- each sha256- or md5-gated, so whichever delivers, the bytes ship
-only when they are the pinned ones. And the first lines this script prints are
-the builder's own numbers (RAM, /dev/shm and model-dir free space), because
-the head of the log is all a failed build shows.
+Every one of those builds could run long: a stalled first attempt cost
+minutes before a retry delivered, and the later builds tried their sources
+one after another, each with a deadline of minutes, and then converted the
+checkpoint to bf16 in the same step. So this build assumes the builder kills
+a build that runs too long and spends as few minutes as it can:
 
-The fp32 original is converted in the same step that fetches it, to the same
-bf16 a `dtype=torch.bfloat16` load of it gives, and deleted. If the conversion
-cannot run at all, the fp32 checkpoint ships instead and the wrapper casts it
-at load time: the same weights, twice the bytes, and the build still succeeds.
+- The three sources -- huggingface.co, its mirror hf-mirror.com, and
+  ProtTrans's own Zenodo record 4633691, three different network ends -- are
+  raced at once, each in its own thread. The fastest source ends the step; a
+  stall costs only as much time as the slowest source needs to be overtaken,
+  not the sum of every source's deadline.
+- No conversion runs at all. The image ships the fp32 pytorch_model.bin, and
+  the wrapper loads it with dtype=bfloat16 -- bit for bit the same bf16
+  weights a build-time conversion would ship, verified on CPU in a campaign
+  run that compares the cast-at-load state dict and a forward pass against
+  the converted safetensors. Twice the bytes on disk, minutes off the build.
+- Every read is timed: one that moves no bytes for 30 s is a stalled
+  connection and is dropped; an attempt never runs longer than 3 minutes;
+  a source never runs longer than 9; and whichever racer delivers bytes that
+  match the pinned sha256 moves them into place and ends the race.
 
 The tokenizer, config and license files are not fetched: the five of them are
 11 KB and are committed in tools/protbert/model/ (their sha256s are checked
-below), so the network moves one file, the checkpoint.
+below), so the network moves one file, the checkpoint. The first lines this
+script prints are the builder's own numbers (RAM, /dev/shm and model-dir free
+space), because the head of the log is all a failed build shows.
 """
 import hashlib
 import os
 import shutil
 import socket
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -47,7 +53,6 @@ import zipfile
 
 MODEL_DIR = "/opt/model"
 OUT = os.path.join(MODEL_DIR, "pytorch_model.bin")
-SAFETENSORS = os.path.join(MODEL_DIR, "model.safetensors")
 
 # Rostlab/prot_bert @ 7a894481acdc12202f0a415dd567f6cfdb698908
 PINNED_SHA256 = "6ea3edd26cfefc3111176100ee2a027ed510f9c86b63e5b53a2a050b59f2af9d"
@@ -65,37 +70,38 @@ SMALL_FILES_SHA256 = {
 
 SOURCES = [
     {
-        "name": "huggingface.co, Rostlab/prot_bert @ 7a894481",
+        "name": "huggingface.co",
         "url": "https://huggingface.co/Rostlab/prot_bert/resolve/"
                "7a894481acdc12202f0a415dd567f6cfdb698908/pytorch_model.bin",
         "kind": "bin",
         "size": PINNED_SIZE,
         "hash": ("sha256", PINNED_SHA256),
-        "deadline_s": 8 * 60,
     },
     {
-        "name": "hf-mirror.com, the same repository and revision",
+        "name": "hf-mirror.com",
         "url": "https://hf-mirror.com/Rostlab/prot_bert/resolve/"
                "7a894481acdc12202f0a415dd567f6cfdb698908/pytorch_model.bin",
         "kind": "bin",
         "size": PINNED_SIZE,
         "hash": ("sha256", PINNED_SHA256),
-        "deadline_s": 8 * 60,
     },
     {
-        "name": "zenodo.org record 4633691, ProtTrans's prot_bert.zip",
+        "name": "zenodo.org",
         "url": "https://zenodo.org/api/records/4633691/files/prot_bert.zip/content",
         "kind": "zip",
         "size": 1561909078,  # the record's own file listing, with its md5
         "hash": ("md5", "1bc4f9ae39e0d38bb43ecf049337893f"),
-        "deadline_s": 20 * 60,
     },
 ]
 
-READ_TIMEOUT_S = 60   # a read that moves no bytes for a minute is a stalled connection
-ATTEMPT_CAP_S = 600   # however slowly an attempt moves, it never runs longer than this
+READ_TIMEOUT_S = 30    # a read that moves no bytes for half a minute is a stalled connection
+ATTEMPT_CAP_S = 180    # however slowly an attempt moves, it never runs longer than this
+SOURCE_DEADLINE_S = 540  # a racer gives up once this much of the step has gone by
 CHUNK = 1 << 20
 SHM_MIN_FREE = 4 << 30  # stage in /dev/shm only with this much spare there (a roomy builder)
+
+# Set once some racer has delivered the pinned bytes into OUT.
+won = threading.Event()
 
 
 def log(message):
@@ -134,64 +140,56 @@ def gb(n):
     return "%.1f GB" % (n / 1e9)
 
 
-def download(url, path, expected_size, deadline_s):
-    """Stream url to path until it holds expected_size bytes, resuming across
-    attempts until the deadline; True when the size is right (the caller
-    checks the hash, which is the real completion criterion)."""
-    deadline = time.monotonic() + deadline_s
-    attempt = 0
-    while time.monotonic() < deadline:
-        attempt += 1
-        have = os.path.getsize(path) if os.path.exists(path) else 0
-        if have == expected_size:
-            return True
-        if have > expected_size:
-            log("partial file is %d bytes, past the expected %d; starting over" % (have, expected_size))
+def download(src, path):
+    """Stream src's url to path until it holds src's bytes, resuming across
+    attempts. True when the byte count is right; the caller checks the hash,
+    which is the real completion criterion."""
+    have = os.path.getsize(path) if os.path.exists(path) else 0
+    if have == src["size"]:
+        return True
+    if have > src["size"]:
+        log("%s: partial file is %d bytes, past the expected %d; starting over"
+            % (src["name"], have, src["size"]))
+        os.remove(path)
+        have = 0
+    headers = {"User-Agent": "brineylab-toolshed-protbert-build"}
+    if have:
+        headers["Range"] = "bytes=%d-" % have
+    req = urllib.request.Request(src["url"], headers=headers)
+    started = time.monotonic()
+    noted = started
+    got = 0
+    with urllib.request.urlopen(req, timeout=READ_TIMEOUT_S) as r:
+        host = urllib.parse.urlsplit(r.url).netloc
+        if have and r.status != 206:
+            log("%s: resume at %d bytes got HTTP %s, not 206; starting over" % (src["name"], have, r.status))
             os.remove(path)
-            have = 0
-        headers = {"User-Agent": "brineylab-toolshed-protbert-build"}
-        if have:
-            headers["Range"] = "bytes=%d-" % have
-        try:
-            req = urllib.request.Request(url, headers=headers)
-            started = time.monotonic()
-            noted = started
-            got = 0
-            with urllib.request.urlopen(req, timeout=READ_TIMEOUT_S) as r:
-                host = urllib.parse.urlsplit(r.url).netloc
-                if have and r.status != 206:
-                    log("resume at %d bytes got HTTP %s, not 206; starting over" % (have, r.status))
-                    os.remove(path)
-                    continue
-                if not have and r.status not in (200, 206):
-                    raise urllib.error.HTTPError(r.url, r.status, "unexpected status", r.headers, None)
-                log("attempt %d: HTTP %s from %s, %d bytes present, content-length %s"
-                    % (attempt, r.status, host, have, r.headers.get("Content-Length")))
-                with open(path, "ab" if have else "wb") as f:
-                    while True:
-                        chunk = r.read(CHUNK)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                        got += len(chunk)
-                        now = time.monotonic()
-                        if now - started > ATTEMPT_CAP_S:
-                            log("attempt %d: %d of %d bytes after %d s; retrying with resume"
-                                % (attempt, have + got, expected_size, ATTEMPT_CAP_S))
-                            break
-                        if now - noted >= 15:
-                            log("attempt %d: %d of %d bytes, %.1f MB/s"
-                                % (attempt, have + got, expected_size, got / (now - started) / 1e6))
-                            noted = now
-            now = os.path.getsize(path)
-            if now == expected_size:
-                log("attempt %d: the file holds %d of %d bytes" % (attempt, now, expected_size))
-                return True
-            log("attempt %d: %d of %d bytes; short read, retrying with resume" % (attempt, now, expected_size))
-        except (urllib.error.HTTPError, urllib.error.URLError, socket.timeout,
-                TimeoutError, ConnectionError, OSError) as e:
-            log("attempt %d failed: %s: %s" % (attempt, type(e).__name__, e))
-            time.sleep(min(10, max(0.0, deadline - time.monotonic())))
+            return False
+        if not have and r.status not in (200, 206):
+            raise urllib.error.HTTPError(r.url, r.status, "unexpected status", r.headers, None)
+        log("%s: HTTP %s from %s, content-length %s"
+            % (src["name"], r.status, host, r.headers.get("Content-Length")))
+        with open(path, "ab" if have else "wb") as f:
+            while not won.is_set():
+                chunk = r.read(CHUNK)
+                if not chunk:
+                    break
+                f.write(chunk)
+                got += len(chunk)
+                now = time.monotonic()
+                if now - started > ATTEMPT_CAP_S:
+                    log("%s: %d of %d bytes after %d s; dropping this attempt"
+                        % (src["name"], have + got, src["size"], ATTEMPT_CAP_S))
+                    return False
+                if now - noted >= 15:
+                    log("%s: %d of %d bytes, %.1f MB/s"
+                        % (src["name"], have + got, src["size"], got / (now - started) / 1e6))
+                    noted = now
+    now = os.path.getsize(path)
+    if now == src["size"]:
+        log("%s: the file holds %d of %d bytes" % (src["name"], now, src["size"]))
+        return True
+    log("%s: %d of %d bytes; short read, retrying with resume" % (src["name"], now, src["size"]))
     return False
 
 
@@ -201,15 +199,66 @@ def extract_bin(zip_path, out_path):
         members = [i for i in zf.infolist() if i.filename.endswith("pytorch_model.bin")]
         if not members:
             log("the zip holds no pytorch_model.bin: %s" % zf.namelist())
-            return False
+            return None
         member = max(members, key=lambda i: i.file_size)
-        log("extracting %s (%d bytes) from the zip" % (member.filename, member.file_size))
+        log("zenodo.org: extracting %s (%d bytes) from the zip" % (member.filename, member.file_size))
         if member.file_size != PINNED_SIZE:
             log("the zip's pytorch_model.bin is %d bytes, not the pinned %d" % (member.file_size, PINNED_SIZE))
-            return False
+            return None
         with zf.open(member) as src, open(out_path, "wb") as dst:
             shutil.copyfileobj(src, dst, CHUNK)
+    return out_path
+
+
+def deliver(candidate):
+    """Move a racer's pinned checkpoint into place and end the race."""
+    if file_digest(candidate, "sha256") != PINNED_SHA256:
+        log("the delivered checkpoint does not match the pinned sha256; these bytes are not shipped")
+        os.remove(candidate)
+        return False
+    try:
+        os.replace(candidate, OUT)
+    except OSError:  # staging sits on another filesystem (a tmpfs)
+        shutil.copyfile(candidate, OUT)
+        os.remove(candidate)
+    if not won.is_set():
+        won.set()
+        log("the pinned checkpoint is in place at %s (%d bytes)" % (OUT, os.path.getsize(OUT)))
     return True
+
+
+def racer(src, stage):
+    """Fetch from one source until it delivers the pinned bytes, another
+    racer wins, or the step's deadline passes."""
+    target = os.path.join(stage, "from-%s.%s" % (src["name"].split(".")[0], src["kind"]))
+    deadline = time.monotonic() + SOURCE_DEADLINE_S
+    attempt = 0
+    while not won.is_set() and time.monotonic() < deadline:
+        attempt += 1
+        try:
+            if not download(src, target):
+                time.sleep(2)
+                continue
+            algo, want = src["hash"]
+            got = file_digest(target, algo)
+            log("%s: %s of the downloaded file: %s (expected %s)" % (src["name"], algo, got, want))
+            if got != want:
+                log("%s: hash mismatch; these bytes are not shipped" % src["name"])
+                os.remove(target)
+                continue
+            if src["kind"] == "zip":
+                candidate = extract_bin(target, os.path.join(stage, "from-zenodo.bin"))
+                os.remove(target)
+                if candidate is None:
+                    continue
+            else:
+                candidate = target
+            deliver(candidate)
+            return
+        except (urllib.error.HTTPError, urllib.error.URLError, socket.timeout,
+                TimeoutError, ConnectionError, OSError) as e:
+            log("%s: attempt %d failed: %s: %s" % (src["name"], attempt, type(e).__name__, e))
+            time.sleep(2)
 
 
 def main():
@@ -220,8 +269,9 @@ def main():
     log("python %s; model dir %s" % (sys.version.split()[0], MODEL_DIR))
     log("builder: %s RAM; /dev/shm %s free; model-dir filesystem %s free"
         % (gb(ram), gb(shm_free), gb(fs_free)))
-    log("staging the checkpoint at %s (%s)"
-        % (stage, "RAM, not the store's disk" if stage.startswith("/dev/shm") else "the layer filesystem"))
+    log("racing %s for the fp32 checkpoint, staged at %s (%s)"
+        % (", ".join(s["name"] for s in SOURCES), stage,
+           "RAM, not the store's disk" if stage.startswith("/dev/shm") else "the layer filesystem"))
 
     for name, want in sorted(SMALL_FILES_SHA256.items()):
         path = os.path.join(MODEL_DIR, name)
@@ -231,125 +281,32 @@ def main():
             return 1
     log("the committed config, tokenizer and license files match the pinned revision")
 
-    if os.path.exists(SAFETENSORS):
-        log("%s is already in place; nothing to do" % SAFETENSORS)
-        return 0
+    if os.path.exists(OUT):
+        if file_digest(OUT, "sha256") == PINNED_SHA256:
+            log("%s is already in place; nothing to do" % OUT)
+            return 0
+        os.remove(OUT)  # wrong bytes never become the checkpoint
 
     os.makedirs(stage, exist_ok=True)
-    bin_path = os.path.join(stage, "weights.bin")
-    if os.path.exists(bin_path) and file_digest(bin_path, "sha256") != PINNED_SHA256:
-        os.remove(bin_path)  # wrong bytes never become the checkpoint
-    delivered = os.path.exists(bin_path)
-    if not delivered:
-        for src in SOURCES:
-            log("source: %s" % src["name"])
-            target = os.path.join(stage, "prot_bert.zip" if src["kind"] == "zip" else "weights.bin")
-            if not download(src["url"], target, src["size"], src["deadline_s"]):
-                log("%s could not deliver its file in %d s" % (src["name"], src["deadline_s"]))
-                continue
-            algo, want = src["hash"]
-            got = file_digest(target, algo)
-            log("%s of the downloaded file: %s (expected %s)" % (algo, got, want))
-            if got != want:
-                log("hash mismatch; these bytes are not shipped")
-                os.remove(target)
-                continue
-            if src["kind"] == "zip":
-                ok = extract_bin(target, bin_path)
-                os.remove(target)
-                if not ok:
-                    continue
-            else:
-                bin_path = target
-            if file_digest(bin_path, "sha256") != PINNED_SHA256:
-                log("the delivered checkpoint does not match the pinned sha256; these bytes are not shipped")
-                os.remove(bin_path)
-                continue
-            delivered = True
-            break
-        if not delivered:
-            log("FATAL: no source delivered the pinned checkpoint")
-            return 1
-    log("the pinned fp32 checkpoint is staged at %s (%d bytes)" % (bin_path, os.path.getsize(bin_path)))
+    threads = [threading.Thread(target=racer, args=(src, stage), daemon=True) for src in SOURCES]
+    started = time.monotonic()
+    for t in threads:
+        t.start()
+    # A racer that has delivered spends its last seconds hashing and moving
+    # the checkpoint; the others stop within one read timeout of the win.
+    for t in threads:
+        t.join(timeout=max(0.0, started + SOURCE_DEADLINE_S + 60 - time.monotonic()))
 
-    # Convert to one bf16 safetensors: every floating tensor cast to bf16 (the
-    # cast a `dtype=torch.bfloat16` load would do), every other tensor as it
-    # is. The staged file is deleted the moment it is loaded, so the staging
-    # medium never holds the checkpoint and the safetensors at once.
-    state, tensors = None, {}
-    try:
-        import torch
-        from safetensors.torch import save_file
-
-        state = torch.load(bin_path, map_location="cpu", weights_only=True)
-        if not isinstance(state, dict) or not state:
-            raise ValueError("the checkpoint is not a state dict: %s" % type(state))
-        # the tensors are in RAM now; free the staged bytes, so the staging
-        # medium never holds the checkpoint and the safetensors at once
-        os.remove(bin_path)
-        n_float = 0
-        for key in sorted(state):
-            tensor = state.pop(key)  # the fp32 dict shrinks as the bf16 one grows
-            if not torch.is_tensor(tensor):
-                raise ValueError("%s is a %s, not a tensor" % (key, type(tensor)))
-            if torch.is_floating_point(tensor):
-                tensor = tensor.to(torch.bfloat16)
-                n_float += 1
-            # clone, so no two keys share storage (safetensors refuses that)
-            # and the saved tensors hold no reference into the fp32 checkpoint
-            tensors[key] = tensor.clone().contiguous()
-        tmp = SAFETENSORS + ".tmp"
-        save_file(tensors, tmp, metadata={"format": "pt"})
-        os.replace(tmp, SAFETENSORS)
-        n_tensors = len(tensors)
-        del tensors, state
-    except Exception as e:
-        # The conversion never sinks the build: ship the checkpoint itself,
-        # which the wrapper loads with the same bf16 cast -- the same weights,
-        # twice the bytes. Every tensor is either still in state (fp32, its
-        # original form) or already cast to bf16 in tensors; the union is the
-        # checkpoint, and a dtype=bfloat16 load gives the same weights either
-        # way. Only when the load itself failed is the staged file still there.
-        log("the bf16 conversion failed (%s: %s); shipping the fp32 checkpoint instead"
-            % (type(e).__name__, e))
-        leftover = SAFETENSORS + ".tmp"
-        if os.path.exists(leftover):
-            os.remove(leftover)
-        mixed = dict(state) if isinstance(state, dict) else {}
-        mixed.update(tensors)
-        if mixed:
-            import torch
-            torch.save(mixed, OUT)
-            log("the fp32 checkpoint is in place at %s (%d tensors)"
-                % (OUT, len(mixed)))
-        elif os.path.exists(bin_path):
-            try:
-                os.replace(bin_path, OUT)
-            except OSError:  # staging sits on another filesystem (a tmpfs)
-                shutil.copyfile(bin_path, OUT)
-                os.remove(bin_path)
-            log("the fp32 checkpoint is in place at %s" % OUT)
-        else:
-            log("FATAL: neither the safetensors nor the checkpoint could be written")
-            return 1
+    if won.is_set() and os.path.exists(OUT) and file_digest(OUT, "sha256") == PINNED_SHA256:
         shutil.rmtree(stage, ignore_errors=True)
         with open(os.path.join(MODEL_DIR, ".weights_source"), "w") as f:
             f.write("Rostlab/prot_bert @ 7a894481acdc12202f0a415dd567f6cfdb698908\n"
                     "fp32 pytorch_model.bin sha256 %s\n"
-                    "shipped as fp32: the build-time bf16 conversion failed\n" % PINNED_SHA256)
+                    "shipped as fp32; the wrapper casts it to bf16 at load\n" % PINNED_SHA256)
         log("weights in place at %s" % OUT)
         return 0
-
-    shutil.rmtree(stage, ignore_errors=True)
-    digest = file_digest(SAFETENSORS, "sha256")
-    with open(os.path.join(MODEL_DIR, ".weights_source"), "w") as f:
-        f.write("Rostlab/prot_bert @ 7a894481acdc12202f0a415dd567f6cfdb698908\n"
-                "fp32 pytorch_model.bin sha256 %s\n"
-                "bf16 model.safetensors sha256 %s\n" % (PINNED_SHA256, digest))
-    log("model.safetensors: %d tensors (%d float), %d bytes, sha256 %s"
-        % (n_tensors, n_float, os.path.getsize(SAFETENSORS), digest))
-    log("weights in place at %s" % SAFETENSORS)
-    return 0
+    log("FATAL: no source delivered the pinned checkpoint in %d s" % SOURCE_DEADLINE_S)
+    return 1
 
 
 if __name__ == "__main__":

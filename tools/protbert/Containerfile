@@ -2,27 +2,30 @@ FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PROTBERT_MODEL=/opt/model
-# Six builds of this image have died on the machine that builds it. Three died
-# downloading (connections to huggingface.co that open and then move no
-# bytes); three died in or just after the step that writes the 1.7 GB fp32
-# checkpoint into the layer filesystem, one of them at the 10 KB COPY that
-# followed the committed layer, one in the weights step itself once nothing
-# followed it, and the log a failed build shows ends before any of it. So this
-# Containerfile owes the builder's store as little as possible: every small
-# file is copied first -- the license rides in model/, checked by
+# Seven builds of this image have died on the machine that builds it. Three
+# died downloading (connections to huggingface.co that open and then move no
+# bytes, while PyPI, the base image and ghcr.io all pull normally; when the
+# CDN does answer, it delivers at 60 MB/s). Four more died silently in or just
+# after the weights step -- one at the 10 KB COPY that followed a committed
+# 1.7 GB layer -- and every one of them was a build that had already run for
+# many minutes: a stalled first attempt, then sources tried one after another
+# with deadlines of minutes each, then a torch conversion of the checkpoint.
+# So this Containerfile assumes the builder kills a build that runs too long,
+# and the weights step is its last instruction and spends minutes, not tens of
+# them. fetch_weights.py races three network ends at once -- huggingface.co,
+# its mirror hf-mirror.com, and ProtTrans's own Zenodo record 4633691 -- so
+# the fastest source ends the step and a stall is only ever overtaken, never
+# waited out; every read is timed (30 s without a byte drops the attempt, 3
+# minutes caps one, 9 minutes cap a source); and nothing is converted: the
+# fp32 checkpoint ships as it comes, sha256-pinned whichever source
+# delivered it, and the wrapper loads it with dtype=bfloat16 -- bit for bit
+# the same bf16 weights a build-time conversion would have shipped, verified
+# in a campaign run, and the path the wrapper's own reference test took. Every
+# small file is copied first -- the license rides in model/, checked by
 # fetch_weights.py, so a context that dropped it fails loudly rather than
-# silently -- and the weights step is the last instruction, and fetch_weights.py
-# stages the fp32 checkpoint in /dev/shm when that has room (RAM, not the
-# store's disk) and otherwise deletes it the moment it is loaded, so the layer
-# filesystem never holds the checkpoint and the safetensors at once and its
-# committed layer is the 0.84 GB bf16 the computation requires: bf16, never a
-# quantization, half the fp32 bytes to build, push and pull. The checkpoint is
-# fetched from huggingface.co, then its mirror hf-mirror.com, then ProtTrans's
-# own Zenodo record 4633691, sha256-pinned whichever delivered it; should the
-# bf16 conversion be unable to run, the fp32 checkpoint ships instead and the
-# wrapper casts it at load. The first lines fetch_weights.py prints are the
-# builder's own RAM and free space, the numbers that say which resource runs
-# out, because the head of the log is all a failed build shows.
+# silently -- so the weights step owes the builder nothing after it, and the
+# first lines fetch_weights.py prints are the builder's own RAM and free
+# space, because the head of the log is all a failed build shows.
 COPY model/ /opt/model/
 COPY --chmod=755 bin/protbert /usr/local/bin/protbert
 COPY test /toolshed/test
