@@ -1,0 +1,66 @@
+# The weights as six bounded shards, one RUN each, as esmc-600m 1.1.0 builds: every
+# build of that tool's 1.1.0 candidate died in a step that moved about a GiB or more,
+# while steps of at most 244 MiB, and the layers they commit, always survived -- and
+# completed RUNs replay from the builder's layer cache, so a build that dies resumes at
+# its first missing shard.
+# shard_plan.json, committed beside this file, was computed in a recorded campaign run
+# from the pinned revision's own safetensors file: it cuts the 1.24 GiB
+# model.safetensors at tensor boundaries into spans of at most 256 MiB, records each
+# span's sha256 over bytes the Hub's LFS oid verified for the whole file, and the whole
+# tensor table. build_shards.py fetches each span over the repository's resolve URL
+# (plain HTTPS through the CDN bridge, which serves anonymous readers), hashes it
+# against the plan, and writes it, safetensors header first, as one shard of a sharded
+# checkpoint -- model-00001-of-00006.safetensors through model-00006-of-00006
+# .safetensors, plus the model.safetensors.index.json the --index RUN writes from the
+# plan's weight map -- the layout transformers' from_pretrained loads natively: the
+# upstream weights repacked, no command reads them differently.
+# The plan stores bfloat16, as the 6B's does and the brief's limits ask (bf16 weights
+# for every model): each shard's RUN converts its span to bf16 in place --
+# round-to-nearest-even, bitwise what from_pretrained(dtype=bfloat16) would load -- so
+# the image ships 0.62 GB of weights, under the 0.83 GB whole image this lab's builder
+# has pushed at largest, where fp32 would be 1.24 GB. The --config-dtype RUN then
+# names bfloat16 in config.json, so every command -- not only contacts, which asks for
+# bf16 itself -- loads the stored precision; the campaign's reference run validated
+# the wrapper end to end on exactly this configuration.
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# the pytorch base image ships spin 0.18, NumPy's build frontend, which requires click<8.4;
+# huggingface_hub 2.3.0's hf CLI requires click>=8.4.2, and no click satisfies both, so pip's
+# installed-conflict check fails the install. Nothing at runtime imports spin: drop the build
+# tool first (a warning no-op if the base image stops shipping it), and skip the check, which
+# only reports conflicts the base image arrived with.
+RUN (pip uninstall -y --break-system-packages spin || true) \
+ && pip install --no-cache-dir --break-system-packages --no-warn-conflicts transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
+# safetensors, which the per-shard bf16 conversion runs on through the base image's torch:
+# the pytorch image does not carry it, and the pin is the version the transformers install
+# above resolves beside it.
+RUN pip install --no-cache-dir --break-system-packages safetensors==0.8.0
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESMC_MODEL=/opt/model
+COPY fetch_files.py /usr/local/bin/fetch-files
+COPY build_shards.py /usr/local/bin/build-shards
+COPY shard_plan.json /usr/local/share/esmc-shard-plan.json
+COPY --chmod=755 bin/esmc /usr/local/bin/esmc
+# Biohub's license files, committed here verbatim from upstream commit fddac936, beside
+# the weights -- not fetched: the tenth esmc-600m build died hanging on
+# raw.githubusercontent.com's DNS before its first print, a host no build of this tool
+# has ever reached, while huggingface.co, ghcr.io, pypi, and docker.io all resolve on
+# the builder. The repository's small files still come over plain HTTPS through the
+# resolve URLs' redirect to the CDN bridge, which serves anonymous readers, rather
+# than snapshot_download: hub 2.3.0 pulls Xet-backed files through the hf-xet client,
+# whose anonymous path this lab's builder is rate-limited on (two builds of esmc-600m
+# died in that step, no file of the five arriving). fetch-files retries each file with
+# backoff, resumes from its partial .part file with a Range request, and renames it
+# into place only once its byte count matches the server's.
+COPY LICENSE.md THIRD_PARTY_NOTICE.md /opt/model/
+RUN python3 -I -u /usr/local/bin/fetch-files \
+        https://huggingface.co/biohub/ESMC-300M/resolve/96a2d8d61654ac0c08881be44da6c867686449b9/ /opt/model \
+        config.json special_tokens_map.json tokenizer.json tokenizer_config.json
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 0
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 1
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 2
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 3
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 4
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 5
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --index
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --config-dtype
+COPY test /toolshed/test

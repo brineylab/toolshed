@@ -1,0 +1,4279 @@
+{
+ "tool": "esmc-300m",
+ "repo": "biohub/ESMC-300M",
+ "revision": "96a2d8d61654ac0c08881be44da6c867686449b9",
+ "base_url": "https://huggingface.co/biohub/ESMC-300M/resolve/96a2d8d61654ac0c08881be44da6c867686449b9",
+ "dtype_out": "bfloat16",
+ "span_budget_bytes": 268435456,
+ "files": [
+  {
+   "name": "model.safetensors",
+   "size": 1332032536,
+   "sha256": "b06a03aa359c29a889151da4a07a517f2c307c1fcc61c8b767ec5360dd40cb49",
+   "sha256_source": "hub-lfs-oid",
+   "header_len": 43792,
+   "metadata": {
+    "format": "pt"
+   },
+   "tensors": 398
+  }
+ ],
+ "shards": [
+  {
+   "index": 0,
+   "file": "model.safetensors",
+   "start": 43800,
+   "end": 265856280,
+   "sha256": "7dfebcbf018790524fa8731b086266db35e4f87ea1b45699da98e4721a49c3d8",
+   "tensors": [
+    {
+     "name": "esmc.embed_tokens.weight",
+     "dtype": "F32",
+     "shape": [
+      64,
+      960
+     ],
+     "offset": 43800,
+     "length": 245760
+    },
+    {
+     "name": "esmc.layers.0.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 289560,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.0.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 293400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.0.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 297240,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.0.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 10127640,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.0.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 19958040,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.0.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 29788440,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.0.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 29792280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.0.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 29796120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.0.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 29799960,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.0.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 33486360,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.0.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 37172760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.0.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 37176600,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.0.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 40863000,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.1.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 44549400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.1.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 44553240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.1.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 44557080,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.1.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 54387480,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.1.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 64217880,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.1.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 74048280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.1.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 74052120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.1.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 74055960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.1.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 74059800,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.1.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 77746200,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.1.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 81432600,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.1.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 81436440,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.1.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 85122840,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.10.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 88809240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.10.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 88813080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.10.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 88816920,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.10.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 98647320,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.10.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 108477720,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.10.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 118308120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.10.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 118311960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.10.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 118315800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.10.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 118319640,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.10.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 122006040,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.10.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 125692440,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.10.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 125696280,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.10.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 129382680,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.11.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 133069080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.11.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 133072920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.11.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 133076760,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.11.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 142907160,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.11.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 152737560,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.11.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 162567960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.11.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 162571800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.11.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 162575640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.11.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 162579480,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.11.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 166265880,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.11.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 169952280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.11.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 169956120,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.11.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 173642520,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.12.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 177328920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.12.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 177332760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.12.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 177336600,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.12.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 187167000,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.12.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 196997400,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.12.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 206827800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.12.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 206831640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.12.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 206835480,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.12.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 206839320,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.12.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 210525720,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.12.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 214212120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.12.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 214215960,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.12.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 217902360,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.13.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 221588760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.13.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 221592600,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.13.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 221596440,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.13.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 231426840,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.13.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 241257240,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.13.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 251087640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.13.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 251091480,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.13.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 251095320,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.13.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 251099160,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.13.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 254785560,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.13.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 258471960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.13.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 258475800,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.13.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 262162200,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.14.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 265848600,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.14.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 265852440,
+     "length": 3840
+    }
+   ],
+   "out": "model-00001-of-00006.safetensors"
+  },
+  {
+   "index": 1,
+   "file": "model.safetensors",
+   "start": 265856280,
+   "end": 531415320,
+   "sha256": "4726d07baa86d5d1f0b8ce2ba329b50f1322f8f53df728f289d993bc25d49245",
+   "tensors": [
+    {
+     "name": "esmc.layers.14.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 265856280,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.14.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 275686680,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.14.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 285517080,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.14.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 295347480,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.14.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 295351320,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.14.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 295355160,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.14.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 295359000,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.14.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 299045400,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.14.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 302731800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.14.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 302735640,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.14.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 306422040,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.15.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 310108440,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.15.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 310112280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.15.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 310116120,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.15.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 319946520,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.15.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 329776920,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.15.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 339607320,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.15.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 339611160,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.15.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 339615000,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.15.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 339618840,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.15.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 343305240,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.15.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 346991640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.15.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 346995480,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.15.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 350681880,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.16.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 354368280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.16.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 354372120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.16.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 354375960,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.16.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 364206360,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.16.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 374036760,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.16.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 383867160,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.16.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 383871000,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.16.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 383874840,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.16.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 383878680,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.16.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 387565080,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.16.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 391251480,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.16.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 391255320,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.16.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 394941720,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.17.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 398628120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.17.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 398631960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.17.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 398635800,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.17.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 408466200,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.17.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 418296600,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.17.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 428127000,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.17.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 428130840,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.17.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 428134680,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.17.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 428138520,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.17.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 431824920,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.17.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 435511320,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.17.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 435515160,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.17.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 439201560,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.18.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 442887960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.18.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 442891800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.18.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 442895640,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.18.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 452726040,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.18.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 462556440,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.18.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 472386840,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.18.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 472390680,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.18.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 472394520,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.18.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 472398360,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.18.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 476084760,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.18.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 479771160,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.18.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 479775000,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.18.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 483461400,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.19.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 487147800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.19.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 487151640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.19.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 487155480,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.19.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 496985880,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.19.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 506816280,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.19.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 516646680,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.19.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 516650520,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.19.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 516654360,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.19.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 516658200,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.19.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 520344600,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.19.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 524031000,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.19.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 524034840,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.19.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 527721240,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.2.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 531407640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.2.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 531411480,
+     "length": 3840
+    }
+   ],
+   "out": "model-00002-of-00006.safetensors"
+  },
+  {
+   "index": 2,
+   "file": "model.safetensors",
+   "start": 531415320,
+   "end": 796974360,
+   "sha256": "ec9ddff14359605ddd5e4d6314efde200ee7b62f05530d92413e5f5bd5da97b3",
+   "tensors": [
+    {
+     "name": "esmc.layers.2.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 531415320,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.2.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 541245720,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.2.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 551076120,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.2.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 560906520,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.2.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 560910360,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.2.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 560914200,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.2.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 560918040,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.2.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 564604440,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.2.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 568290840,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.2.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 568294680,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.2.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 571981080,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.20.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 575667480,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.20.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 575671320,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.20.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 575675160,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.20.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 585505560,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.20.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 595335960,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.20.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 605166360,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.20.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 605170200,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.20.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 605174040,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.20.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 605177880,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.20.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 608864280,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.20.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 612550680,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.20.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 612554520,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.20.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 616240920,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.21.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 619927320,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.21.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 619931160,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.21.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 619935000,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.21.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 629765400,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.21.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 639595800,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.21.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 649426200,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.21.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 649430040,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.21.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 649433880,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.21.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 649437720,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.21.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 653124120,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.21.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 656810520,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.21.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 656814360,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.21.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 660500760,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.22.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 664187160,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.22.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 664191000,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.22.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 664194840,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.22.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 674025240,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.22.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 683855640,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.22.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 693686040,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.22.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 693689880,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.22.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 693693720,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.22.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 693697560,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.22.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 697383960,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.22.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 701070360,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.22.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 701074200,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.22.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 704760600,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.23.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 708447000,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.23.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 708450840,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.23.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 708454680,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.23.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 718285080,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.23.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 728115480,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.23.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 737945880,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.23.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 737949720,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.23.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 737953560,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.23.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 737957400,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.23.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 741643800,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.23.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 745330200,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.23.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 745334040,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.23.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 749020440,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.24.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 752706840,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.24.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 752710680,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.24.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 752714520,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.24.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 762544920,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.24.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 772375320,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.24.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 782205720,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.24.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 782209560,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.24.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 782213400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.24.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 782217240,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.24.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 785903640,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.24.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 789590040,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.24.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 789593880,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.24.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 793280280,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.25.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 796966680,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.25.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 796970520,
+     "length": 3840
+    }
+   ],
+   "out": "model-00003-of-00006.safetensors"
+  },
+  {
+   "index": 3,
+   "file": "model.safetensors",
+   "start": 796974360,
+   "end": 1062533400,
+   "sha256": "4e118bb88142e0ec116fe4632dcbe5968933c6e743b0313468b77628b0089005",
+   "tensors": [
+    {
+     "name": "esmc.layers.25.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 796974360,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.25.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 806804760,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.25.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 816635160,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.25.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 826465560,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.25.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 826469400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.25.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 826473240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.25.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 826477080,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.25.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 830163480,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.25.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 833849880,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.25.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 833853720,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.25.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 837540120,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.26.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 841226520,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.26.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 841230360,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.26.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 841234200,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.26.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 851064600,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.26.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 860895000,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.26.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 870725400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.26.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 870729240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.26.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 870733080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.26.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 870736920,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.26.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 874423320,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.26.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 878109720,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.26.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 878113560,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.26.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 881799960,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.27.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 885486360,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.27.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 885490200,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.27.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 885494040,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.27.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 895324440,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.27.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 905154840,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.27.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 914985240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.27.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 914989080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.27.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 914992920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.27.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 914996760,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.27.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 918683160,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.27.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 922369560,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.27.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 922373400,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.27.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 926059800,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.28.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 929746200,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.28.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 929750040,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.28.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 929753880,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.28.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 939584280,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.28.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 949414680,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.28.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 959245080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.28.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 959248920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.28.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 959252760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.28.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 959256600,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.28.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 962943000,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.28.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 966629400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.28.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 966633240,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.28.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 970319640,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.29.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 974006040,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.29.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 974009880,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.29.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 974013720,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.29.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 983844120,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.29.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 993674520,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.29.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1003504920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.29.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1003508760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.29.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1003512600,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.29.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1003516440,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.29.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1007202840,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.29.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1010889240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.29.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1010893080,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.29.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1014579480,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.3.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1018265880,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.3.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1018269720,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.3.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 1018273560,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.3.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1028103960,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.3.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1037934360,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.3.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1047764760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.3.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1047768600,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.3.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1047772440,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.3.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1047776280,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.3.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1051462680,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.3.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1055149080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.3.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1055152920,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.3.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1058839320,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.4.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1062525720,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.4.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1062529560,
+     "length": 3840
+    }
+   ],
+   "out": "model-00004-of-00006.safetensors"
+  },
+  {
+   "index": 4,
+   "file": "model.safetensors",
+   "start": 1062533400,
+   "end": 1328338456,
+   "sha256": "0a1fd06f601e23d375c1301340433a8d1813510176bd7b89cacba23c94b980a5",
+   "tensors": [
+    {
+     "name": "esmc.layers.4.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 1062533400,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.4.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1072363800,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.4.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1082194200,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.4.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1092024600,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.4.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1092028440,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.4.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1092032280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.4.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1092036120,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.4.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1095722520,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.4.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1099408920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.4.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1099412760,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.4.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1103099160,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.5.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1106785560,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.5.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1106789400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.5.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 1106793240,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.5.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1116623640,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.5.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1126454040,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.5.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1136284440,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.5.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1136288280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.5.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1136292120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.5.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1136295960,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.5.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1139982360,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.5.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1143668760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.5.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1143672600,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.5.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1147359000,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.6.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1151045400,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.6.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1151049240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.6.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 1151053080,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.6.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1160883480,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.6.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1170713880,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.6.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1180544280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.6.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1180548120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.6.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1180551960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.6.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1180555800,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.6.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1184242200,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.6.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1187928600,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.6.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1187932440,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.6.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1191618840,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.7.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1195305240,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.7.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1195309080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.7.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 1195312920,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.7.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1205143320,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.7.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1214973720,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.7.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1224804120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.7.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1224807960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.7.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1224811800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.7.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1224815640,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.7.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1228502040,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.7.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1232188440,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.7.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1232192280,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.7.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1235878680,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.8.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1239565080,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.8.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1239568920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.8.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 1239572760,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.8.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1249403160,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.8.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1259233560,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.8.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1269063960,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.8.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1269067800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.8.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1269071640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.8.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1269075480,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.8.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1272761880,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.8.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1276448280,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.8.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1276452120,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.8.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1280138520,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.9.input_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1283824920,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.9.input_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1283828760,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.9.mlp.down_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      2560
+     ],
+     "offset": 1283832600,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.9.mlp.gate_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1293663000,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.9.mlp.up_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      2560,
+      960
+     ],
+     "offset": 1303493400,
+     "length": 9830400
+    },
+    {
+     "name": "esmc.layers.9.post_attention_layernorm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1313323800,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.9.post_attention_layernorm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1313327640,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.9.self_attn.k_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1313331480,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.9.self_attn.k_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1313335320,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.9.self_attn.o_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1317021720,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.9.self_attn.q_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1320708120,
+     "length": 3840
+    },
+    {
+     "name": "esmc.layers.9.self_attn.q_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1320711960,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.layers.9.self_attn.v_proj.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1324398360,
+     "length": 3686400
+    },
+    {
+     "name": "esmc.norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1328084760,
+     "length": 3840
+    },
+    {
+     "name": "lm_head.decoder.bias",
+     "dtype": "F32",
+     "shape": [
+      64
+     ],
+     "offset": 1328088600,
+     "length": 256
+    },
+    {
+     "name": "lm_head.decoder.weight",
+     "dtype": "F32",
+     "shape": [
+      64,
+      960
+     ],
+     "offset": 1328088856,
+     "length": 245760
+    },
+    {
+     "name": "lm_head.dense.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1328334616,
+     "length": 3840
+    }
+   ],
+   "out": "model-00005-of-00006.safetensors"
+  },
+  {
+   "index": 5,
+   "file": "model.safetensors",
+   "start": 1328338456,
+   "end": 1332032536,
+   "sha256": "86a1d8ef5075c55918612729f38c52ba0112482b76e7d5eead1804c463720923",
+   "tensors": [
+    {
+     "name": "lm_head.dense.weight",
+     "dtype": "F32",
+     "shape": [
+      960,
+      960
+     ],
+     "offset": 1328338456,
+     "length": 3686400
+    },
+    {
+     "name": "lm_head.layer_norm.bias",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1332024856,
+     "length": 3840
+    },
+    {
+     "name": "lm_head.layer_norm.weight",
+     "dtype": "F32",
+     "shape": [
+      960
+     ],
+     "offset": 1332028696,
+     "length": 3840
+    }
+   ],
+   "out": "model-00006-of-00006.safetensors"
+  }
+ ],
+ "weight_map": {
+  "esmc.embed_tokens.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.input_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.input_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.mlp.down_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.mlp.gate_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.mlp.up_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.post_attention_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.post_attention_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.self_attn.k_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.self_attn.k_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.self_attn.o_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.self_attn.q_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.self_attn.q_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.0.self_attn.v_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.input_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.input_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.mlp.down_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.mlp.gate_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.mlp.up_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.post_attention_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.post_attention_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.self_attn.k_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.self_attn.k_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.self_attn.o_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.self_attn.q_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.self_attn.q_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.1.self_attn.v_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.input_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.input_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.mlp.down_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.mlp.gate_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.mlp.up_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.post_attention_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.post_attention_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.self_attn.k_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.self_attn.k_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.self_attn.o_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.self_attn.q_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.self_attn.q_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.10.self_attn.v_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.input_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.input_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.mlp.down_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.mlp.gate_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.mlp.up_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.post_attention_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.post_attention_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.self_attn.k_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.self_attn.k_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.self_attn.o_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.self_attn.q_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.self_attn.q_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.11.self_attn.v_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.input_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.input_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.mlp.down_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.mlp.gate_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.mlp.up_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.post_attention_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.post_attention_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.self_attn.k_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.self_attn.k_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.self_attn.o_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.self_attn.q_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.self_attn.q_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.12.self_attn.v_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.input_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.input_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.mlp.down_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.mlp.gate_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.mlp.up_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.post_attention_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.post_attention_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.self_attn.k_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.self_attn.k_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.self_attn.o_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.self_attn.q_norm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.self_attn.q_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.13.self_attn.v_proj.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.14.input_layernorm.bias": "model-00001-of-00006.safetensors",
+  "esmc.layers.14.input_layernorm.weight": "model-00001-of-00006.safetensors",
+  "esmc.layers.14.mlp.down_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.mlp.gate_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.mlp.up_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.post_attention_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.post_attention_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.self_attn.k_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.self_attn.k_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.self_attn.o_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.self_attn.q_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.self_attn.q_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.14.self_attn.v_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.input_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.input_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.mlp.down_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.mlp.gate_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.mlp.up_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.post_attention_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.post_attention_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.self_attn.k_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.self_attn.k_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.self_attn.o_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.self_attn.q_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.self_attn.q_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.15.self_attn.v_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.input_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.input_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.mlp.down_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.mlp.gate_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.mlp.up_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.post_attention_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.post_attention_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.self_attn.k_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.self_attn.k_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.self_attn.o_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.self_attn.q_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.self_attn.q_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.16.self_attn.v_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.input_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.input_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.mlp.down_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.mlp.gate_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.mlp.up_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.post_attention_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.post_attention_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.self_attn.k_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.self_attn.k_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.self_attn.o_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.self_attn.q_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.self_attn.q_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.17.self_attn.v_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.input_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.input_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.mlp.down_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.mlp.gate_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.mlp.up_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.post_attention_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.post_attention_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.self_attn.k_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.self_attn.k_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.self_attn.o_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.self_attn.q_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.self_attn.q_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.18.self_attn.v_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.input_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.input_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.mlp.down_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.mlp.gate_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.mlp.up_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.post_attention_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.post_attention_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.self_attn.k_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.self_attn.k_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.self_attn.o_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.self_attn.q_norm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.self_attn.q_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.19.self_attn.v_proj.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.2.input_layernorm.bias": "model-00002-of-00006.safetensors",
+  "esmc.layers.2.input_layernorm.weight": "model-00002-of-00006.safetensors",
+  "esmc.layers.2.mlp.down_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.mlp.gate_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.mlp.up_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.post_attention_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.post_attention_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.self_attn.k_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.self_attn.k_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.self_attn.o_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.self_attn.q_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.self_attn.q_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.2.self_attn.v_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.input_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.input_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.mlp.down_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.mlp.gate_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.mlp.up_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.post_attention_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.post_attention_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.self_attn.k_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.self_attn.k_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.self_attn.o_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.self_attn.q_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.self_attn.q_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.20.self_attn.v_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.input_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.input_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.mlp.down_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.mlp.gate_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.mlp.up_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.post_attention_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.post_attention_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.self_attn.k_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.self_attn.k_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.self_attn.o_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.self_attn.q_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.self_attn.q_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.21.self_attn.v_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.input_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.input_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.mlp.down_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.mlp.gate_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.mlp.up_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.post_attention_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.post_attention_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.self_attn.k_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.self_attn.k_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.self_attn.o_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.self_attn.q_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.self_attn.q_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.22.self_attn.v_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.input_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.input_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.mlp.down_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.mlp.gate_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.mlp.up_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.post_attention_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.post_attention_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.self_attn.k_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.self_attn.k_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.self_attn.o_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.self_attn.q_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.self_attn.q_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.23.self_attn.v_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.input_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.input_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.mlp.down_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.mlp.gate_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.mlp.up_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.post_attention_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.post_attention_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.self_attn.k_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.self_attn.k_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.self_attn.o_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.self_attn.q_norm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.self_attn.q_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.24.self_attn.v_proj.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.25.input_layernorm.bias": "model-00003-of-00006.safetensors",
+  "esmc.layers.25.input_layernorm.weight": "model-00003-of-00006.safetensors",
+  "esmc.layers.25.mlp.down_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.mlp.gate_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.mlp.up_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.post_attention_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.post_attention_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.self_attn.k_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.self_attn.k_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.self_attn.o_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.self_attn.q_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.self_attn.q_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.25.self_attn.v_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.input_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.input_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.mlp.down_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.mlp.gate_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.mlp.up_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.post_attention_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.post_attention_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.self_attn.k_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.self_attn.k_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.self_attn.o_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.self_attn.q_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.self_attn.q_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.26.self_attn.v_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.input_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.input_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.mlp.down_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.mlp.gate_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.mlp.up_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.post_attention_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.post_attention_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.self_attn.k_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.self_attn.k_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.self_attn.o_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.self_attn.q_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.self_attn.q_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.27.self_attn.v_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.input_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.input_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.mlp.down_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.mlp.gate_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.mlp.up_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.post_attention_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.post_attention_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.self_attn.k_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.self_attn.k_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.self_attn.o_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.self_attn.q_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.self_attn.q_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.28.self_attn.v_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.input_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.input_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.mlp.down_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.mlp.gate_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.mlp.up_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.post_attention_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.post_attention_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.self_attn.k_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.self_attn.k_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.self_attn.o_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.self_attn.q_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.self_attn.q_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.29.self_attn.v_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.input_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.input_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.mlp.down_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.mlp.gate_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.mlp.up_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.post_attention_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.post_attention_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.self_attn.k_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.self_attn.k_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.self_attn.o_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.self_attn.q_norm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.self_attn.q_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.3.self_attn.v_proj.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.4.input_layernorm.bias": "model-00004-of-00006.safetensors",
+  "esmc.layers.4.input_layernorm.weight": "model-00004-of-00006.safetensors",
+  "esmc.layers.4.mlp.down_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.mlp.gate_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.mlp.up_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.post_attention_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.post_attention_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.self_attn.k_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.self_attn.k_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.self_attn.o_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.self_attn.q_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.self_attn.q_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.4.self_attn.v_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.input_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.input_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.mlp.down_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.mlp.gate_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.mlp.up_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.post_attention_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.post_attention_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.self_attn.k_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.self_attn.k_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.self_attn.o_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.self_attn.q_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.self_attn.q_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.5.self_attn.v_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.input_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.input_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.mlp.down_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.mlp.gate_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.mlp.up_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.post_attention_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.post_attention_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.self_attn.k_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.self_attn.k_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.self_attn.o_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.self_attn.q_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.self_attn.q_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.6.self_attn.v_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.input_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.input_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.mlp.down_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.mlp.gate_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.mlp.up_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.post_attention_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.post_attention_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.self_attn.k_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.self_attn.k_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.self_attn.o_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.self_attn.q_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.self_attn.q_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.7.self_attn.v_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.input_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.input_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.mlp.down_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.mlp.gate_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.mlp.up_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.post_attention_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.post_attention_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.self_attn.k_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.self_attn.k_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.self_attn.o_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.self_attn.q_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.self_attn.q_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.8.self_attn.v_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.input_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.input_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.mlp.down_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.mlp.gate_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.mlp.up_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.post_attention_layernorm.bias": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.post_attention_layernorm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.self_attn.k_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.self_attn.k_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.self_attn.o_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.self_attn.q_norm.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.self_attn.q_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.layers.9.self_attn.v_proj.weight": "model-00005-of-00006.safetensors",
+  "esmc.norm.weight": "model-00005-of-00006.safetensors",
+  "lm_head.decoder.bias": "model-00005-of-00006.safetensors",
+  "lm_head.decoder.weight": "model-00005-of-00006.safetensors",
+  "lm_head.dense.bias": "model-00005-of-00006.safetensors",
+  "lm_head.dense.weight": "model-00006-of-00006.safetensors",
+  "lm_head.layer_norm.bias": "model-00006-of-00006.safetensors",
+  "lm_head.layer_norm.weight": "model-00006-of-00006.safetensors"
+ },
+ "total_size": 1331988736
+}
