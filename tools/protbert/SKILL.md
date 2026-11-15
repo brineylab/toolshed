@@ -2,11 +2,11 @@
 name: protbert
 description: "ProtBERT (Rostlab/prot_bert, the UniRef100 model) contact maps from the categorical Jacobian, computed exactly as oplm computes them. Reach for it to turn protein sequences into long-range contact score maps comparable with OPLM's precision@L curves."
 metadata:
-  version: 1.0.3
+  version: 1.0.4
 ---
 # protbert
 
-Image: `ghcr.io/brineylab/toolshed/protbert:1.0.3`
+Image: `ghcr.io/brineylab/toolshed/protbert:1.0.4`
 
 ProtBERT, the 420M-parameter BERT masked language model trained on UniRef100 (`Rostlab/prot_bert`: 30 layers, hidden size 1024, vocab of 30 tokens), run through `transformers`. The weights are in the image; it needs no network.
 
@@ -33,13 +33,13 @@ On a laptop, from the directory holding `seqs.fasta` (drop `--device` without a 
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/protbert:1.0.3 protbert contacts --in seqs.fasta --out contacts.npz
+  ghcr.io/brineylab/toolshed/protbert:1.0.4 protbert contacts --in seqs.fasta --out contacts.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/protbert:1.0.3 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/protbert:1.0.4 \
   --container-mounts="$PWD":/work --container-workdir=/work protbert contacts --in seqs.fasta --out contacts.npz
 ```
 
