@@ -2,10 +2,7 @@
 """dplm: contact maps from the DPLM v1 protein language model, computed exactly as oplm computes them."""
 import argparse, os, sys
 
-# The image unpacks the pinned wheels under /opt/vendor and the vendored code
-# under /opt/src (the build never runs pip: it died on the build host); both
-# go ahead of the base image's own site-packages, which contribute torch.
-sys.path[:0] = ["/opt/vendor", "/opt/src"]
+sys.path.insert(0, "/opt/src")
 
 import numpy as np
 import torch
