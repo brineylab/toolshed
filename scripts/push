@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # scripts/push <name>: push tools/<name>'s candidate. A new tool's package is first created, public
 # and linked to the shed, by the shed's seed workflow (gh must be signed in). Exits 0 when the
-# candidate can then be pulled with no credential, and 3, with the package's settings link, while
-# its package is private.
+# candidate can then be pulled with no credential, 3, with the package's settings link, while its
+# package is private, and 5, pushing nothing, when gh cannot ask the seed workflow: a push would
+# then create the package private.
 set -euo pipefail
 [[ $# -eq 1 ]] || { echo "usage: scripts/push <name>" >&2; exit 2; }
 cd "$(dirname "$0")/.."
@@ -15,13 +16,16 @@ code=$?
 set -e
 if [[ $code -eq 4 ]]; then
   echo "no public package for $1 yet: asking $owner/$repo's seed workflow to create it"
-  if gh workflow run seed.yml -R "$owner/$repo" -f "tool=$1"; then
-    n=0  # the run queues, starts, and pushes the placeholder: a minute or two
-    until python3 -I scripts/check.py --published "tools/$1" 2> /dev/null; do
-      (( ++n <= 60 )) || { echo "the seed workflow made no public package in 5 minutes; pushing anyway"; break; }
-      sleep 5
-    done
+  if ! gh workflow run seed.yml -R "$owner/$repo" -f "tool=$1"; then
+    echo "gh could not ask the seed workflow: it needs a login with write access to $owner/$repo." >&2
+    echo "Nothing was pushed: a push would create the package private." >&2
+    exit 5
   fi
+  n=0  # the run queues, starts, and pushes the placeholder: a minute or two
+  until python3 -I scripts/check.py --published "tools/$1" 2> /dev/null; do
+    (( ++n <= 60 )) || { echo "the seed workflow made no public package in 5 minutes; pushing anyway"; break; }
+    sleep 5
+  done
 elif [[ $code -ne 0 ]]; then cat "$err" >&2; exit "$code"; fi  # a registry error, not a missing package
 podman push "$image"
 set +e
