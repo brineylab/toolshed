@@ -1,0 +1,59 @@
+# The shed's shared CUDA-13 runtime stack, the base esm2-650m and esmc-600m
+# build on (boltz-2 rides its CUDA-12.6 sibling): torch 2.14.1, CUDA 13.0,
+# python 3.12, NVIDIA driver 580 or newer.  E1's own pyproject pins
+# torch>=2.7,<2.9, but this base keeps the image small the way the shed's
+# other GPU tools are small: its layers are already in the shed's registry,
+# so a build pushes only this tool's own layers below.  The committed
+# reference maps were computed under this same stack, and the campaign run
+# that made them also measured their drift from E1's locked torch 2.8.0
+# stack (the skill's Gotchas carry the numbers).
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# gcc and g++: E1's flex attention is torch.compile'd and Triton compiles its
+# kernels on first use, which needs a system compiler at run time (boltz-2
+# 1.0.1's lesson).  libgomp1: torch's OpenMP.  curl: the weights fetch's last
+# route.  One layer, byte-identical across e1-150m, e1-300m and e1-600m.
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      gcc g++ libgomp1 curl \
+ && rm -rf /var/lib/apt/lists/*
+# Around the base's torch: E1's locked versions (its pixi.lock) for what its
+# modeling path imports, numpy at the version esm2-650m and esmc-600m pin on
+# this base, and triton at the line torch 2.14.1 lists, which E1's compile
+# needs at run time.  kernels is deliberately absent: E1's modeling module
+# imports it unconditionally and calls get_kernel("kernels-community/triton-layer-norm")
+# at import time, which would swap in an unpinned triton layer-norm fetched
+# from the hub whenever the network or a warm cache let it; the wrapper stubs
+# kernels.get_kernel to raise instead, so the model takes PyTorch's own
+# rms_norm path everywhere -- the path the committed reference maps were
+# computed on.  Byte-identical across the three E1 tools.
+RUN pip install --no-cache-dir --break-system-packages \
+  numpy==2.5.4 \
+  einops==0.8.1 \
+  transformers==4.56.2 \
+  tokenizers==0.22.1 \
+  safetensors==0.6.2 \
+  huggingface_hub==0.36.0 \
+  "triton~=3.8.0"
+# E1 itself, pinned to its commit, without its heavy default dependencies
+# (pandas, polars, biotite, ipykernel, ...): the modeling path needs only
+# what is installed above.  Byte-identical across the three E1 tools.
+RUN pip install --no-cache-dir --break-system-packages --no-deps \
+  "https://github.com/Profluent-AI/E1/archive/bfd2620a602248499f3d2583d85a7ecddf0b6e02.tar.gz"
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 E1_MODEL=/opt/model
+# The one network step.  This tool's first two builds (on a python:slim base)
+# died here: huggingface.co answered but model.safetensors never arrived, on
+# every retry, at once -- huggingface_hub 0.36 carries hf-xet as a dependency
+# and sends Xet-backed files through hf-xet's own endpoints.  fetch-weights.py
+# therefore pulls over three routes in turn (plain HTTPS from huggingface.co's
+# file CDN with hf-xet disabled, the hf-xet protocol, then curl), each from a
+# clean state, resuming partial downloads within a route, and verifies the
+# pinned sha256 of what lands.
+COPY fetch-weights.py /usr/local/bin/fetch-weights.py
+RUN python3 -I /usr/local/bin/fetch-weights.py
+# Profluent's license terms ride beside the weights, one file per COPY.
+COPY licenses/LICENSE /opt/model/LICENSE
+COPY licenses/NOTICE /opt/model/NOTICE
+COPY licenses/ATTRIBUTION /opt/model/ATTRIBUTION
+COPY --chmod=755 bin/e1-300m /usr/local/bin/e1-300m
+COPY test /toolshed/test
