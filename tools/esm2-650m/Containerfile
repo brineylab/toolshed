@@ -1,7 +1,11 @@
-FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
-ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
-RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
-ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESM2_MODEL=/opt/model
-RUN HF_HUB_OFFLINE=0 python3 -I -c "from huggingface_hub import snapshot_download; snapshot_download('facebook/esm2_t33_650M_UR50D', revision='08e4846e537177426273712802403f7ba8261b6c', local_dir='/opt/model', allow_patterns=['*.json', '*.safetensors', 'vocab.txt'])"
+# 1.1.0 adds the contacts command to the unchanged 1.0.1 image: its layers already
+# hold the pinned weights (facebook/esm2_t33_650M_UR50D @ 08e4846e's
+# model.safetensors, fetched by 1.0.1's build) and the offline environment, so this
+# build downloads nothing and only replaces the program and the test. Building from
+# the published 1.0.1 image by digest keeps the weights byte-for-byte what 1.0.1
+# tested. The license convention postdates 1.0.1, so Meta's MIT LICENSE rides beside
+# the weights from this version on.
+FROM ghcr.io/brineylab/toolshed/esm2-650m@sha256:929c3d49db69fe59afd8cabe58a211eca53dcfd098ae3cf43c10c8a1ca77019f
+COPY LICENSE /opt/model/LICENSE
 COPY --chmod=755 bin/esm2 /usr/local/bin/esm2
 COPY test /toolshed/test

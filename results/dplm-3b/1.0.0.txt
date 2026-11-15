@@ -1,0 +1,16 @@
+---
+tool: dplm-3b
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/dplm-3b@sha256:e7d8c4897de791712330536b8ad040c7626ac7f2856ce75641783c0a546e3f84
+digest: sha256:e7d8c4897de791712330536b8ad040c7626ac7f2856ce75641783c0a546e3f84
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T16:17:10Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/dplm-3b@sha256:e7d8c4897de791712330536b8ad040c7626ac7f2856ce75641783c0a546e3f84
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/dplm-3b@sha256:e7d8c4897de791712330536b8ad040c7626ac7f2856ce75641783c0a546e3f84
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-88ca7c9e-621f-a6f8-961a-fe074e3267c7)
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:00,  7.99it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:00<00:00,  8.42it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:00<00:00,  8.51it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00,  8.82it/s]
+ok: ubiquitin (76 residues) symmetric, r=1.0000, top-76 overlap=1.00

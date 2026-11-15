@@ -1,0 +1,18 @@
+FROM docker.io/pytorch/pytorch:2.10.0-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# The engine refuses to run without FlashAttention, and 2.8.3 is the newest
+# release with prebuilt wheels; its CUDA-13 wheels stop at torch 2.10, so this
+# image is on torch 2.10, one step behind the shed's other tools.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir --break-system-packages \
+    "numpy==2.5.4" "safetensors==0.8.0" \
+    "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu13torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
+RUN pip install --no-cache-dir --break-system-packages --no-deps \
+    "git+https://github.com/Tencent-Hunyuan/Hyra-results@b24e7f5543f08069fe190e98c5c05b62ca28a074#subdirectory=AI4Science/hyplm_flash"
+ENV HYPLM_MODEL=/opt/model
+COPY weights/ /opt/model/
+RUN cd /opt/model && bash download.sh && rm download.sh
+COPY LICENSE /opt/model/LICENSE
+COPY --chmod=755 bin/hyplm-flash /usr/local/bin/hyplm-flash
+COPY test /toolshed/test
