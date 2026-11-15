@@ -2,27 +2,22 @@
 """Fetch this tool's pinned weights from huggingface.co into the image.
 
 The repository, revision, and every file's sha256 and byte count are pinned
-below, from the HF tree API at that revision, and each file is verified
-against them after download, so the image holds exactly the pinned bytes. A
-failed attempt leaves its partial file behind and the next resumes it with a
-Range request. DNS, proxies, free disk, each redirect hop, and each retry
-are printed, so a build that cannot fetch its weights says why in its log.
+below, from the HF tree API at that revision, and each file is verified against
+its pin after download, so the image holds exactly the pinned bytes. A failed
+attempt leaves its partial file behind and the next resumes it with a Range
+request, and each retry prints its error, so a fetch that cannot succeed says
+why. The build log stays a few lines: one per file on success.
 
 Usage: fetch_weights.py DEST [FILE ...]
-With no FILE, every pinned file is fetched, verified against its pin, and
-left exactly as released: the wrapper casts to bf16 at load, the same cast
-the test's reference map was computed with.
+With no FILE, every pinned file is fetched, verified against its pin, and left
+exactly as released: the wrapper casts to bf16 at load, the same cast the
+test's reference map was computed with.
 """
 import hashlib
-import os
 import pathlib
-import re
-import shutil
 import socket
 import sys
 import time
-import urllib.error
-import urllib.parse
 import urllib.request
 
 REPO = "airkingbd/dplm_150m"
@@ -51,62 +46,6 @@ def log(*parts):
 def _digest(path):
     with open(path, "rb") as f:
         return hashlib.file_digest(f, "sha256").hexdigest()
-
-
-def _host(url):
-    return urllib.parse.urlsplit(url).netloc
-
-
-def disk_report():
-    for path in ("/", "/opt"):
-        try:
-            usage = shutil.disk_usage(path)
-            log(f"disk {path}: {usage.free / 2 ** 30:.1f} GiB free of {usage.total / 2 ** 30:.1f} GiB")
-        except Exception as e:
-            log(f"disk {path} FAILED: {type(e).__name__}: {e}")
-
-
-def diagnostics(need_bytes):
-    log(f"python {sys.version.split()[0]}")
-    try:
-        ips = ",".join(sorted({a[4][0] for a in socket.getaddrinfo("huggingface.co", 443, type=socket.SOCK_STREAM)}))
-        log(f"dns huggingface.co -> {ips}")
-    except Exception as e:
-        log(f"dns huggingface.co FAILED: {type(e).__name__}: {e}")
-    for var in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "no_proxy", "NO_PROXY"):
-        value = os.environ.get(var)
-        if value:
-            log(f"env {var}={re.sub(r'//[^/@]+@', '//***@', value)}")
-    disk_report()
-    log(f"fetching {need_bytes} bytes from {REPO}@{REV[:12]}")
-
-
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        return None
-
-
-def trace(name, url):
-    """Print each hop of the redirect chain, so the log names where a fetch dies."""
-    opener = urllib.request.build_opener(_NoRedirect)
-    hop = url
-    for _ in range(6):
-        try:
-            with opener.open(urllib.request.Request(hop, method="HEAD", headers={"User-Agent": UA}),
-                             timeout=READ_TIMEOUT) as r:
-                log(f"trace {name}: {r.status} {hop[:110]}")
-                return
-        except urllib.error.HTTPError as e:
-            location = e.headers.get("Location") if e.code in (301, 302, 303, 307, 308) else None
-            if not location:
-                log(f"trace {name}: HTTP {e.code} {e.reason}")
-                return
-            hop = urllib.parse.urljoin(hop, location)
-            log(f"trace {name}: {e.code} {_host(url)} -> {_host(hop)}")
-        except Exception as e:
-            log(f"trace {name}: {type(e).__name__}: {e}")
-            return
-    log(f"trace {name}: too many redirects")
 
 
 def _prefer_ipv4():
@@ -141,8 +80,6 @@ def download(name, dest):
                     log(f"fetch {name}: complete file failed sha256; refetching")
                 elif size > want_bytes:
                     dest.unlink()
-            if not dest.exists() or dest.stat().st_size != want_bytes:
-                trace(name, url)
             have = dest.stat().st_size if dest.exists() else 0
             headers = {"User-Agent": UA}
             if have:
@@ -157,8 +94,6 @@ def download(name, dest):
                 expected = have + int(r.headers.get("Content-Length") or 0)
                 if expected and expected != want_bytes:
                     raise RuntimeError(f"server offers {expected} bytes, pinned {want_bytes}")
-                log(f"fetch {name}: {r.status} {('resuming from ' + str(have) + ' of ') if resume else ''}"
-                    f"{want_bytes} bytes from {_host(r.url)}")
                 last = started
                 with open(dest, "ab" if resume else "wb") as f:
                     while True:
@@ -195,13 +130,12 @@ def main(argv):
     unknown = [n for n in names if n not in FILES]
     if unknown:
         raise SystemExit(f"unknown file(s): {unknown}")
-    diagnostics(sum(FILES[n][1] for n in names))
+    log(f"fetching {len(names)} file(s), {sum(FILES[n][1] for n in names)} bytes, "
+        f"from {REPO}@{REV[:12]}")
     dest.mkdir(parents=True, exist_ok=True)
     for n in names:
         download(n, dest / n)  # the pinned bytes, verified against the pin
     log(f"OK: {len(names)} file(s), {sum((dest / n).stat().st_size for n in names)} bytes under {dest}")
-    log("disk after everything landed:")
-    disk_report()
 
 
 if __name__ == "__main__":

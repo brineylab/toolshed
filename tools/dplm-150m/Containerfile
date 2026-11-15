@@ -8,8 +8,9 @@ ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DPLM_MODEL=/opt/model
 # that the test's reference map was computed with, so the loaded weights are
 # bit-identical to the reference's. Weights fetches on the build host have died
 # without a visible cause, so a committed script fetches the pinned weights over
-# plain resolve URLs: retries with Range resume, redirect tracing, and sha256
-# verification of every file.
+# plain resolve URLs, with retries (Range resume, IPv4 fallback) and sha256
+# verification of every file, and prints one line per file, so a build that
+# cannot fetch its weights says why, briefly.
 COPY fetch_weights.py /opt/fetch_weights.py
 RUN python3 -I /opt/fetch_weights.py /opt/model
 COPY LICENSE /opt/model/LICENSE
