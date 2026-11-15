@@ -1,0 +1,163 @@
+# The weights as 103 bounded shards, one RUN each, as esmc-600m 1.1.0 builds: every
+# build of that tool's 1.1.0 candidate died in a step that moved about a GiB or more,
+# while steps of at most 244 MiB, and the layers they commit, always survived -- and
+# completed RUNs replay from the builder's layer cache, so a build that dies resumes at
+# its first missing shard.
+# The 6B's weights are the upstream fp32 shards (25.4 GB over six files) converted to
+# bf16 (12.7 GB), the precision every command runs: the conversion is
+# round-to-nearest-even, so a converted shard is bitwise what
+# from_pretrained(dtype=bfloat16) would load, and the campaign's reference run
+# validated the wrapper end to end against oplm's own reference on exactly this
+# conversion. Each shard's RUN fetches its span of the pinned revision's fp32 bytes,
+# hashes it against the plan, writes it as a shard, then converts that shard in place
+# and re-verifies it -- the fp32 bytes never leave the step, so they never reach a
+# layer, and the image ships only bf16, one ~124 MiB layer per shard.
+# shard_plan.json, committed beside this file, was computed in a recorded campaign run
+# from the pinned revision's own safetensors files: it cuts all six at tensor
+# boundaries into spans of at most 256 MiB, records each span's sha256 over bytes the
+# Hub's LFS oid verified for the whole files, and the whole tensor table. The --index
+# RUN writes model.safetensors.index.json from the plan's weight map -- the layout
+# transformers' from_pretrained loads natively, over our 103 shards rather than
+# upstream's six -- and the --config-dtype RUN rewrites config.json to name bfloat16,
+# so every command loads bf16, not only contacts.
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# the pytorch base image ships spin 0.18, NumPy's build frontend, which requires click<8.4;
+# huggingface_hub 2.3.0's hf CLI requires click>=8.4.2, and no click satisfies both, so pip's
+# installed-conflict check fails the install. Nothing at runtime imports spin: drop the build
+# tool first (a warning no-op if the base image stops shipping it), and skip the check, which
+# only reports conflicts the base image arrived with.
+RUN (pip uninstall -y --break-system-packages spin || true) \
+ && pip install --no-cache-dir --break-system-packages --no-warn-conflicts transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
+# safetensors, which the per-shard bf16 conversion runs on through the base image's torch:
+# the pytorch image does not carry it, and the pin is the version the transformers install
+# above resolves beside it.
+RUN pip install --no-cache-dir --break-system-packages safetensors==0.8.0
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESMC_MODEL=/opt/model
+COPY fetch_files.py /usr/local/bin/fetch-files
+COPY build_shards.py /usr/local/bin/build-shards
+COPY shard_plan.json /usr/local/share/esmc-shard-plan.json
+COPY --chmod=755 bin/esmc /usr/local/bin/esmc
+# Biohub's license files, committed here verbatim from upstream commit fddac936, beside
+# the weights -- not fetched: the tenth esmc-600m build died hanging on
+# raw.githubusercontent.com's DNS before its first print, a host no build of this tool
+# has ever reached, while huggingface.co, ghcr.io, pypi, and docker.io all resolve on
+# the builder. The repository's small files still come over plain HTTPS through the
+# resolve URLs' redirect to the CDN bridge, which serves anonymous readers, rather
+# than snapshot_download: hub 2.3.0 pulls Xet-backed files through the hf-xet client,
+# whose anonymous path this lab's builder is rate-limited on (two builds of esmc-600m
+# died in that step, no file of the five arriving). fetch-files retries each file with
+# backoff, resumes from its partial .part file with a Range request, and renames it
+# into place only once its byte count matches the server's. model.safetensors.index.json
+# is not fetched: the --index RUN writes it from the plan's weight map, cut for the
+# 103 shards this image ships, not upstream's six.
+COPY LICENSE.md THIRD_PARTY_NOTICE.md /opt/model/
+RUN python3 -I -u /usr/local/bin/fetch-files \
+        https://huggingface.co/biohub/ESMC-6B/resolve/94605596759c3216963f6b7e5ff7adc1994c95f0/ /opt/model \
+        config.json special_tokens_map.json tokenizer.json tokenizer_config.json
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 0
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 1
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 2
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 3
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 4
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 5
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 6
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 7
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 8
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 9
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 10
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 11
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 12
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 13
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 14
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 15
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 16
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 17
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 18
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 19
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 20
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 21
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 22
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 23
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 24
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 25
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 26
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 27
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 28
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 29
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 30
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 31
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 32
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 33
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 34
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 35
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 36
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 37
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 38
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 39
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 40
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 41
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 42
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 43
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 44
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 45
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 46
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 47
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 48
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 49
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 50
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 51
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 52
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 53
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 54
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 55
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 56
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 57
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 58
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 59
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 60
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 61
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 62
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 63
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 64
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 65
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 66
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 67
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 68
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 69
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 70
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 71
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 72
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 73
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 74
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 75
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 76
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 77
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 78
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 79
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 80
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 81
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 82
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 83
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 84
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 85
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 86
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 87
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 88
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 89
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 90
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 91
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 92
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 93
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 94
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 95
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 96
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 97
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 98
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 99
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 100
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 101
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --shard 102
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --index
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmc-shard-plan.json --config-dtype
+COPY test /toolshed/test
