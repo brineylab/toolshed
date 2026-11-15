@@ -2,11 +2,11 @@
 name: protbert
 description: "ProtBERT (Rostlab/prot_bert, the UniRef100 model) contact maps from the categorical Jacobian, computed exactly as oplm computes them. Reach for it to turn protein sequences into long-range contact score maps comparable with OPLM's precision@L curves."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # protbert
 
-Image: `ghcr.io/brineylab/toolshed/protbert:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/protbert:1.0.1`
 
 ProtBERT, the 420M-parameter BERT masked language model trained on UniRef100 (`Rostlab/prot_bert`: 30 layers, hidden size 1024, vocab of 30 tokens), run through `transformers`. The weights are in the image; it needs no network.
 
