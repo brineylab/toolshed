@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""Fetch this tool's pinned weights from huggingface.co into the image.
+
+The repository, revision, and every file's sha256 and byte count are pinned
+below, from the HF tree API at that revision, and each file is verified against
+its pin after download, so the image holds exactly the pinned bytes. A failed
+attempt leaves its partial file behind and the next resumes it with a Range
+request. Silent on success -- the build log must stay short enough to be read
+whole -- and each retry prints its error, so a fetch that cannot succeed
+says why.
+
+Usage: fetch_weights.py DEST [FILE ...]
+With no FILE, every pinned file is fetched, verified against its pin, and left
+exactly as released: the wrapper casts to bf16 at load, the same cast the
+test's reference map was computed with.
+"""
+import hashlib
+import pathlib
+import socket
+import sys
+import time
+import urllib.request
+
+REPO = "airkingbd/dplm_150m"
+REV = "49b7125a5d28c6418fcc2f3c4fe799352ac1488b"
+FILES = {  # file name -> (sha256, bytes), pinned from the HF tree API at REV
+    "config.json": ("36480be9ea79156026ce374ceb9573e0edde62dfccd22d32b107e4de0fd7f03c", 792),
+    "tokenizer_config.json": ("7d849f80e0f87303b55f370737e3475390c61ae55f4326db1de310711bd6c7e6", 1126),
+    "special_tokens_map.json": ("3aedcd4211c0d43aec4e607ff60a63255f3174ead795e997350f09a5f8cd9ee1", 125),
+    "vocab.txt": ("0b82cc0a7c7cf9e567b1e5892d793285b9fbae822c964ca48696f7db44598e03", 93),
+    "pytorch_model.bin": ("ea4eaa99536b60ed76f945f71a1a5e604f08447ec3def5104a93ca6001a59961", 595359662),
+}
+# The checkpoint is stored exactly as released (fp32); the wrapper casts it to
+# bf16 at load with torch_dtype=bfloat16, as the test's reference did.
+
+ATTEMPTS = 4          # per file
+READ_TIMEOUT = 60     # seconds, per blocking socket operation
+CHUNK = 1 << 20
+UA = "brineylab-toolshed-build"
+
+
+def log(*parts):
+    print(*parts, flush=True)
+
+
+def _digest(path):
+    with open(path, "rb") as f:
+        return hashlib.file_digest(f, "sha256").hexdigest()
+
+
+def _prefer_ipv4():
+    """Retry with IPv4 addresses only: some networks route IPv6 into the ground."""
+    if getattr(socket.getaddrinfo, "_ipv4_only", False):
+        return
+    original = socket.getaddrinfo
+
+    def ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
+        return original(host, port, socket.AF_INET, type, proto, flags)
+
+    ipv4_only._ipv4_only = True
+    socket.getaddrinfo = ipv4_only
+    log("note: further attempts resolve IPv4 addresses only")
+
+
+def download(name, dest):
+    url = f"https://huggingface.co/{REPO}/resolve/{REV}/{name}"
+    want_sha, want_bytes = FILES[name]
+    for attempt in range(1, ATTEMPTS + 1):
+        if attempt == 3:
+            _prefer_ipv4()
+        try:
+            if dest.exists():
+                size = dest.stat().st_size
+                if size == want_bytes:
+                    got = _digest(dest)
+                    if got == want_sha:
+                        return
+                    dest.unlink()
+                    log(f"fetch {name}: complete file failed sha256; refetching")
+                elif size > want_bytes:
+                    dest.unlink()
+            have = dest.stat().st_size if dest.exists() else 0
+            headers = {"User-Agent": UA}
+            if have:
+                headers["Range"] = f"bytes={have}-"
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers),
+                                        timeout=READ_TIMEOUT) as r:
+                resume = have and r.status == 206
+                if have and not resume:
+                    have = 0  # the server ignored the range: start over
+                expected = have + int(r.headers.get("Content-Length") or 0)
+                if expected and expected != want_bytes:
+                    raise RuntimeError(f"server offers {expected} bytes, pinned {want_bytes}")
+                with open(dest, "ab" if resume else "wb") as f:
+                    while True:
+                        chunk = r.read(CHUNK)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+            size = dest.stat().st_size
+            if size != want_bytes:
+                raise RuntimeError(f"{size} bytes on disk, pinned {want_bytes}")
+            got = _digest(dest)
+            if got != want_sha:
+                raise RuntimeError(f"sha256 {got}, pinned {want_sha}")
+            return
+        except Exception as e:
+            log(f"fetch {name}: attempt {attempt}/{ATTEMPTS} failed: {type(e).__name__}: {e}")
+            if attempt == ATTEMPTS:
+                raise
+            time.sleep(min(2 ** attempt, 20))
+
+
+def main(argv):
+    dest = pathlib.Path(argv[1])
+    names = argv[2:] or list(FILES)
+    unknown = [n for n in names if n not in FILES]
+    if unknown:
+        raise SystemExit(f"unknown file(s): {unknown}")
+    dest.mkdir(parents=True, exist_ok=True)
+    for n in names:
+        download(n, dest / n)  # the pinned bytes, verified against the pin
+
+
+if __name__ == "__main__":
+    main(sys.argv)
