@@ -1,0 +1,23 @@
+---
+tool: e1-150m
+version: 1.0.6
+image: ghcr.io/brineylab/toolshed/e1-150m@sha256:d54abde611c946b5b24db72a2ac4b2b433d38ad0eaf14874a5fa9c3193e94b5c
+digest: sha256:d54abde611c946b5b24db72a2ac4b2b433d38ad0eaf14874a5fa9c3193e94b5c
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T06:12:18Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/e1-150m@sha256:d54abde611c946b5b24db72a2ac4b2b433d38ad0eaf14874a5fa9c3193e94b5c
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/e1-150m@sha256:d54abde611c946b5b24db72a2ac4b2b433d38ad0eaf14874a5fa9c3193e94b5c
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+Profluent-E1: the weights in this image are Profluent Bio Inc.'s E1-150m, licensed under the Profluent-E1 Clickthrough License Agreement; Profluent's LICENSE, NOTICE and ATTRIBUTION are shipped beside the weights in the image, and Profluent requires this attribution wherever Profluent-E1 is used or redistributed.
+Failed to load triton layer norm kernel: the hub-fetched triton layer-norm is deliberately unavailable; Will be using PyTorch RMSNorm instead
+`torch_dtype` is deprecated! Use `dtype` instead!
+e1-150m: ubiquitin: L=76, jacobian + contact map in 31s
+e1-150m: lysozyme: L=129, jacobian + contact map in 14s
+e1-150m: wrote /tmp/tmp.0d5zIkiyGw/contacts.npz: ['lysozyme', 'ubiquitin']
+lysozyme: L=129 Pearson r 1.0000, top-L long-range overlap 1.000
+ubiquitin: L=76 Pearson r 1.0000, top-L long-range overlap 1.000
+ok: maps match the oplm reference within the skill's tolerances
