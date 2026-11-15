@@ -1,0 +1,22 @@
+ProteinBERT's released pretrained model, vendored here for the record.
+
+    file:      epoch_92400_sample_23500000.pkl
+    bytes:     191800918
+    sha256:    cffb53e237e49fa91f19a4c8bc0898dcfd75fd12eab7833d6e95b36c02ebacbf
+    sources:   https://media.githubusercontent.com/media/Brandes-Lab/proteinbert_data_files/master/epoch_92400_sample_23500000.pkl
+               https://zenodo.org/api/records/10371965/files/full_go_epoch_92400_sample_23500000.pkl/content
+    authors:   Dan Ofer and Nadav Brandes, Hebrew University of Jerusalem
+    citation:  Ofer & Brandes, "ProteinBERT: a universal deep-learning model of
+               protein sequence and function", Bioinformatics 38(8):2102-2110,
+               2022 (doi:10.1093/bioinformatics/btac020)
+    license:   Creative Commons Attribution 4.0 International (see LICENSE in
+               this directory; the Zenodo archive of the authors' snapshot
+               carries the CC-BY-4.0 grant)
+
+The same snapshot in both places: the GitHub repository's Git LFS pointer
+pins the sha256 above, and the Zenodo record (10371965) is the authors'
+archive of the same file. The build step that fetches it and the wrapper that
+loads it each verify the sha256 before their bytes are used.
+
+The ProteinBERT source code, a small vendored part of which this image also
+carries, is MIT-licensed software by Nadav Brandes; see the tool's LICENSE.

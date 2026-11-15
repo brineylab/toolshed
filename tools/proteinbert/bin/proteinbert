@@ -1,0 +1,347 @@
+#!/usr/bin/env -S python3 -I
+"""proteinbert: contact maps from ProteinBERT's categorical Jacobian, computed the way oplm does."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import pickle
+import sys
+from typing import Callable
+
+# TensorFlow reads these when it is imported: keep its logs terse and its GPU
+# memory allocation lazy. They must be in place before `import tensorflow`.
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")
+
+import numpy as np  # noqa: E402
+import tensorflow as tf  # noqa: E402
+
+# The model code is ProteinBERT's own, vendored from github.com/nadavbra/protein_bert
+# at commit 69a1122bd7b590af7506981fb31db06e238a882c (see proteinbert/__init__.py
+# for what is vendored and the one change it carries). In the image the package
+# sits in site-packages, so it imports even under `python3 -I`.
+from proteinbert.conv_and_global_attention_model import create_model  # noqa: E402
+from proteinbert.tokenization import n_tokens, tokenize_seq, token_to_index  # noqa: E402
+
+# The contact computation below is oplm's, ported from github.com/briney/oplm
+# at commit 704e01f5ed4b8322bb82e0c961b2c16361c47fa2 to numpy (the tool's image
+# carries TensorFlow, not torch): CANONICAL_AMINO_ACIDS,
+# compute_categorical_jacobian, center_categorical_jacobian,
+# symmetrize_categorical_jacobian and categorical_jacobian_to_contact_map from
+# src/oplm/eval/metrics/categorical_jacobian.py, and apply_apc from
+# src/oplm/eval/metrics/contact.py. The port keeps oplm's batch order, its
+# operation order and its fp32 Jacobian and reduction, operation for operation.
+
+# Matches the canonical amino-acid token ordering used by ESM-family models.
+CANONICAL_AMINO_ACIDS: tuple[str, ...] = (
+    "L",
+    "A",
+    "G",
+    "V",
+    "S",
+    "E",
+    "R",
+    "T",
+    "I",
+    "D",
+    "P",
+    "K",
+    "Q",
+    "N",
+    "F",
+    "Y",
+    "M",
+    "H",
+    "W",
+    "C",
+)
+
+MAX_RESIDUES = 818   # the longest sequence the contacts command takes
+MUTATION_BATCH = 64  # mutant sequences per forward pass
+
+# The image ships the released pretrained dump (192 MB) as one file, fetched by
+# a single short build step (tools/proteinbert/fetch_weights.py) that verifies
+# this sha256 before its layer is committed; the wrapper checks the same sha256
+# again before it loads the file, so the weights are pinned twice.
+WEIGHTS_FILENAME = "epoch_92400_sample_23500000.pkl"
+WEIGHTS_SHA256 = "cffb53e237e49fa91f19a4c8bc0898dcfd75fd12eab7833d6e95b36c02ebacbf"
+WEIGHTS_BYTES = 191800918
+
+
+def sha256_of(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(8 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def load_weights():
+    """(n_annotations, model_weights), the dump upstream's own loader reads.
+
+    $PROTEINBERT_MODEL holds the verified dump; the file is the one
+    load_pretrained_model_from_dump opens: pickle (n_annotations, model_weights,
+    optimizer_weights), where model_weights is exactly model.variables of
+    create_model(L + 2, n_tokens, n_annotations) in order -- which is how
+    upstream sets them too.
+    """
+    src = os.environ.get("PROTEINBERT_MODEL", "/opt/model")
+    path = os.path.join(src, WEIGHTS_FILENAME)
+    if not os.path.exists(path):
+        sys.exit(f"proteinbert: {path} is not there; PROTEINBERT_MODEL points wrong")
+    held = os.path.getsize(path)
+    if held != WEIGHTS_BYTES:
+        sys.exit(f"proteinbert: {path} holds {held} bytes, not the pinned {WEIGHTS_BYTES}")
+    digest = sha256_of(path)
+    if digest != WEIGHTS_SHA256:
+        sys.exit(f"proteinbert: {path} hashes to {digest}, not the pinned {WEIGHTS_SHA256}")
+    with open(path, "rb") as f:
+        n_annotations, model_weights, _optimizer_weights = pickle.load(f)
+    print(f"proteinbert: loaded and verified the weights (n_annotations={n_annotations})",
+          file=sys.stderr)
+    return n_annotations, model_weights
+
+
+def apply_apc(matrix: np.ndarray) -> np.ndarray:
+    """Average Product Correction, oplm's src/oplm/eval/metrics/contact.py."""
+    row_mean = matrix.mean(axis=-1, keepdims=True)  # (L, 1)
+    col_mean = matrix.mean(axis=-2, keepdims=True)  # (1, L)
+    global_mean = matrix.mean()
+
+    if abs(global_mean) < 1e-8:
+        return matrix
+
+    return matrix - (row_mean * col_mean) / global_mean
+
+
+def compute_categorical_jacobian(
+    wildtype_input_ids: np.ndarray,
+    wildtype_logits: np.ndarray,
+    canonical_token_ids: np.ndarray,
+    logits_fn: Callable[[np.ndarray], np.ndarray],
+    mutation_batch_size: int = 20,
+) -> np.ndarray:
+    """Compute the categorical Jacobian via batched finite differences.
+
+    Args:
+        wildtype_input_ids: Wild-type token IDs including special tokens,
+            shape ``(T,)``.
+        wildtype_logits: Wild-type logits restricted to canonical amino-acid
+            output channels, shape ``(L, A)``.
+        canonical_token_ids: Canonical amino-acid token IDs, shape ``(A,)``.
+        logits_fn: Function mapping a batch of mutated token IDs ``(B, T)``
+            to canonical-channel logits ``(B, L, A)``.
+        mutation_batch_size: Number of mutant sequences per forward pass.
+
+    Returns:
+        Array of shape ``(L, A, L, A)`` containing ``mutant - wildtype``
+        logit deltas for every input-position/amino-acid mutation.
+    """
+    if mutation_batch_size < 1:
+        raise ValueError("mutation_batch_size must be >= 1")
+
+    if wildtype_input_ids.ndim != 1:
+        raise ValueError("wildtype_input_ids must have shape (T,)")
+    if wildtype_logits.ndim != 2:
+        raise ValueError("wildtype_logits must have shape (L, A)")
+    if canonical_token_ids.ndim != 1:
+        raise ValueError("canonical_token_ids must have shape (A,)")
+
+    seq_len, alphabet_size = wildtype_logits.shape
+    if canonical_token_ids.shape[0] != alphabet_size:
+        raise ValueError("canonical_token_ids length must match wildtype_logits.shape[1]")
+    if wildtype_input_ids.shape[0] < seq_len + 2:
+        raise ValueError("wildtype_input_ids must include leading and trailing special tokens")
+
+    wildtype_logits_f32 = np.asarray(wildtype_logits, dtype=np.float32)
+
+    jacobian = np.empty((seq_len, alphabet_size, seq_len, alphabet_size), dtype=np.float32)
+    n_mutants = seq_len * alphabet_size
+
+    for start in range(0, n_mutants, mutation_batch_size):
+        stop = min(start + mutation_batch_size, n_mutants)
+        batch_size = stop - start
+        flat_indices = np.arange(start, stop, dtype=np.int64)
+        position_indices = flat_indices // alphabet_size
+        amino_acid_indices = flat_indices % alphabet_size
+
+        batch_input_ids = np.repeat(wildtype_input_ids[np.newaxis], batch_size, axis=0)
+        batch_rows = np.arange(batch_size)
+        batch_input_ids[batch_rows, position_indices + 1] = canonical_token_ids[amino_acid_indices]
+
+        batch_logits = np.asarray(logits_fn(batch_input_ids), dtype=np.float32)
+        expected_shape = (batch_size, seq_len, alphabet_size)
+        if batch_logits.shape != expected_shape:
+            raise ValueError(
+                f"logits_fn returned shape {batch_logits.shape}, expected {expected_shape}"
+            )
+
+        jacobian[position_indices, amino_acid_indices] = (
+            batch_logits - wildtype_logits_f32[np.newaxis]
+        )
+
+    return jacobian
+
+
+def center_categorical_jacobian(categorical_jacobian: np.ndarray, copy: bool = True) -> np.ndarray:
+    """Mean-center a categorical Jacobian across each of its four axes."""
+    centered = categorical_jacobian.copy() if copy else categorical_jacobian
+    for dim in range(4):
+        centered -= centered.mean(axis=dim, keepdims=True)
+    return centered
+
+
+def symmetrize_categorical_jacobian(categorical_jacobian: np.ndarray) -> np.ndarray:
+    """Symmetrize a categorical Jacobian over input/output residue pairs."""
+    return (categorical_jacobian + np.transpose(categorical_jacobian, (2, 3, 0, 1))) / 2
+
+
+def categorical_jacobian_to_contact_map(
+    categorical_jacobian: np.ndarray,
+    center: bool = True,
+    symmetrize: bool = True,
+    apc: bool = True,
+    copy: bool = True,
+) -> np.ndarray:
+    """Reduce a categorical Jacobian to an ``(L, L)`` contact score map."""
+    jacobian = categorical_jacobian.copy() if copy else categorical_jacobian
+
+    if center:
+        jacobian = center_categorical_jacobian(jacobian, copy=False)
+    if symmetrize:
+        jacobian = symmetrize_categorical_jacobian(jacobian)
+
+    contact_scores = np.sqrt(np.square(jacobian).sum(axis=(1, 3)))
+    np.fill_diagonal(contact_scores, 0.0)
+
+    if apc:
+        contact_scores = apply_apc(contact_scores)
+    if symmetrize:
+        contact_scores = (contact_scores + contact_scores.T) / 2
+
+    return contact_scores
+
+
+def read_fasta(path):
+    records = []
+    for line in open(path):
+        line = line.strip()
+        if line.startswith(">"):
+            records.append([line[1:].split()[0] if line[1:].strip() else f"seq{len(records) + 1}", ""])
+        elif line:
+            if not records:
+                sys.exit(f"proteinbert: {path} is not FASTA: sequence before the first '>'")
+            records[-1][1] += line.upper()
+    if not records:
+        sys.exit(f"proteinbert: {path} holds no sequences")
+    return records
+
+
+def check_sequence(name, seq):
+    if not seq:
+        sys.exit(f"proteinbert: {name} is empty")
+    if len(seq) > MAX_RESIDUES:
+        sys.exit(f"proteinbert: {name} has {len(seq)} residues; the contacts command takes at most {MAX_RESIDUES}")
+    bad = sorted(set(seq) - set(CANONICAL_AMINO_ACIDS))
+    if bad:
+        sys.exit(f"proteinbert: {name} holds {''.join(bad)}; the contacts command takes only the 20 canonical amino acids")
+
+
+def canonical_token_ids():
+    """One token id per amino acid in CANONICAL_AMINO_ACIDS order, one token each."""
+    ids = []
+    for letter in CANONICAL_AMINO_ACIDS:
+        if letter not in token_to_index:
+            sys.exit(f"proteinbert: ProteinBERT's alphabet has no token for {letter}")
+        ids.append(token_to_index[letter])
+    return np.asarray(ids, dtype=np.int32)
+
+
+def resolve_device(requested):
+    """cuda or cpu, and TensorFlow set to exactly that."""
+    gpus = tf.config.list_physical_devices("GPU")
+    device = requested or ("cuda" if gpus else "cpu")
+    if device not in ("cuda", "cpu"):
+        sys.exit(f"proteinbert: --device {device}; the contacts command takes cuda or cpu")
+    if device == "cuda" and not gpus:
+        sys.exit("proteinbert: --device cuda, but TensorFlow sees no GPU")
+    # list, then hide or pin, before any op runs -- the order the TF GPU guide
+    # prescribes. cuda means the first GPU, like torch's "cuda".
+    if device == "cpu":
+        tf.config.set_visible_devices([], "GPU")
+    elif len(gpus) > 1:
+        tf.config.set_visible_devices(gpus[:1], "GPU")
+        gpus = gpus[:1]
+    print("proteinbert: %s (%s)" % (device, gpus[0].name if gpus else "no GPU"), file=sys.stderr)
+
+
+def contacts(model_weights, n_annotations, canonical_ids, name, seq):
+    """One (L, L) float32 contact map: the categorical Jacobian, reduced as oplm does."""
+    L = len(seq)
+    # ProteinBERT's weights are length-independent but its convolutions and
+    # global attention are not translation-invariant over padding, so the model
+    # is rebuilt at exactly this length: seq_len = L + 2, one <START>, one
+    # token per residue, one <END>, no padding. clear_session retires the
+    # previous sequence's graph.
+    tf.keras.backend.clear_session()
+    model = create_model(seq_len=L + 2, vocab_size=n_tokens, n_annotations=n_annotations)
+    # bfloat16 everywhere the model runs: the global policy makes create_model
+    # build its variables in bf16 (set in main, before the first build), and
+    # set_weights casts the dump's fp32 values into them -- the same bf16
+    # weights the other tools load with dtype=bfloat16. The Jacobian and its
+    # reduction stay in fp32, as they do in oplm.
+    model.set_weights(model_weights)
+
+    channel_ids = tf.constant(canonical_ids, dtype=tf.int32)
+
+    @tf.function
+    def forward(batch_input_ids):
+        # upstream's InputEncoder feeds all-zero annotations (GO terms the
+        # pretrained dump predicts but the contacts command does not)
+        annotations = tf.zeros((tf.shape(batch_input_ids)[0], n_annotations), dtype=tf.float32)
+        # [output-seq, output-annotations]; output-seq is the vendored model's
+        # pre-softmax logits (activation=None, the one vendored change)
+        output_seq = model((batch_input_ids, annotations), training=False)[0]
+        # bf16 out of the model, fp32 from here on, cast inside the graph
+        return tf.gather(tf.cast(output_seq, tf.float32)[:, 1:L + 1], channel_ids, axis=-1)
+
+    ids = np.asarray(tokenize_seq(seq), dtype=np.int32)  # <START>, residues, <END>
+    if ids.shape[0] != L + 2 or ids[0] != token_to_index["<START>"] or ids[-1] != token_to_index["<END>"]:
+        sys.exit(f"proteinbert: {name} does not tokenize to one token per residue "
+                 f"({ids.shape[0]} tokens for {len(seq)} residues)")
+    wildtype = forward(ids[np.newaxis])[0]  # (L, A) fp32
+
+    jacobian = compute_categorical_jacobian(
+        wildtype_input_ids=ids,
+        wildtype_logits=wildtype,
+        canonical_token_ids=canonical_ids,
+        logits_fn=forward,
+        mutation_batch_size=MUTATION_BATCH,
+    )
+    return categorical_jacobian_to_contact_map(jacobian).astype(np.float32)
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="proteinbert", description=__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("contacts", help="npz: one (L, L) float32 contact map per sequence")
+    p.add_argument("--in", dest="inp", required=True, help="FASTA")
+    p.add_argument("--out", required=True, help="npz of contact maps")
+    p.add_argument("--device", default=None, help="cuda or cpu; the default is the GPU when one is visible")
+    args = ap.parse_args()
+
+    resolve_device(args.device)
+    # the model runs in bf16 (see contacts); set before the first create_model
+    tf.keras.mixed_precision.set_global_policy("bfloat16")
+    n_annotations, model_weights = load_weights()
+    canonical_ids = canonical_token_ids()
+    maps = {}
+    for name, seq in read_fasta(args.inp):
+        check_sequence(name, seq)
+        maps[name] = contacts(model_weights, n_annotations, canonical_ids, name, seq)
+    np.savez(args.out, **maps)
+
+
+if __name__ == "__main__":
+    main()
