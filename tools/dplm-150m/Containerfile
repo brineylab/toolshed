@@ -2,10 +2,12 @@ FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN pip install --no-cache-dir --break-system-packages transformers==4.51.3 tokenizers==0.21.1 huggingface_hub==0.30.2 safetensors==0.5.3 numpy==2.5.4
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DPLM_MODEL=/opt/model
-# huggingface_hub 0.30.2's xet-storage fallback fails on the build host, so
-# fetch over plain resolve URLs (boltz-2's build proves they work there) and
-# verify pytorch_model.bin's LFS sha256 from the HF tree API.
-RUN python3 -I -c "import hashlib, pathlib, urllib.request; rev = '49b7125a5d28c6418fcc2f3c4fe799352ac1488b'; base = f'https://huggingface.co/airkingbd/dplm_150m/resolve/{rev}'; model = pathlib.Path('/opt/model'); model.mkdir(parents = True); files = ['config.json', 'tokenizer_config.json', 'special_tokens_map.json', 'vocab.txt', 'pytorch_model.bin']; [urllib.request.urlretrieve(f'{base}/{n}', model / n) for n in files]; [print(n, (model / n).stat().st_size) for n in files]; sha = hashlib.file_digest(open(model / 'pytorch_model.bin', 'rb'), 'sha256').hexdigest(); assert sha == 'ea4eaa99536b60ed76f945f71a1a5e604f08447ec3def5104a93ca6001a59961', sha"
+# Two builds died fetching the weights and the log tail never said why, so a
+# committed script fetches them over plain resolve URLs: retries with Range
+# resume, redirect tracing, and sha256 verification of every file, logging
+# enough (DNS, proxies, disk, each hop) to name whatever blocks the fetch.
+COPY fetch_weights.py /opt/fetch_weights.py
+RUN python3 -I /opt/fetch_weights.py /opt/model
 COPY LICENSE /opt/model/LICENSE
 COPY src /opt/src
 COPY --chmod=755 bin/dplm /usr/local/bin/dplm
