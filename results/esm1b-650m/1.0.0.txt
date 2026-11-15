@@ -1,0 +1,17 @@
+---
+tool: esm1b-650m
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/esm1b-650m@sha256:17752ffc4b6af3f734dbaa40c3a2c50037a4f784376d720357cec3f1504be021
+digest: sha256:17752ffc4b6af3f734dbaa40c3a2c50037a4f784376d720357cec3f1504be021
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-15T19:12:24Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esm1b-650m@sha256:17752ffc4b6af3f734dbaa40c3a2c50037a4f784376d720357cec3f1504be021
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esm1b-650m@sha256:17752ffc4b6af3f734dbaa40c3a2c50037a4f784376d720357cec3f1504be021
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-c45844e4-bbf5-52b2-663a-089a6acef17a)
+esm1b: assembled and verified the checkpoint at /tmp/esm1b-pytorch_model-ebb8a35768179581.bin
+contacts ubiquitin: L=76 pearson_r=1.0000 top-76 long-range overlap 1.00
+ok: peptide pll -49.9945, reversed pll -55.1778, ubiquitin pll -2.3993 | ubiquitin -0.03/residue | filled MKTAYIAKKRQISFLKSH
