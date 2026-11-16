@@ -1,0 +1,61 @@
+---
+name: esm2-15b
+description: "ESM-2 15B protein language model: pseudo-log-likelihoods, per-sequence embeddings, masked-position infilling, and categorical-Jacobian contact maps for protein sequences. Reach for it for a sequence score, an embedding, or residue-residue contacts when a structure is not needed, and for sequences up to 1022 residues."
+metadata:
+  version: 1.0.0
+---
+# esm2-15b
+
+Image: `ghcr.io/brineylab/toolshed/esm2-15b:1.0.0`
+
+ESM-2 with 15B parameters (`facebook/esm2_t48_15B_UR50D`, 48 layers, 5120-dimensional), run through `transformers`. The weights are in the image, stored converted to bf16 (about 30 GB instead of the released 60.5 GB of fp32 — bf16 is the rounding `oplm`'s own computation runs on); it needs no network. Its commands and files are those of `esm2-650m`, so the two compare directly.
+
+## Commands
+
+```bash
+esm2 pll --in seqs.fasta --out pll.tsv
+esm2 embed --in seqs.fasta --out emb.npz
+esm2 fill --in masked.fasta --out filled.fasta
+esm2 contacts --in seqs.fasta --out contacts.npz
+```
+
+Each takes `--device cuda` or `--device cpu`; the default is the GPU when one is visible.
+
+## Inputs and outputs
+
+- **In:** FASTA, one or more protein sequences in the 20 standard residues. The first word of each header is the sequence's id. For `fill`, write `<mask>` at each position to infill (`MKTAY<mask>AKQR`).
+- **`pll`:** a TSV with a header line and columns `id`, `pll`. The pseudo-log-likelihood: each position masked in turn and the natural log-probability of the true residue there, summed over the sequence. It is negative; closer to 0 is more likely under the model. It grows in magnitude with length, so divide by length to compare sequences of different lengths.
+- **`embed`:** an `.npz` with `ids` (strings, in input order) and `embeddings` (float32, shape `(n, 5120)`): the last layer, mean-pooled over residues (`<cls>` and `<eos>` excluded). Read it with `numpy.load`.
+- **`fill`:** FASTA with the same ids, each `<mask>` replaced by the most likely of the 20 standard residues, all masks predicted in one pass.
+- **`contacts`:** an `.npz` holding one `(L, L)` float32 array per id, the contact score map `oplm` computes from the categorical Jacobian (oplm commit `704e01f`, `src/oplm/eval/metrics/categorical_jacobian.py`): every residue substituted with each of the 20 canonical amino acids in oplm's order (no masking, the wild type included), the logit deltas from the unmasked sequence form an `(L, 20, L, 20)` tensor, which is centered over all four axes, symmetrized, reduced to `(L, L)` by the square root of the sum of squares over the two amino-acid axes, zeroed on the diagonal, APC-corrected, and symmetrized. The forward pass runs in bf16; the Jacobian and the reduction are fp32. `contacts` takes only the 20 canonical residues, and the model takes at most 1022 of them — plm-evals' longest structure eval set is 818.
+
+## Compute
+
+One GPU with enough memory to hold the model — it alone is 30 GB in bf16, so the cluster's A100-SXM4-80GB (bcr) is the safe choice — with NVIDIA driver 580 or newer (the image is CUDA 13). `pll` costs one forward pass per residue, 32 masked copies at a time; `embed` and `fill` are one pass per sequence; `contacts` costs 20 forward passes per residue plus one, 20 substituted residues at a time, so its cost grows with the square of the length. At 818 residues the fp32 Jacobian alone is 1.1 GB. On an A100: loading the model adds about 1 min (bf16, the shards already verified), the three-sequence fixture (112 residues) runs `pll` in about 2 min, and `contacts` on the 76-residue ubiquitin takes about 3 min — a few hours at 818 residues, extrapolated on that square law. The first command on a machine also verifies every one of the 242 group shards against the manifest's value pins (loading and hashing the 30 GB, about 4 min once per machine, cached by a marker under the system's temp directory, so the next commands skip it). The image itself is about 30 GB, so a node's first pull of it takes minutes. A few short sequences are possible on CPU (30 GB of RAM for the weights), many times slower.
+
+## Running it
+
+On a laptop, from the directory holding `seqs.fasta` (drop `--device` without a GPU):
+
+```bash
+podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
+  ghcr.io/brineylab/toolshed/esm2-15b:1.0.0 esm2 pll --in seqs.fasta --out pll.tsv
+```
+
+On a Slurm cluster with pyxis:
+
+```bash
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/esm2-15b:1.0.0 \
+  --container-mounts="$PWD":/work --container-workdir=/work esm2 contacts --in seqs.fasta --out contacts.npz
+```
+
+## Gotchas
+
+- The mask token is `<mask>`, lowercase as written; other residue letters are case-insensitive.
+- A sequence longer than 1022 residues is refused, naming it. `contacts` refuses a sequence holding anything but the 20 standard residues, naming them.
+- With an NVIDIA driver older than 580 the GPU is not usable and the default device falls back to CPU, many times slower; `--device cuda` then fails rather than fall back.
+- Sequences run one at a time: a large FASTA through `pll` or `contacts` is one or 20 passes per residue, so submit it as a job, not an interactive `srun`.
+- `fill` predicts all masks at once, each without seeing the others' predictions.
+- The weights ship as 242 torch `.bin` group shards (30.3 GB of bf16, written per the image's shard index `pytorch_model.bin.index.json`), because the machine that builds these images dies in or after any step that moves about a GiB or more: each shard was written by one short build step that re-fetched only that group's pinned fp32 byte spans over HTTPS (one resumable, sha256-verified, mirror-falling-back ranged GET per tensor — the released 60.5 GB of fp32 never persists in the image), cast them to bf16, and proved the shard by loading it back and hashing its values to `manifest.json`'s pin. `torch.save`'s container bytes are not deterministic, so the pins pin the values (key, dtype, shape, raw bits); the one int64 tensor, `esm.embeddings.position_ids`, rides its group unchanged, as the released checkpoint carries it. At load, the first command on a machine re-verifies every shard's value pin (the marker is keyed by the manifest's pins, so a changed image re-verifies).
+- `contacts`'s test compares its map to a reference computed once with oplm's own `compute_categorical_jacobian` and `categorical_jacobian_to_contact_map` at commit `704e01f` on the same weights in bf16 (`test/contacts-reference.npz`, beside the fixture `test/contacts.fasta`, whose 76-residue ubiquitin crosses the mutation-batch threshold many times over: 1,520 substitutions at 20 per forward pass). The check is exact symmetry plus a tolerance for GPU kernel noise: Pearson r >= 0.98 over the map and >= 0.8 top-L long-range overlap (pairs with |i - j| >= 24, oplm's long-range separation).
+- The weights are MIT-licensed: the `facebook/esm2_t48_15B_UR50D` model card declares `license: mit`, and Meta's ESM code repository (facebookresearch/esm) is MIT. The upstream `LICENSE` is shipped beside the weights at `/opt/model/LICENSE`, committed in `model/`.
