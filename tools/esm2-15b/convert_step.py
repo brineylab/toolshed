@@ -218,7 +218,12 @@ def convert(index, groups, fp32_shards):
         tensors[row["key"]] = t.to(torch.bfloat16) if dtype == "float32" else t
 
     os.makedirs(MODEL_DIR, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(prefix=".group-", dir=MODEL_DIR)
+    # the suffix is load-bearing: torch.save names the zip's inner archive after
+    # the file's basename with everything from the last '.' stripped, so a
+    # dotfile with no later dot (".group-f8oesc62") gives an empty archive name
+    # and PyTorchFileWriter dies with "invalid file name" (run 369e7788);
+    # ".group-f8oesc62.bin" leaves ".group-f8oesc62"
+    fd, tmp = tempfile.mkstemp(prefix=".group-", suffix=".bin", dir=MODEL_DIR)
     os.close(fd)
     torch.save(tensors, tmp)
     # the proof is a load-back: the file just written must hold exactly the
