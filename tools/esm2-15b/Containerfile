@@ -1,0 +1,273 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESM2_15B_MODEL=/opt/model
+# The weights are facebook/esm2_t48_15B_UR50D's seven fp32 shards (60.5 GB, as
+# released) at revision 5fbca39, stored converted to bf16 (about 30 GB), which the
+# lab's brief draws the line at and which is the rounding oplm's own computation
+# runs on. The machine that builds these images dies on any step that moves about
+# a GiB or more, so neither a fetch nor a cast of that size can be one step:
+# convert_step.py runs once per group of the manifest's 242 groups -- a short RUN
+# each, moving well under a GiB -- and re-fetches only that group's pinned fp32
+# byte spans (one resumable, sha256-verified, mirror-falling-back ranged GET per
+# tensor), so the fp32 never persists in the image. Every span is checked against
+# the sha256 the assembly validation run pinned (campaign ea48d6c1, run 0142e109)
+# after bit-verifying it against torch.load(mmap=True) of the assembled,
+# whole-sha256-checked shards, and the shard a step writes is proven by loading it
+# back: it must hold exactly those tensors and hash to the group's canonical value
+# sha256 that run recorded -- torch.save's container bytes are not deterministic
+# (run 426380dd), so the pins pin the values: key, dtype, shape, raw bits. A
+# stalled step resumes from the bytes it already holds, and a build that dies
+# reuses whatever the builder cached. At load the wrapper verifies every shard's
+# value pin once per machine and loads the model in bf16 through the shard index.
+# The small files -- config, shard index, manifest, tokenizer, vocab, and Meta's
+# MIT LICENSE -- are committed in model/ and copied in after the steps, so a
+# change to them never invalidates a cached step, and the test is last, per the
+# conventions.
+COPY convert_step.py model/manifest.json /tmp/
+RUN python3 -I /tmp/convert_step.py 0
+RUN python3 -I /tmp/convert_step.py 1
+RUN python3 -I /tmp/convert_step.py 2
+RUN python3 -I /tmp/convert_step.py 3
+RUN python3 -I /tmp/convert_step.py 4
+RUN python3 -I /tmp/convert_step.py 5
+RUN python3 -I /tmp/convert_step.py 6
+RUN python3 -I /tmp/convert_step.py 7
+RUN python3 -I /tmp/convert_step.py 8
+RUN python3 -I /tmp/convert_step.py 9
+RUN python3 -I /tmp/convert_step.py 10
+RUN python3 -I /tmp/convert_step.py 11
+RUN python3 -I /tmp/convert_step.py 12
+RUN python3 -I /tmp/convert_step.py 13
+RUN python3 -I /tmp/convert_step.py 14
+RUN python3 -I /tmp/convert_step.py 15
+RUN python3 -I /tmp/convert_step.py 16
+RUN python3 -I /tmp/convert_step.py 17
+RUN python3 -I /tmp/convert_step.py 18
+RUN python3 -I /tmp/convert_step.py 19
+RUN python3 -I /tmp/convert_step.py 20
+RUN python3 -I /tmp/convert_step.py 21
+RUN python3 -I /tmp/convert_step.py 22
+RUN python3 -I /tmp/convert_step.py 23
+RUN python3 -I /tmp/convert_step.py 24
+RUN python3 -I /tmp/convert_step.py 25
+RUN python3 -I /tmp/convert_step.py 26
+RUN python3 -I /tmp/convert_step.py 27
+RUN python3 -I /tmp/convert_step.py 28
+RUN python3 -I /tmp/convert_step.py 29
+RUN python3 -I /tmp/convert_step.py 30
+RUN python3 -I /tmp/convert_step.py 31
+RUN python3 -I /tmp/convert_step.py 32
+RUN python3 -I /tmp/convert_step.py 33
+RUN python3 -I /tmp/convert_step.py 34
+RUN python3 -I /tmp/convert_step.py 35
+RUN python3 -I /tmp/convert_step.py 36
+RUN python3 -I /tmp/convert_step.py 37
+RUN python3 -I /tmp/convert_step.py 38
+RUN python3 -I /tmp/convert_step.py 39
+RUN python3 -I /tmp/convert_step.py 40
+RUN python3 -I /tmp/convert_step.py 41
+RUN python3 -I /tmp/convert_step.py 42
+RUN python3 -I /tmp/convert_step.py 43
+RUN python3 -I /tmp/convert_step.py 44
+RUN python3 -I /tmp/convert_step.py 45
+RUN python3 -I /tmp/convert_step.py 46
+RUN python3 -I /tmp/convert_step.py 47
+RUN python3 -I /tmp/convert_step.py 48
+RUN python3 -I /tmp/convert_step.py 49
+RUN python3 -I /tmp/convert_step.py 50
+RUN python3 -I /tmp/convert_step.py 51
+RUN python3 -I /tmp/convert_step.py 52
+RUN python3 -I /tmp/convert_step.py 53
+RUN python3 -I /tmp/convert_step.py 54
+RUN python3 -I /tmp/convert_step.py 55
+RUN python3 -I /tmp/convert_step.py 56
+RUN python3 -I /tmp/convert_step.py 57
+RUN python3 -I /tmp/convert_step.py 58
+RUN python3 -I /tmp/convert_step.py 59
+RUN python3 -I /tmp/convert_step.py 60
+RUN python3 -I /tmp/convert_step.py 61
+RUN python3 -I /tmp/convert_step.py 62
+RUN python3 -I /tmp/convert_step.py 63
+RUN python3 -I /tmp/convert_step.py 64
+RUN python3 -I /tmp/convert_step.py 65
+RUN python3 -I /tmp/convert_step.py 66
+RUN python3 -I /tmp/convert_step.py 67
+RUN python3 -I /tmp/convert_step.py 68
+RUN python3 -I /tmp/convert_step.py 69
+RUN python3 -I /tmp/convert_step.py 70
+RUN python3 -I /tmp/convert_step.py 71
+RUN python3 -I /tmp/convert_step.py 72
+RUN python3 -I /tmp/convert_step.py 73
+RUN python3 -I /tmp/convert_step.py 74
+RUN python3 -I /tmp/convert_step.py 75
+RUN python3 -I /tmp/convert_step.py 76
+RUN python3 -I /tmp/convert_step.py 77
+RUN python3 -I /tmp/convert_step.py 78
+RUN python3 -I /tmp/convert_step.py 79
+RUN python3 -I /tmp/convert_step.py 80
+RUN python3 -I /tmp/convert_step.py 81
+RUN python3 -I /tmp/convert_step.py 82
+RUN python3 -I /tmp/convert_step.py 83
+RUN python3 -I /tmp/convert_step.py 84
+RUN python3 -I /tmp/convert_step.py 85
+RUN python3 -I /tmp/convert_step.py 86
+RUN python3 -I /tmp/convert_step.py 87
+RUN python3 -I /tmp/convert_step.py 88
+RUN python3 -I /tmp/convert_step.py 89
+RUN python3 -I /tmp/convert_step.py 90
+RUN python3 -I /tmp/convert_step.py 91
+RUN python3 -I /tmp/convert_step.py 92
+RUN python3 -I /tmp/convert_step.py 93
+RUN python3 -I /tmp/convert_step.py 94
+RUN python3 -I /tmp/convert_step.py 95
+RUN python3 -I /tmp/convert_step.py 96
+RUN python3 -I /tmp/convert_step.py 97
+RUN python3 -I /tmp/convert_step.py 98
+RUN python3 -I /tmp/convert_step.py 99
+RUN python3 -I /tmp/convert_step.py 100
+RUN python3 -I /tmp/convert_step.py 101
+RUN python3 -I /tmp/convert_step.py 102
+RUN python3 -I /tmp/convert_step.py 103
+RUN python3 -I /tmp/convert_step.py 104
+RUN python3 -I /tmp/convert_step.py 105
+RUN python3 -I /tmp/convert_step.py 106
+RUN python3 -I /tmp/convert_step.py 107
+RUN python3 -I /tmp/convert_step.py 108
+RUN python3 -I /tmp/convert_step.py 109
+RUN python3 -I /tmp/convert_step.py 110
+RUN python3 -I /tmp/convert_step.py 111
+RUN python3 -I /tmp/convert_step.py 112
+RUN python3 -I /tmp/convert_step.py 113
+RUN python3 -I /tmp/convert_step.py 114
+RUN python3 -I /tmp/convert_step.py 115
+RUN python3 -I /tmp/convert_step.py 116
+RUN python3 -I /tmp/convert_step.py 117
+RUN python3 -I /tmp/convert_step.py 118
+RUN python3 -I /tmp/convert_step.py 119
+RUN python3 -I /tmp/convert_step.py 120
+RUN python3 -I /tmp/convert_step.py 121
+RUN python3 -I /tmp/convert_step.py 122
+RUN python3 -I /tmp/convert_step.py 123
+RUN python3 -I /tmp/convert_step.py 124
+RUN python3 -I /tmp/convert_step.py 125
+RUN python3 -I /tmp/convert_step.py 126
+RUN python3 -I /tmp/convert_step.py 127
+RUN python3 -I /tmp/convert_step.py 128
+RUN python3 -I /tmp/convert_step.py 129
+RUN python3 -I /tmp/convert_step.py 130
+RUN python3 -I /tmp/convert_step.py 131
+RUN python3 -I /tmp/convert_step.py 132
+RUN python3 -I /tmp/convert_step.py 133
+RUN python3 -I /tmp/convert_step.py 134
+RUN python3 -I /tmp/convert_step.py 135
+RUN python3 -I /tmp/convert_step.py 136
+RUN python3 -I /tmp/convert_step.py 137
+RUN python3 -I /tmp/convert_step.py 138
+RUN python3 -I /tmp/convert_step.py 139
+RUN python3 -I /tmp/convert_step.py 140
+RUN python3 -I /tmp/convert_step.py 141
+RUN python3 -I /tmp/convert_step.py 142
+RUN python3 -I /tmp/convert_step.py 143
+RUN python3 -I /tmp/convert_step.py 144
+RUN python3 -I /tmp/convert_step.py 145
+RUN python3 -I /tmp/convert_step.py 146
+RUN python3 -I /tmp/convert_step.py 147
+RUN python3 -I /tmp/convert_step.py 148
+RUN python3 -I /tmp/convert_step.py 149
+RUN python3 -I /tmp/convert_step.py 150
+RUN python3 -I /tmp/convert_step.py 151
+RUN python3 -I /tmp/convert_step.py 152
+RUN python3 -I /tmp/convert_step.py 153
+RUN python3 -I /tmp/convert_step.py 154
+RUN python3 -I /tmp/convert_step.py 155
+RUN python3 -I /tmp/convert_step.py 156
+RUN python3 -I /tmp/convert_step.py 157
+RUN python3 -I /tmp/convert_step.py 158
+RUN python3 -I /tmp/convert_step.py 159
+RUN python3 -I /tmp/convert_step.py 160
+RUN python3 -I /tmp/convert_step.py 161
+RUN python3 -I /tmp/convert_step.py 162
+RUN python3 -I /tmp/convert_step.py 163
+RUN python3 -I /tmp/convert_step.py 164
+RUN python3 -I /tmp/convert_step.py 165
+RUN python3 -I /tmp/convert_step.py 166
+RUN python3 -I /tmp/convert_step.py 167
+RUN python3 -I /tmp/convert_step.py 168
+RUN python3 -I /tmp/convert_step.py 169
+RUN python3 -I /tmp/convert_step.py 170
+RUN python3 -I /tmp/convert_step.py 171
+RUN python3 -I /tmp/convert_step.py 172
+RUN python3 -I /tmp/convert_step.py 173
+RUN python3 -I /tmp/convert_step.py 174
+RUN python3 -I /tmp/convert_step.py 175
+RUN python3 -I /tmp/convert_step.py 176
+RUN python3 -I /tmp/convert_step.py 177
+RUN python3 -I /tmp/convert_step.py 178
+RUN python3 -I /tmp/convert_step.py 179
+RUN python3 -I /tmp/convert_step.py 180
+RUN python3 -I /tmp/convert_step.py 181
+RUN python3 -I /tmp/convert_step.py 182
+RUN python3 -I /tmp/convert_step.py 183
+RUN python3 -I /tmp/convert_step.py 184
+RUN python3 -I /tmp/convert_step.py 185
+RUN python3 -I /tmp/convert_step.py 186
+RUN python3 -I /tmp/convert_step.py 187
+RUN python3 -I /tmp/convert_step.py 188
+RUN python3 -I /tmp/convert_step.py 189
+RUN python3 -I /tmp/convert_step.py 190
+RUN python3 -I /tmp/convert_step.py 191
+RUN python3 -I /tmp/convert_step.py 192
+RUN python3 -I /tmp/convert_step.py 193
+RUN python3 -I /tmp/convert_step.py 194
+RUN python3 -I /tmp/convert_step.py 195
+RUN python3 -I /tmp/convert_step.py 196
+RUN python3 -I /tmp/convert_step.py 197
+RUN python3 -I /tmp/convert_step.py 198
+RUN python3 -I /tmp/convert_step.py 199
+RUN python3 -I /tmp/convert_step.py 200
+RUN python3 -I /tmp/convert_step.py 201
+RUN python3 -I /tmp/convert_step.py 202
+RUN python3 -I /tmp/convert_step.py 203
+RUN python3 -I /tmp/convert_step.py 204
+RUN python3 -I /tmp/convert_step.py 205
+RUN python3 -I /tmp/convert_step.py 206
+RUN python3 -I /tmp/convert_step.py 207
+RUN python3 -I /tmp/convert_step.py 208
+RUN python3 -I /tmp/convert_step.py 209
+RUN python3 -I /tmp/convert_step.py 210
+RUN python3 -I /tmp/convert_step.py 211
+RUN python3 -I /tmp/convert_step.py 212
+RUN python3 -I /tmp/convert_step.py 213
+RUN python3 -I /tmp/convert_step.py 214
+RUN python3 -I /tmp/convert_step.py 215
+RUN python3 -I /tmp/convert_step.py 216
+RUN python3 -I /tmp/convert_step.py 217
+RUN python3 -I /tmp/convert_step.py 218
+RUN python3 -I /tmp/convert_step.py 219
+RUN python3 -I /tmp/convert_step.py 220
+RUN python3 -I /tmp/convert_step.py 221
+RUN python3 -I /tmp/convert_step.py 222
+RUN python3 -I /tmp/convert_step.py 223
+RUN python3 -I /tmp/convert_step.py 224
+RUN python3 -I /tmp/convert_step.py 225
+RUN python3 -I /tmp/convert_step.py 226
+RUN python3 -I /tmp/convert_step.py 227
+RUN python3 -I /tmp/convert_step.py 228
+RUN python3 -I /tmp/convert_step.py 229
+RUN python3 -I /tmp/convert_step.py 230
+RUN python3 -I /tmp/convert_step.py 231
+RUN python3 -I /tmp/convert_step.py 232
+RUN python3 -I /tmp/convert_step.py 233
+RUN python3 -I /tmp/convert_step.py 234
+RUN python3 -I /tmp/convert_step.py 235
+RUN python3 -I /tmp/convert_step.py 236
+RUN python3 -I /tmp/convert_step.py 237
+RUN python3 -I /tmp/convert_step.py 238
+RUN python3 -I /tmp/convert_step.py 239
+RUN python3 -I /tmp/convert_step.py 240
+RUN python3 -I /tmp/convert_step.py 241
+RUN rm -f /tmp/convert_step.py /tmp/manifest.json
+COPY model/ /opt/model/
+COPY --chmod=755 bin/esm2 /usr/local/bin/esm2
+COPY test /toolshed/test
