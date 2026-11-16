@@ -1,0 +1,106 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN pip install --no-cache-dir --break-system-packages transformers==5.20.2 huggingface_hub==2.3.0 numpy==2.5.4
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESM2_MODEL=/opt/model
+# The weights are facebook/esm2_t36_3B_UR50D's two fp32 shards (11.4 GB, as released)
+# at revision 476b6399, crossed in eighty-six verified 128 MiB byte ranges, one
+# short RUN per chunk (the pattern protbert 1.0.3 proved on this builder): each
+# range's sha256 is checked before its layer is committed, a stalled step resumes from
+# the bytes it already holds, and a build that dies reuses whatever the builder cached,
+# so progress survives. The wrapper assembles each shard's parts at load time, checks
+# the whole file's sha256, and loads them in bf16 for contacts (the same rounding
+# oplm's own computation runs on) and fp32 for pll, embed and fill. The small files --
+# config, shard index, tokenizer, vocab, and Meta's MIT LICENSE -- are committed in
+# model/ and copied in after the chunks, so a change to them never invalidates a cached
+# chunk, and the test is last, per the conventions.
+COPY fetch_chunk.py /tmp/fetch_chunk.py
+RUN python3 -I /tmp/fetch_chunk.py 0
+RUN python3 -I /tmp/fetch_chunk.py 1
+RUN python3 -I /tmp/fetch_chunk.py 2
+RUN python3 -I /tmp/fetch_chunk.py 3
+RUN python3 -I /tmp/fetch_chunk.py 4
+RUN python3 -I /tmp/fetch_chunk.py 5
+RUN python3 -I /tmp/fetch_chunk.py 6
+RUN python3 -I /tmp/fetch_chunk.py 7
+RUN python3 -I /tmp/fetch_chunk.py 8
+RUN python3 -I /tmp/fetch_chunk.py 9
+RUN python3 -I /tmp/fetch_chunk.py 10
+RUN python3 -I /tmp/fetch_chunk.py 11
+RUN python3 -I /tmp/fetch_chunk.py 12
+RUN python3 -I /tmp/fetch_chunk.py 13
+RUN python3 -I /tmp/fetch_chunk.py 14
+RUN python3 -I /tmp/fetch_chunk.py 15
+RUN python3 -I /tmp/fetch_chunk.py 16
+RUN python3 -I /tmp/fetch_chunk.py 17
+RUN python3 -I /tmp/fetch_chunk.py 18
+RUN python3 -I /tmp/fetch_chunk.py 19
+RUN python3 -I /tmp/fetch_chunk.py 20
+RUN python3 -I /tmp/fetch_chunk.py 21
+RUN python3 -I /tmp/fetch_chunk.py 22
+RUN python3 -I /tmp/fetch_chunk.py 23
+RUN python3 -I /tmp/fetch_chunk.py 24
+RUN python3 -I /tmp/fetch_chunk.py 25
+RUN python3 -I /tmp/fetch_chunk.py 26
+RUN python3 -I /tmp/fetch_chunk.py 27
+RUN python3 -I /tmp/fetch_chunk.py 28
+RUN python3 -I /tmp/fetch_chunk.py 29
+RUN python3 -I /tmp/fetch_chunk.py 30
+RUN python3 -I /tmp/fetch_chunk.py 31
+RUN python3 -I /tmp/fetch_chunk.py 32
+RUN python3 -I /tmp/fetch_chunk.py 33
+RUN python3 -I /tmp/fetch_chunk.py 34
+RUN python3 -I /tmp/fetch_chunk.py 35
+RUN python3 -I /tmp/fetch_chunk.py 36
+RUN python3 -I /tmp/fetch_chunk.py 37
+RUN python3 -I /tmp/fetch_chunk.py 38
+RUN python3 -I /tmp/fetch_chunk.py 39
+RUN python3 -I /tmp/fetch_chunk.py 40
+RUN python3 -I /tmp/fetch_chunk.py 41
+RUN python3 -I /tmp/fetch_chunk.py 42
+RUN python3 -I /tmp/fetch_chunk.py 43
+RUN python3 -I /tmp/fetch_chunk.py 44
+RUN python3 -I /tmp/fetch_chunk.py 45
+RUN python3 -I /tmp/fetch_chunk.py 46
+RUN python3 -I /tmp/fetch_chunk.py 47
+RUN python3 -I /tmp/fetch_chunk.py 48
+RUN python3 -I /tmp/fetch_chunk.py 49
+RUN python3 -I /tmp/fetch_chunk.py 50
+RUN python3 -I /tmp/fetch_chunk.py 51
+RUN python3 -I /tmp/fetch_chunk.py 52
+RUN python3 -I /tmp/fetch_chunk.py 53
+RUN python3 -I /tmp/fetch_chunk.py 54
+RUN python3 -I /tmp/fetch_chunk.py 55
+RUN python3 -I /tmp/fetch_chunk.py 56
+RUN python3 -I /tmp/fetch_chunk.py 57
+RUN python3 -I /tmp/fetch_chunk.py 58
+RUN python3 -I /tmp/fetch_chunk.py 59
+RUN python3 -I /tmp/fetch_chunk.py 60
+RUN python3 -I /tmp/fetch_chunk.py 61
+RUN python3 -I /tmp/fetch_chunk.py 62
+RUN python3 -I /tmp/fetch_chunk.py 63
+RUN python3 -I /tmp/fetch_chunk.py 64
+RUN python3 -I /tmp/fetch_chunk.py 65
+RUN python3 -I /tmp/fetch_chunk.py 66
+RUN python3 -I /tmp/fetch_chunk.py 67
+RUN python3 -I /tmp/fetch_chunk.py 68
+RUN python3 -I /tmp/fetch_chunk.py 69
+RUN python3 -I /tmp/fetch_chunk.py 70
+RUN python3 -I /tmp/fetch_chunk.py 71
+RUN python3 -I /tmp/fetch_chunk.py 72
+RUN python3 -I /tmp/fetch_chunk.py 73
+RUN python3 -I /tmp/fetch_chunk.py 74
+RUN python3 -I /tmp/fetch_chunk.py 75
+RUN python3 -I /tmp/fetch_chunk.py 76
+RUN python3 -I /tmp/fetch_chunk.py 77
+RUN python3 -I /tmp/fetch_chunk.py 78
+RUN python3 -I /tmp/fetch_chunk.py 79
+RUN python3 -I /tmp/fetch_chunk.py 80
+RUN python3 -I /tmp/fetch_chunk.py 81
+RUN python3 -I /tmp/fetch_chunk.py 82
+RUN python3 -I /tmp/fetch_chunk.py 83
+RUN python3 -I /tmp/fetch_chunk.py 84
+RUN python3 -I /tmp/fetch_chunk.py 85
+RUN rm -f /tmp/fetch_chunk.py
+COPY model/ /opt/model/
+COPY --chmod=755 bin/esm2 /usr/local/bin/esm2
+COPY test /toolshed/test

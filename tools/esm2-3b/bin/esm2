@@ -1,0 +1,233 @@
+#!/usr/bin/env -S python3 -I
+"""esm2: pseudo-log-likelihoods, embeddings, masked infilling, and contact maps with the ESM-2 3B model in $ESM2_MODEL."""
+import argparse, hashlib, os, sys, tempfile
+
+import numpy as np
+import torch
+from transformers import AutoTokenizer, EsmForMaskedLM
+from transformers.utils import logging
+
+logging.disable_progress_bar()
+
+MAX_RESIDUES = 1022  # the model's 1024 positions, less <cls> and <eos>
+BATCH = 32           # masked copies per forward pass in pll
+MUTANTS = 20         # substituted residues per forward pass in contacts
+RESIDUES = "ACDEFGHIKLMNPQRSTVWY"
+# oplm's canonical amino-acid order (src/oplm/eval/metrics/categorical_jacobian.py at commit
+# 704e01f5ed4b8322bb82e0c961b2c16361c47fa2): contacts substitutes residues and reads logits in it,
+# through this model's own token ids, so the Jacobian's two amino-acid axes share one order.
+CANONICAL = ("L", "A", "G", "V", "S", "E", "R", "T", "I", "D",
+            "P", "K", "Q", "N", "F", "Y", "M", "H", "W", "C")
+
+# The image ships the fp32 weights as facebook/esm2_t36_3B_UR50D released them: two
+# pytorch_model shards, crossed in eighty-six sha256-verified 128 MiB chunks, each
+# fetched by one short build step (tools/esm2-3b/fetch_chunk.py), because the machine
+# that builds these images dies on single steps that move about a GiB or more. The first
+# run assembles each shard, checks its whole sha256, and caches it under the system's
+# temp directory; loaded with dtype=bfloat16, the fp32 bytes are the same bf16 weights
+# a converted file would hold.
+SHARDS = (
+    ("pytorch_model-00001-of-00002.bin", 9976735419, "0f971f11c449d21422aa982b791619c10351972992c735f4c3cd43fe09790412", 75),
+    ("pytorch_model-00002-of-00002.bin", 1390347055, "7560b46fc383c691fb74b915b7d4bcef40d3df181447f16ba4b298845e308d0c", 11),
+)
+SMALL_MODEL_FILES = ("config.json", "vocab.txt", "tokenizer_config.json",
+                     "special_tokens_map.json", "pytorch_model.bin.index.json")
+
+
+def loadable_model_dir():
+    """A directory transformers loads this model from.
+
+    $ESM2_MODEL when it already holds the two shards; otherwise one whose
+    shards are the image's committed chunks, each assembled and sha256-verified
+    once and cached under the system's temp directory.
+    """
+    src = os.environ["ESM2_MODEL"]
+    if all(os.path.exists(os.path.join(src, name)) for name, _, _, _ in SHARDS):
+        return src
+    assembled = []
+    for name, size, want, parts_count in SHARDS:
+        parts = [os.path.join(src, "%s.part%02d" % (name, i)) for i in range(parts_count)]
+        missing = [p for p in parts if not os.path.exists(p)]
+        if missing:
+            sys.exit("esm2: the image is missing checkpoint chunks: %s" % ", ".join(missing))
+        held = sum(os.path.getsize(p) for p in parts)
+        if held != size:
+            sys.exit("esm2: the image's chunks for %s hold %d bytes, not the pinned %d"
+                     % (name, held, size))
+        cache = os.path.join(tempfile.gettempdir(), "esm2-3b-%s-%s.bin" % (name, want[:16]))
+        if not os.path.exists(cache):
+            digest = hashlib.sha256()
+            fd, tmp = tempfile.mkstemp(prefix=".esm2-3b-assemble-", dir=tempfile.gettempdir())
+            try:
+                with os.fdopen(fd, "wb") as out:
+                    for part in parts:
+                        with open(part, "rb") as f:
+                            for block in iter(lambda: f.read(8 << 20), b""):
+                                digest.update(block)
+                                out.write(block)
+                    out.flush()
+                if digest.hexdigest() != want:
+                    sys.exit("esm2: the assembled %s hashes to %s, not the pinned %s"
+                             % (name, digest.hexdigest(), want))
+                os.chmod(tmp, 0o644)
+                os.replace(tmp, cache)
+            finally:
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+            print("esm2: assembled and verified %s at %s" % (name, cache), file=sys.stderr)
+        assembled.append((name, cache))
+    model_dir = tempfile.mkdtemp(prefix="esm2-3b-model-")
+    for name in SMALL_MODEL_FILES:
+        os.symlink(os.path.join(src, name), os.path.join(model_dir, name))
+    for name, cache in assembled:
+        os.symlink(cache, os.path.join(model_dir, name))
+    return model_dir
+
+
+def read_fasta(path):
+    records = []
+    for line in open(path):
+        line = line.strip()
+        if line.startswith(">"):
+            records.append([line[1:].split()[0] if line[1:].strip() else f"seq{len(records) + 1}", ""])
+        elif line:
+            if not records:
+                sys.exit(f"esm2: {path} is not FASTA: sequence before the first '>'")
+            records[-1][1] += line.upper().replace("<MASK>", "<mask>")
+    if not records:
+        sys.exit(f"esm2: {path} holds no sequences")
+    return records
+
+
+def encode(tok, name, seq, device):
+    ids = tok(seq, return_tensors="pt")["input_ids"].to(device)
+    if ids.shape[1] - 2 > MAX_RESIDUES:
+        sys.exit(f"esm2: {name} has {ids.shape[1] - 2} residues; the model takes at most {MAX_RESIDUES}")
+    return ids
+
+
+def pll(model, tok, ids):
+    """Each position masked in turn; the true residue's log-probability there, summed."""
+    total, L = 0.0, ids.shape[1] - 2
+    for start in range(1, L + 1, BATCH):
+        pos = torch.arange(start, min(start + BATCH, L + 1), device=ids.device)
+        rows = torch.arange(len(pos), device=ids.device)
+        batch = ids.repeat(len(pos), 1)
+        batch[rows, pos] = tok.mask_token_id
+        logp = model(input_ids=batch).logits.log_softmax(-1)
+        total += logp[rows, pos, ids[0, pos]].sum().item()
+    return total
+
+
+def embed(model, ids):
+    """The last layer, mean-pooled over residues."""
+    return model.esm(input_ids=ids).last_hidden_state[0, 1:-1].mean(0).float().cpu().numpy()
+
+
+def fill(model, tok, ids):
+    """Every <mask> replaced by the most likely of the 20 standard residues."""
+    allowed = torch.tensor(tok.convert_tokens_to_ids(list(RESIDUES)), device=ids.device)
+    logits = model(input_ids=ids).logits[0][:, allowed]
+    out = ids[0].clone()
+    masked = out == tok.mask_token_id
+    out[masked] = allowed[logits[masked].argmax(-1)]
+    return "".join(tok.convert_ids_to_tokens(out[1:-1].tolist()))
+
+
+def apply_apc(matrix):
+    """Average Product Correction, as oplm applies it (src/oplm/eval/metrics/contact.py, commit 704e01f)."""
+    row_mean = matrix.mean(dim=-1, keepdim=True)
+    col_mean = matrix.mean(dim=-2, keepdim=True)
+    global_mean = matrix.mean()
+    if global_mean.abs() < 1e-8:
+        return matrix
+    return matrix - (row_mean * col_mean) / global_mean
+
+
+def contact_map(jacobian):
+    """(L, A, L, A) logit deltas to an (L, L) map, as oplm's categorical_jacobian_to_contact_map does."""
+    jacobian = jacobian.float().clone()
+    for dim in range(4):  # center over all four axes
+        jacobian -= jacobian.mean(dim=dim, keepdim=True)
+    jacobian = (jacobian + jacobian.permute(2, 3, 0, 1)) / 2  # symmetrize the 4-D tensor
+    scores = torch.sqrt(torch.square(jacobian).sum(dim=(1, 3)))
+    scores.fill_diagonal_(0.0)
+    scores = apply_apc(scores)
+    return (scores + scores.T) / 2
+
+
+def contacts(model, tok, ids, device):
+    """The (L, L) contact map from the categorical Jacobian, as oplm computes it (commit 704e01f)."""
+    canonical = torch.tensor(tok.convert_tokens_to_ids(list(CANONICAL)))
+    on_device = canonical.to(device)
+    length = ids.shape[1] - 2
+    wildtype = model(input_ids=ids).logits[0, 1:length + 1].index_select(-1, on_device).float().cpu()
+
+    def logits_fn(mutants):
+        return model(input_ids=mutants.to(device)).logits[:, 1:length + 1].index_select(-1, on_device).float().cpu()
+
+    wildtype_ids = ids[0].cpu()
+    jacobian = torch.empty((length, 20, length, 20), dtype=torch.float32)
+    for start in range(0, length * 20, MUTANTS):
+        stop = min(start + MUTANTS, length * 20)
+        flat = torch.arange(start, stop, dtype=torch.long)
+        positions = torch.div(flat, 20, rounding_mode="floor")
+        amino_acids = torch.remainder(flat, 20)
+        mutants = wildtype_ids.unsqueeze(0).repeat(stop - start, 1)
+        mutants[torch.arange(stop - start), positions + 1] = canonical[amino_acids]
+        jacobian[positions, amino_acids] = logits_fn(mutants) - wildtype.unsqueeze(0)
+    return contact_map(jacobian).numpy().astype(np.float32)
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="esm2", description=__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    for cmd, out in (("pll", "TSV: id, pll"), ("embed", "npz: ids, embeddings"), ("fill", "FASTA"),
+                     ("contacts", "npz: one (L, L) float32 map per id")):
+        p = sub.add_parser(cmd)
+        p.add_argument("--in", dest="inp", required=True, help="FASTA")
+        p.add_argument("--out", required=True, help=out)
+        p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    args = ap.parse_args()
+
+    records = read_fasta(args.inp)
+    model_dir = loadable_model_dir()
+    tok = AutoTokenizer.from_pretrained(model_dir)
+    if args.cmd == "contacts":  # bf16 weights and forward passes; the Jacobian and reduction in fp32
+        try:
+            model = EsmForMaskedLM.from_pretrained(model_dir, dtype=torch.bfloat16)
+        except TypeError:  # transformers before the dtype rename
+            model = EsmForMaskedLM.from_pretrained(model_dir, torch_dtype=torch.bfloat16)
+        if model.dtype != torch.bfloat16:
+            model = model.to(torch.bfloat16)
+    else:
+        model = EsmForMaskedLM.from_pretrained(model_dir)
+    model = model.eval().to(args.device)
+    with torch.inference_mode():
+        results = [(name, encode(tok, name, seq, args.device)) for name, seq in records]
+        if args.cmd == "pll":
+            with open(args.out, "w") as f:
+                f.write("id\tpll\n")
+                for name, ids in results:
+                    f.write(f"{name}\t{pll(model, tok, ids):.4f}\n")
+        elif args.cmd == "embed":
+            np.savez(args.out, ids=np.array([n for n, _ in results]),
+                     embeddings=np.stack([embed(model, ids) for _, ids in results]).astype(np.float32))
+        elif args.cmd == "contacts":
+            maps = {}
+            for (name, seq), (_, ids) in zip(records, results):
+                outside = "".join(sorted(set(seq) - set(RESIDUES)))
+                if outside:
+                    sys.exit(f"esm2: {name} holds {outside}; contacts takes only the 20 standard residues")
+                if name in maps:
+                    sys.exit(f"esm2: {name} appears twice; ids must be unique")
+                maps[name] = contacts(model, tok, ids, args.device)
+            np.savez(args.out, **maps)
+        else:
+            with open(args.out, "w") as f:
+                for name, ids in results:
+                    f.write(f">{name}\n{fill(model, tok, ids)}\n")
+
+
+if __name__ == "__main__":
+    main()
