@@ -1,0 +1,18 @@
+---
+tool: esm2-3b
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/esm2-3b@sha256:02ef2efad51e8907809aa937f3184790a5510b837ea29535aead8078158ef1ca
+digest: sha256:02ef2efad51e8907809aa937f3184790a5510b837ea29535aead8078158ef1ca
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-16T03:32:17Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esm2-3b@sha256:02ef2efad51e8907809aa937f3184790a5510b837ea29535aead8078158ef1ca
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esm2-3b@sha256:02ef2efad51e8907809aa937f3184790a5510b837ea29535aead8078158ef1ca
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-c45844e4-bbf5-52b2-663a-089a6acef17a)
+esm2: assembled and verified pytorch_model-00001-of-00002.bin at /mnt/data/shared/flyloft/briney/plm-evals-tools/esm-contacts-tools-ea48d6c1/runs/c1cf5951-9461-4cee-a631-f1e1ee9c238f/code/tools/esm2-3b/test/.assembly/esm2-3b-pytorch_model-00001-of-00002.bin-0f971f11c449d214.bin
+esm2: assembled and verified pytorch_model-00002-of-00002.bin at /mnt/data/shared/flyloft/briney/plm-evals-tools/esm-contacts-tools-ea48d6c1/runs/c1cf5951-9461-4cee-a631-f1e1ee9c238f/code/tools/esm2-3b/test/.assembly/esm2-3b-pytorch_model-00002-of-00002.bin-7560b46fc383c691.bin
+contacts ubiquitin: L=76 pearson_r=0.9988 top-76 long-range overlap 0.97
+ok: peptide pll -49.8468, reversed pll -55.2323, ubiquitin pll -31.0358 | ubiquitin -0.41/residue | filled MKTAYIAKLRQISFLKSH
