@@ -24,7 +24,7 @@ ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESM2_15B_MODEL=/opt/model
 # MIT LICENSE -- are committed in model/ and copied in after the steps, so a
 # change to them never invalidates a cached step, and the test is last, per the
 # conventions.
-COPY convert_step.py manifest.json /tmp/
+COPY convert_step.py model/manifest.json /tmp/
 RUN python3 -I /tmp/convert_step.py 0
 RUN python3 -I /tmp/convert_step.py 1
 RUN python3 -I /tmp/convert_step.py 2
