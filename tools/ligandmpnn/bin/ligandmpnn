@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# ligandmpnn: upstream run.py runnable from any directory, with the image's
+# checkpoints and the ligand model as the defaults. Upstream's own defaults
+# are ./model_params paths (relative to wherever the caller happens to stand)
+# and --model_type protein_mpnn, which quietly designs without the ligand
+# context this tool exists for. Python runs with -E -s: full isolated mode
+# (-I) would also drop run.py's own directory from sys.path, which it imports
+# data_utils and friends from, so -E -s is as isolated as this can run.
+set -euo pipefail
+ckpt=/opt/LigandMPNN/model_params
+have_type=0; have_ligand=0; have_protein=0; have_sc=0
+for arg in "$@"; do
+  case "$arg" in
+    --model_type|--model_type=*) have_type=1 ;;
+    --checkpoint_ligand_mpnn|--checkpoint_ligand_mpnn=*) have_ligand=1 ;;
+    --checkpoint_protein_mpnn|--checkpoint_protein_mpnn=*) have_protein=1 ;;
+    --checkpoint_path_sc|--checkpoint_path_sc=*) have_sc=1 ;;
+  esac
+done
+extra=()
+if [[ "$have_type" -eq 0 ]]; then
+  extra+=(--model_type ligand_mpnn)
+fi
+if [[ "$have_ligand" -eq 0 ]]; then
+  extra+=(--checkpoint_ligand_mpnn "$ckpt/ligandmpnn_v_32_010_25.pt")
+fi
+if [[ "$have_protein" -eq 0 ]]; then
+  extra+=(--checkpoint_protein_mpnn "$ckpt/proteinmpnn_v_48_020.pt")
+fi
+if [[ "$have_sc" -eq 0 ]]; then
+  extra+=(--checkpoint_path_sc "$ckpt/ligandmpnn_sc_v_32_002_16.pt")
+fi
+exec python3 -E -s /opt/LigandMPNN/run.py "${extra[@]}" "$@"

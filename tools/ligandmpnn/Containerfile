@@ -1,0 +1,19 @@
+FROM docker.io/pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# LigandMPNN's checkpoints are plain torch.save dictionaries; torch >= 2.6
+# loads with weights_only=True by default and refuses them, so they load the
+# way upstream saves them (they are the IPD's own published files).
+ENV TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+# numpy at 1.23.5 is upstream's own pin (requirements.txt) and ProDy 2.4.1's
+# ceiling (<1.24); ProDy is built without build isolation so it compiles
+# against this numpy, and without its dependencies, which it bundles (the
+# Biopython KDTree and TreeConstruction modules, and pyparsing).
+RUN pip install --no-cache-dir --break-system-packages "numpy==1.23.5" "scipy==1.12.0" "setuptools==69.5.1" && \
+    pip install --no-cache-dir --break-system-packages --no-deps --no-build-isolation "ProDy==2.4.1"
+# Upstream code at commit 26ec57a and its public checkpoints from the IPD
+# server. The weights carry no license of their own; the repository's MIT
+# license is what publishes them, and the LICENSE file ships beside the code.
+RUN python3 -I -c "import pathlib, tarfile, urllib.request; sha='26ec57ac976ade5379920dbd43c7f97a91cf82de'; root=pathlib.Path('/opt/LigandMPNN'); root.mkdir(parents=True); tmp=root.parent/'ligandmpnn.tar.gz'; urllib.request.urlretrieve(f'https://github.com/dauparas/LigandMPNN/archive/{sha}.tar.gz', tmp); tarfile.open(tmp).extractall(root.parent); src=root.parent/f'LigandMPNN-{sha}'; [p.rename(root/p.name) for p in src.iterdir()]; src.rmdir(); tmp.unlink(); params=root/'model_params'; params.mkdir(); [urllib.request.urlretrieve(f'https://files.ipd.uw.edu/pub/ligandmpnn/{n}.pt', params/f'{n}.pt') for n in ('ligandmpnn_v_32_005_25','ligandmpnn_v_32_010_25','ligandmpnn_v_32_020_25','ligandmpnn_v_32_030_25','proteinmpnn_v_48_020','ligandmpnn_sc_v_32_002_16')]"
+COPY --chmod=755 bin/ligandmpnn /usr/local/bin/ligandmpnn
+COPY test /toolshed/test
