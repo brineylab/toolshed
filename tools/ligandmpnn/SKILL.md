@@ -2,13 +2,13 @@
 name: ligandmpnn
 description: "LigandMPNN inverse folding: designs protein sequences onto a fixed backbone while conditioning on neighboring non-protein atoms, such as redesigning an antibody around a bound antigen, a pocket around a ligand, or a protein around DNA or metals. Reach for it when sequence design on an existing structure is needed; it returns designed sequences with per-design confidence and sequence-recovery numbers, not folded structures."
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 # ligandmpnn
 
-Image: `ghcr.io/brineylab/toolshed/ligandmpnn:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/ligandmpnn:1.1.0`
 
-LigandMPNN (the `dauparas/LigandMPNN` repository, MIT licensed, at commit `26ec57ac976ade5379920dbd43c7f97a91cf82de`; its checkpoints are published by the Institute for Protein Design without a license of their own, and the repository's MIT license is what publishes them — the upstream `LICENSE` file ships in the image at `/opt/LigandMPNN/LICENSE`), run through upstream's own `run.py` on PyTorch 2.7.1 (the CUDA 12.6 image) with numpy 1.23.5 and ProDy 2.4.1, the pins upstream carried when it shipped. The wrapper `ligandmpnn` runs `run.py` from any directory and fills in the image's checkpoint paths and a `--model_type ligand_mpnn` default, so the command below is the whole tool.
+LigandMPNN (the `dauparas/LigandMPNN` repository, MIT licensed, at commit `26ec57ac976ade5379920dbd43c7f97a91cf82de`; its checkpoints are published by the Institute for Protein Design without a license of their own, and the repository's MIT license is what publishes them — the upstream `LICENSE` file ships in the image at `/opt/LigandMPNN/LICENSE`), run through upstream's own `run.py` on the shed's CUDA-13 PyTorch 2.14.1 image (Python 3.12) with numpy 2.5.4 and ProDy 2.6.1 — no ProDy release before 2.6.1 ships a Linux wheel, and its parse/select/write API is unchanged from the 2.4.1 upstream pinned — plus dm-tree and ml-collections, which the code's vendored openfold imports. The wrapper `ligandmpnn` runs `run.py` from any directory and fills in the image's checkpoint paths and a `--model_type ligand_mpnn` default, so the command below is the whole tool.
 
 ## Commands
 
@@ -51,20 +51,21 @@ On a laptop, from the directory holding `complex.pdb`:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/ligandmpnn:1.0.0 \
+  ghcr.io/brineylab/toolshed/ligandmpnn:1.1.0 \
   ligandmpnn --model_type ligand_mpnn --pdb_path complex.pdb --out_folder out --temperature 0.2 --seed 0 --batch_size 16 --number_of_batches 2
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ligandmpnn:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ligandmpnn:1.1.0 \
   --container-mounts="$PWD":/work --container-workdir=/work \
   ligandmpnn --model_type ligand_mpnn --pdb_path complex.pdb --out_folder out --temperature 0.2 --seed 0 --batch_size 16 --number_of_batches 2
 ```
 
 ## Gotchas
 
+- Upstream pins numpy 1.23.5 because this commit's vendored openfold still names the `np.int` dtype alias, which numpy 1.24 removed, and Python 3.12 has no numpy that old. The image installs numpy 2.5.4 and patches the three module-level dtype declarations in `openfold/np/residue_constants.py` to the built-in (`dtype=int` — the same array the alias produced); everything else is upstream's code as committed, and the build asserts the patch still applies.
 - Upstream's `--model_type` default is `protein_mpnn`, which designs without any ligand context. The wrapper inserts `--model_type ligand_mpnn` when none is given; pass `--model_type protein_mpnn` explicitly for context-free design, and `--checkpoint_ligand_mpnn`/`--checkpoint_protein_mpnn`/`--checkpoint_path_sc` to pick other checkpoints. The image also carries the other fixed-residue-mix checkpoints (`ligandmpnn_v_32_005_25`, `_020_25`, `_030_25` — trained with 5/20/30% of residues fixed, versus the shipped default `_010_25`'s 10%).
 - LigandMPNN's checkpoints are plain `torch.save` dictionaries, which torch ≥ 2.6 refuses under its `weights_only=True` default, so the image sets `TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1`. It is inherited by anything else run in the container.
 - Residue tokens (`--fixed_residues`, `--redesigned_residues`) are author numbering: `C1`, `C2`, matching the PDB's own residue numbers and insertion codes, not zero-based indices (`--zero_indexed 1` only renumbers outputs). Chain lists (`--chains_to_design`, `--parse_these_chains_only`) are comma-separated; residue lists are space-separated.
