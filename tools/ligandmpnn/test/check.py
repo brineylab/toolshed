@@ -2,9 +2,13 @@
 """Check LigandMPNN's test outputs against the known fixture.
 
 1BC8's chain C is 93 residues, author-numbered 1-93, starting MDSAI; its
-ligand context is two DNA chains and two zinc ions. Native header carries
-num_res=93 and a positive num_ligand_res; every design is 93 amino acids;
-the five fixed residues stay MDSAI; stats and packed outputs are real.
+ligand context is two DNA chains and two zinc ions. The native record's
+header carries num_res and a positive num_ligand_res; every design is 93
+amino acids; the five fixed residues stay MDSAI; stats and packed outputs
+are real. num_res counts the residues the model actually samples —
+torch.sum(rec_mask) over mask * chain_mask in upstream run.py — so it is
+93 when the whole chain is designed and 88 in the fixed run (93 minus the
+five fixed residues C1-C5), not 93 everywhere.
 """
 import re
 import sys
@@ -52,15 +56,17 @@ def native_pdb_sequence(pdb_path):
     return "".join(seq)
 
 
-def check_designs(fa_path, expect_native, n_designs, tag):
+def check_designs(fa_path, expect_native, n_designs, tag, expect_num_res):
     recs = records(fa_path)
     if len(recs) != n_designs + 1:
         fail(f"{fa_path}: expected {n_designs + 1} records, got {len(recs)}")
     head, seq = recs[0]
     if seq != expect_native:
         fail(f"{fa_path}: native record does not match the PDB chain C sequence")
-    if "num_res=93" not in head:
-        fail(f"{fa_path}: native header num_res missing or wrong: {head}")
+    m = re.search(r"num_res=(\d+)", head)
+    if not m or int(m.group(1)) != expect_num_res:
+        fail(f"{fa_path}: native header num_res missing or wrong "
+             f"(expected {expect_num_res} sampled residues): {head}")
     m = re.search(r"num_ligand_res=(\d+)", head)
     if not m or int(m.group(1)) <= 0:
         fail(f"{fa_path}: native header num_ligand_res missing or zero: {head}")
@@ -100,14 +106,14 @@ native = native_pdb_sequence(HERE / "1BC8.pdb")
 if not native.startswith("MDSAI") or len(native) != 93:
     fail(f"fixture 1BC8.pdb chain C is not the expected 93-residue MDSAI... domain")
 
-designs = check_designs(T / "basic" / "seqs" / "1BC8.fa", native, 32, "basic")
+designs = check_designs(T / "basic" / "seqs" / "1BC8.fa", native, 32, "basic", 93)
 bb = T / "basic" / "backbones" / "1BC8_32.pdb"
 if not bb.is_file():
     fail("basic/backbones/1BC8_32.pdb missing")
 if ca_count(bb) != 93:
     fail(f"basic/backbones/1BC8_32.pdb has {ca_count(bb)} chain C CA atoms, not 93")
 
-designs = check_designs(T / "fixed" / "seqs" / "1BC8.fa", native, 8, "fixed")
+designs = check_designs(T / "fixed" / "seqs" / "1BC8.fa", native, 8, "fixed", 88)
 for k, seq in enumerate(designs, start=1):
     if seq[:5] != "MDSAI":
         fail(f"fixed run design {k} broke fixed residues C1-C5: {seq[:10]}...")
@@ -127,7 +133,7 @@ if not packed.is_file():
 if ca_count(packed) != 93:
     fail(f"fixed/packed/1BC8_packed_8_4.pdb has {ca_count(packed)} chain C CA atoms, not 93")
 
-check_designs(T / "multi" / "seqs" / "1BC8.fa", native, 4, "multi")
+check_designs(T / "multi" / "seqs" / "1BC8.fa", native, 4, "multi", 93)
 
 print("PASS: ligandmpnn designed 1BC8 chain C with DNA/zinc context; 32 + 8 + 4")
 print("PASS: sequences are 93 amino acids; confidences and seq_rec in range;")
