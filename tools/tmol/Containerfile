@@ -1,0 +1,22 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda12.6-cudnn9-runtime@sha256:1262abc856a428933c0477b4be87079173a0b087b7691c47fcb396b7e5775c56
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# tmol is a library with no command-line program of its own, so the image
+# carries the shed's wrapper (bin/tmol: score, minimize, pack, relax, with
+# defaults; past the defaults is the library way, python3 -I script.py).
+# The base's torch 2.14.1+cu126 is what tmol-ops-cu12 1.0.0 is built for;
+# pip sees it already installed and leaves it. The cu12 extra adds tmol's
+# CUDA operators; the ligand extra adds Open Babel, which ligand
+# preparation uses. tmol's beta2016 parameters ship inside the wheel, so
+# nothing is fetched at build or run time and the image needs no offline
+# flags. Runs on CPU too.
+RUN pip install --no-cache-dir --break-system-packages "tmol[cu12,ligand]==1.0.0"
+# Proven at build time, on the CPU: tmol imports, the wheel's parameter
+# database (the beta2016 weights) loads, and the score function renders.
+RUN python3 -I -c "import tmol, torch; from tmol import beta2016_score_function; sfxn = beta2016_score_function(torch.device('cpu')); print('tmol', tmol.__version__, '/ torch', torch.__version__, '/ cuda operators', tmol.has_cuda(), '/ beta2016 score types', len(sfxn.all_score_types()))"
+# The upstream BSD-3-Clause license.
+COPY LICENSE /opt/tmol/LICENSE
+# The wrapper: every import it makes must resolve and its CLI wiring must
+# hold, in this image, before it is pushed.
+COPY --chmod=755 bin/tmol /usr/local/bin/tmol
+RUN tmol --help > /dev/null && tmol pack --help > /dev/null
+COPY test /toolshed/test
