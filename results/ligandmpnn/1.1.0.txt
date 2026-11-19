@@ -1,0 +1,1261 @@
+---
+tool: ligandmpnn
+version: 1.1.0
+image: ghcr.io/brineylab/toolshed/ligandmpnn@sha256:65f217b8d7762ba6e6776ebc83dae6afe276f1168ac8b988950b31aeee8ec53b
+digest: sha256:65f217b8d7762ba6e6776ebc83dae6afe276f1168ac8b988950b31aeee8ec53b
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-18T23:07:26Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/ligandmpnn@sha256:65f217b8d7762ba6e6776ebc83dae6afe276f1168ac8b988950b31aeee8ec53b
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/ligandmpnn@sha256:65f217b8d7762ba6e6776ebc83dae6afe276f1168ac8b988950b31aeee8ec53b
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+@> ProDy is configured: verbosity='none'
+/opt/LigandMPNN/run.py:67: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  checkpoint = torch.load(checkpoint_path, map_location=device)
+Designing protein from this path: 1BC8.pdb
+These residues will be redesigned:  ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13', 'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21', 'C22', 'C23', 'C24', 'C25', 'C26', 'C27', 'C28', 'C29', 'C30', 'C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37', 'C38', 'C39', 'C40', 'C41', 'C42', 'C43', 'C44', 'C45', 'C46', 'C47', 'C48', 'C49', 'C50', 'C51', 'C52', 'C53', 'C54', 'C55', 'C56', 'C57', 'C58', 'C59', 'C60', 'C61', 'C62', 'C63', 'C64', 'C65', 'C66', 'C67', 'C68', 'C69', 'C70', 'C71', 'C72', 'C73', 'C74', 'C75', 'C76', 'C77', 'C78', 'C79', 'C80', 'C81', 'C82', 'C83', 'C84', 'C85', 'C86', 'C87', 'C88', 'C89', 'C90', 'C91', 'C92', 'C93']
+These residues will be fixed:  []
+The number of ligand atoms parsed is equal to: 406
+Type: O, Coords [18.304 10.313 14.82 ], Mask 1
+Type: C, Coords [19.094  9.803 13.737], Mask 1
+Type: C, Coords [18.917  8.315 13.559], Mask 1
+Type: O, Coords [19.697  7.616 14.562], Mask 1
+Type: C, Coords [17.47   7.855 13.741], Mask 1
+Type: O, Coords [17.095  6.863 12.788], Mask 1
+Type: C, Coords [17.458  7.238 15.125], Mask 1
+Type: C, Coords [18.865  6.691 15.255], Mask 1
+Type: N, Coords [19.304  6.626 16.668], Mask 1
+Type: C, Coords [19.705  5.412 17.182], Mask 1
+Type: O, Coords [19.791  4.385 16.537], Mask 1
+Type: N, Coords [20.012  5.437 18.502], Mask 1
+Type: C, Coords [19.951  6.509 19.368], Mask 1
+Type: O, Coords [20.205  6.342 20.562], Mask 1
+Type: C, Coords [19.567  7.762 18.762], Mask 1
+Type: C, Coords [19.513  8.999 19.602], Mask 1
+Type: C, Coords [19.273  7.759 17.458], Mask 1
+Type: P, Coords [15.599  6.249 12.825], Mask 1
+Type: O, Coords [15.051  6.238 11.437], Mask 1
+Type: O, Coords [14.829  6.923 13.914], Mask 1
+Type: O, Coords [15.831  4.747 13.296], Mask 1
+Type: C, Coords [16.645  3.854 12.539], Mask 1
+Type: C, Coords [16.501  2.449 13.077], Mask 1
+Type: O, Coords [17.058  2.395 14.415], Mask 1
+Type: C, Coords [15.052  1.969 13.198], Mask 1
+Type: O, Coords [14.977  0.578 12.848], Mask 1
+Type: C, Coords [14.719  2.214 14.663], Mask 1
+Type: C, Coords [16.062  2.014 15.36 ], Mask 1
+Type: N, Coords [16.254  2.824 16.57 ], Mask 1
+Type: C, Coords [16.103  4.182 16.715], Mask 1
+Type: N, Coords [16.322  4.612 17.935], Mask 1
+Type: C, Coords [16.643  3.462 18.643], Mask 1
+Type: C, Coords [16.964  3.235 20.   ], Mask 1
+Type: N, Coords [17.022  4.194 20.924], Mask 1
+Type: N, Coords [17.226  1.969 20.377], Mask 1
+Type: C, Coords [17.176  1.003 19.457], Mask 1
+Type: N, Coords [16.887  1.084 18.163], Mask 1
+Type: C, Coords [16.619  2.355 17.813], Mask 1
+Type: P, Coords [13.558 -0.169 12.821], Mask 1
+Type: O, Coords [13.64  -1.321 11.905], Mask 1
+Type: O, Coords [12.525  0.871 12.617], Mask 1
+Type: O, Coords [13.38  -0.737 14.299], Mask 1
+Type: C, Coords [14.4   -1.524 14.907], Mask 1
+Type: C, Coords [13.967 -2.001 16.275], Mask 1
+Type: O, Coords [14.336 -1.015 17.272], Mask 1
+Type: C, Coords [12.472 -2.279 16.468], Mask 1
+Type: O, Coords [12.313 -3.566 17.075], Mask 1
+Type: C, Coords [12.009 -1.161 17.39 ], Mask 1
+Type: C, Coords [13.266 -0.839 18.181], Mask 1
+Type: N, Coords [13.361  0.526 18.749], Mask 1
+Type: C, Coords [13.811  0.679 20.081], Mask 1
+Type: O, Coords [14.117 -0.328 20.74 ], Mask 1
+Type: N, Coords [13.895  1.92  20.611], Mask 1
+Type: C, Coords [13.551  2.986 19.881], Mask 1
+Type: N, Coords [13.648  4.189 20.454], Mask 1
+Type: C, Coords [13.09   2.863 18.53 ], Mask 1
+Type: C, Coords [13.015  1.628 18.01 ], Mask 1
+Type: P, Coords [10.841 -4.169 17.337], Mask 1
+Type: O, Coords [10.889 -5.642 17.128], Mask 1
+Type: O, Coords [ 9.841 -3.354 16.599], Mask 1
+Type: O, Coords [10.61  -3.896 18.887], Mask 1
+Type: C, Coords [11.624 -4.211 19.84 ], Mask 1
+Type: C, Coords [11.077 -4.102 21.242], Mask 1
+Type: O, Coords [11.519 -2.836 21.796], Mask 1
+Type: C, Coords [ 9.548 -4.087 21.27 ], Mask 1
+Type: O, Coords [ 8.983 -5.058 22.133], Mask 1
+Type: C, Coords [ 9.174 -2.695 21.73 ], Mask 1
+Type: C, Coords [10.429 -2.136 22.378], Mask 1
+Type: N, Coords [10.556 -0.702 22.049], Mask 1
+Type: C, Coords [10.557  0.249 23.091], Mask 1
+Type: O, Coords [10.547 -0.14  24.273], Mask 1
+Type: N, Coords [10.56   1.564 22.778], Mask 1
+Type: C, Coords [10.559  1.949 21.496], Mask 1
+Type: N, Coords [10.505  3.253 21.236], Mask 1
+Type: C, Coords [10.602  1.011 20.425], Mask 1
+Type: C, Coords [10.612 -0.291 20.743], Mask 1
+Type: P, Coords [ 7.455 -5.511 21.91 ], Mask 1
+Type: O, Coords [ 7.431 -6.984 21.812], Mask 1
+Type: O, Coords [ 6.832 -4.697 20.834], Mask 1
+Type: O, Coords [ 6.759 -5.086 23.279], Mask 1
+Type: C, Coords [ 7.337 -5.436 24.539], Mask 1
+Type: C, Coords [ 6.876 -4.472 25.61 ], Mask 1
+Type: O, Coords [ 7.321 -3.132 25.288], Mask 1
+Type: C, Coords [ 5.362 -4.373 25.791], Mask 1
+Type: O, Coords [ 5.084 -4.149 27.177], Mask 1
+Type: C, Coords [ 4.998 -3.139 24.982], Mask 1
+Type: C, Coords [ 6.203 -2.256 25.23 ], Mask 1
+Type: N, Coords [ 6.465 -1.239 24.213], Mask 1
+Type: C, Coords [ 6.402 -1.381 22.845], Mask 1
+Type: N, Coords [ 6.676 -0.276 22.204], Mask 1
+Type: C, Coords [ 6.938  0.65  23.208], Mask 1
+Type: C, Coords [ 7.28   2.026 23.126], Mask 1
+Type: O, Coords [ 7.421  2.721 22.118], Mask 1
+Type: N, Coords [ 7.454  2.589 24.393], Mask 1
+Type: C, Coords [ 7.313  1.908 25.583], Mask 1
+Type: N, Coords [ 7.525  2.605 26.721], Mask 1
+Type: N, Coords [ 6.988  0.633 25.665], Mask 1
+Type: C, Coords [ 6.816  0.069 24.451], Mask 1
+Type: P, Coords [ 3.574 -4.238 27.728], Mask 1
+Type: O, Coords [ 3.439 -5.516 28.484], Mask 1
+Type: O, Coords [ 2.597 -3.914 26.651], Mask 1
+Type: O, Coords [ 3.529 -3.055 28.788], Mask 1
+Type: C, Coords [ 4.595 -2.864 29.713], Mask 1
+Type: C, Coords [ 4.483 -1.505 30.357], Mask 1
+Type: O, Coords [ 4.861 -0.45  29.443], Mask 1
+Type: C, Coords [ 3.078 -1.162 30.839], Mask 1
+Type: O, Coords [ 3.181 -0.493 32.087], Mask 1
+Type: C, Coords [ 2.543 -0.236 29.76 ], Mask 1
+Type: C, Coords [ 3.794  0.483 29.279], Mask 1
+Type: N, Coords [ 3.768  0.876 27.87 ], Mask 1
+Type: C, Coords [ 3.526  0.057 26.79 ], Mask 1
+Type: N, Coords [ 3.64   0.671 25.646], Mask 1
+Type: C, Coords [ 3.957  1.979 25.985], Mask 1
+Type: C, Coords [ 4.211  3.105 25.157], Mask 1
+Type: O, Coords [ 4.217  3.166 23.918], Mask 1
+Type: N, Coords [ 4.481  4.244 25.909], Mask 1
+Type: C, Coords [ 4.495  4.294 27.286], Mask 1
+Type: N, Coords [ 4.734  5.494 27.835], Mask 1
+Type: N, Coords [ 4.28   3.244 28.067], Mask 1
+Type: C, Coords [ 4.019  2.13  27.355], Mask 1
+Type: P, Coords [ 1.858 -0.155 32.916], Mask 1
+Type: O, Coords [ 2.2800e+00 -1.7000e-02  3.4333e+01], Mask 1
+Type: O, Coords [ 0.793 -1.13  32.549], Mask 1
+Type: O, Coords [ 1.457  1.274 32.352], Mask 1
+Type: C, Coords [ 2.256  2.408 32.638], Mask 1
+Type: C, Coords [ 1.571  3.659 32.146], Mask 1
+Type: O, Coords [ 1.761  3.835 30.718], Mask 1
+Type: C, Coords [ 0.062  3.741 32.403], Mask 1
+Type: O, Coords [-0.223  5.027 32.953], Mask 1
+Type: C, Coords [-0.543  3.574 31.013], Mask 1
+Type: C, Coords [ 0.526  4.18  30.11 ], Mask 1
+Type: N, Coords [ 0.561  3.7   28.723], Mask 1
+Type: C, Coords [ 0.339  2.431 28.248], Mask 1
+Type: N, Coords [ 0.472  2.322 26.946], Mask 1
+Type: C, Coords [ 0.796  3.608 26.534], Mask 1
+Type: C, Coords [ 1.071  4.161 25.263], Mask 1
+Type: N, Coords [ 1.055  3.462 24.126], Mask 1
+Type: N, Coords [ 1.367  5.481 25.204], Mask 1
+Type: C, Coords [ 1.386  6.182 26.342], Mask 1
+Type: N, Coords [ 1.145  5.776 27.587], Mask 1
+Type: C, Coords [ 0.852  4.467 27.616], Mask 1
+Type: P, Coords [-1.702  5.389 33.46 ], Mask 1
+Type: O, Coords [-1.561  6.127 34.742], Mask 1
+Type: O, Coords [-2.599  4.209 33.379], Mask 1
+Type: O, Coords [-2.185  6.443 32.385], Mask 1
+Type: C, Coords [-1.409  7.602 32.152], Mask 1
+Type: C, Coords [-1.868  8.288 30.891], Mask 1
+Type: O, Coords [-1.571  7.465 29.737], Mask 1
+Type: C, Coords [-3.366  8.586 30.831], Mask 1
+Type: O, Coords [-3.512  9.915 30.341], Mask 1
+Type: C, Coords [-3.89   7.566 29.83 ], Mask 1
+Type: C, Coords [-2.708  7.462 28.894], Mask 1
+Type: N, Coords [-2.646  6.287 28.027], Mask 1
+Type: C, Coords [-2.861  4.961 28.316], Mask 1
+Type: N, Coords [-2.739  4.168 27.273], Mask 1
+Type: C, Coords [-2.417  5.031 26.231], Mask 1
+Type: C, Coords [-2.153  4.819 24.852], Mask 1
+Type: N, Coords [-2.167  3.618 24.263], Mask 1
+Type: N, Coords [-1.865  5.902 24.097], Mask 1
+Type: C, Coords [-1.838  7.105 24.684], Mask 1
+Type: N, Coords [-2.065  7.431 25.958], Mask 1
+Type: C, Coords [-2.352  6.337 26.685], Mask 1
+Type: P, Coords [-4.956 10.607 30.276], Mask 1
+Type: O, Coords [-4.885 11.863 31.061], Mask 1
+Type: O, Coords [-6.006  9.603 30.576], Mask 1
+Type: O, Coords [-5.074 10.984 28.734], Mask 1
+Type: C, Coords [-4.136 11.869 28.135], Mask 1
+Type: C, Coords [-4.463 12.06  26.674], Mask 1
+Type: O, Coords [-4.156 10.846 25.948], Mask 1
+Type: C, Coords [-5.927 12.387 26.371], Mask 1
+Type: O, Coords [-5.991 13.394 25.36 ], Mask 1
+Type: C, Coords [-6.494 11.069 25.879], Mask 1
+Type: C, Coords [-5.294 10.411 25.218], Mask 1
+Type: N, Coords [-5.318  8.951 25.254], Mask 1
+Type: C, Coords [-5.424  8.148 26.366], Mask 1
+Type: N, Coords [-5.433  6.876 26.08 ], Mask 1
+Type: C, Coords [-5.321  6.831 24.7  ], Mask 1
+Type: C, Coords [-5.28   5.728 23.832], Mask 1
+Type: O, Coords [-5.335  4.529 24.121], Mask 1
+Type: N, Coords [-5.165  6.122 22.498], Mask 1
+Type: C, Coords [-5.094  7.428 22.065], Mask 1
+Type: N, Coords [-4.988  7.619 20.737], Mask 1
+Type: N, Coords [-5.127  8.474 22.875], Mask 1
+Type: C, Coords [-5.244  8.103 24.171], Mask 1
+Type: P, Coords [-7.414 13.887 24.796], Mask 1
+Type: O, Coords [-7.222 15.289 24.332], Mask 1
+Type: O, Coords [-8.502 13.575 25.763], Mask 1
+Type: O, Coords [-7.631 12.962 23.511], Mask 1
+Type: C, Coords [-6.781 13.101 22.371], Mask 1
+Type: C, Coords [-7.422 12.481 21.152], Mask 1
+Type: O, Coords [-7.287 11.044 21.195], Mask 1
+Type: C, Coords [-8.913 12.766 20.979], Mask 1
+Type: O, Coords [-9.196 12.942 19.592], Mask 1
+Type: C, Coords [-9.566 11.479 21.453], Mask 1
+Type: C, Coords [-8.549 10.431 21.02 ], Mask 1
+Type: N, Coords [-8.545  9.162 21.79 ], Mask 1
+Type: C, Coords [-8.395  7.963 21.106], Mask 1
+Type: O, Coords [-8.268  7.885 19.896], Mask 1
+Type: N, Coords [-8.402  6.847 21.907], Mask 1
+Type: C, Coords [-8.544  6.798 23.283], Mask 1
+Type: O, Coords [-8.535  5.711 23.865], Mask 1
+Type: C, Coords [-8.698  8.081 23.932], Mask 1
+Type: C, Coords [-8.86   8.129 25.419], Mask 1
+Type: C, Coords [-8.689  9.183 23.166], Mask 1
+Type: O, Coords [-11.321  -3.165  21.625], Mask 1
+Type: C, Coords [-12.292  -3.56   20.649], Mask 1
+Type: C, Coords [-12.04   -2.969  19.28 ], Mask 1
+Type: O, Coords [-12.252  -1.543  19.299], Mask 1
+Type: C, Coords [-10.634  -3.172  18.721], Mask 1
+Type: O, Coords [-10.731  -3.375  17.306], Mask 1
+Type: C, Coords [-9.907 -1.883 19.079], Mask 1
+Type: C, Coords [-11.009  -0.837  19.267], Mask 1
+Type: N, Coords [-10.895  -0.158  20.561], Mask 1
+Type: C, Coords [-10.718  -0.787  21.775], Mask 1
+Type: N, Coords [-1.0705e+01  2.0000e-02  2.2795e+01], Mask 1
+Type: C, Coords [-10.869   1.266  22.226], Mask 1
+Type: C, Coords [-10.952   2.518  22.793], Mask 1
+Type: N, Coords [-10.919   2.716  24.101], Mask 1
+Type: N, Coords [-11.095   3.571  21.975], Mask 1
+Type: C, Coords [-11.181   3.342  20.659], Mask 1
+Type: N, Coords [-11.138   2.195  19.991], Mask 1
+Type: C, Coords [-10.974   1.177  20.848], Mask 1
+Type: P, Coords [-9.435 -3.789 16.458], Mask 1
+Type: O, Coords [-9.943 -4.405 15.206], Mask 1
+Type: O, Coords [-8.497 -4.55  17.314], Mask 1
+Type: O, Coords [-8.783 -2.383 16.114], Mask 1
+Type: C, Coords [-9.447 -1.484 15.234], Mask 1
+Type: C, Coords [-8.656 -0.207 15.093], Mask 1
+Type: O, Coords [-8.76   0.577 16.303], Mask 1
+Type: C, Coords [-7.159 -0.372 14.821], Mask 1
+Type: O, Coords [-6.742  0.602 13.862], Mask 1
+Type: C, Coords [-6.528 -0.057 16.164], Mask 1
+Type: C, Coords [-7.47   1.013 16.682], Mask 1
+Type: N, Coords [-7.47   1.24  18.129], Mask 1
+Type: C, Coords [-7.2    0.351 19.14 ], Mask 1
+Type: N, Coords [-7.262  0.878 20.336], Mask 1
+Type: C, Coords [-7.602  2.203 20.099], Mask 1
+Type: C, Coords [-7.821  3.294 20.961], Mask 1
+Type: N, Coords [-7.723  3.223 22.298], Mask 1
+Type: N, Coords [-8.148  4.479 20.399], Mask 1
+Type: C, Coords [-8.248  4.549 19.063], Mask 1
+Type: N, Coords [-8.068  3.597 18.155], Mask 1
+Type: C, Coords [-7.741  2.436 18.744], Mask 1
+Type: P, Coords [-5.372  0.389 13.051], Mask 1
+Type: O, Coords [-5.27   1.456 12.022], Mask 1
+Type: O, Coords [-5.353 -1.032 12.637], Mask 1
+Type: O, Coords [-4.245  0.619 14.163], Mask 1
+Type: C, Coords [-3.37   1.748 14.127], Mask 1
+Type: C, Coords [-4.079  2.979 14.641], Mask 1
+Type: O, Coords [-4.685  2.724 15.936], Mask 1
+Type: C, Coords [-3.171  4.195 14.829], Mask 1
+Type: O, Coords [-3.707  5.358 14.202], Mask 1
+Type: C, Coords [-3.13   4.401 16.333], Mask 1
+Type: C, Coords [-4.457  3.836 16.783], Mask 1
+Type: N, Coords [-4.442  3.375 18.189], Mask 1
+Type: C, Coords [-4.721  4.309 19.207], Mask 1
+Type: O, Coords [-5.002  5.485 18.896], Mask 1
+Type: N, Coords [-4.668  3.91  20.503], Mask 1
+Type: C, Coords [-4.347  2.649 20.802], Mask 1
+Type: N, Coords [-4.276  2.311 22.095], Mask 1
+Type: C, Coords [-4.079  1.679 19.79 ], Mask 1
+Type: C, Coords [-4.142  2.08  18.511], Mask 1
+Type: P, Coords [-2.714  6.556 13.795], Mask 1
+Type: O, Coords [-3.371  7.413 12.777], Mask 1
+Type: O, Coords [-1.372  5.981 13.524], Mask 1
+Type: O, Coords [-2.575  7.406 15.129], Mask 1
+Type: C, Coords [-3.595  8.305 15.516], Mask 1
+Type: C, Coords [-3.146  9.115 16.706], Mask 1
+Type: O, Coords [-3.105  8.274 17.88 ], Mask 1
+Type: C, Coords [-1.766  9.768 16.586], Mask 1
+Type: O, Coords [-1.906 11.127 17.016], Mask 1
+Type: C, Coords [-0.89   8.928 17.513], Mask 1
+Type: C, Coords [-1.88   8.45  18.567], Mask 1
+Type: N, Coords [-1.594  7.183 19.306], Mask 1
+Type: C, Coords [-1.69   7.217 20.684], Mask 1
+Type: O, Coords [-1.86   8.243 21.323], Mask 1
+Type: N, Coords [-1.558  5.999 21.294], Mask 1
+Type: C, Coords [-1.306  4.785 20.705], Mask 1
+Type: O, Coords [-1.257  3.777 21.393], Mask 1
+Type: C, Coords [-1.134  4.822 19.274], Mask 1
+Type: C, Coords [-0.793  3.554 18.555], Mask 1
+Type: C, Coords [-1.289  6.004 18.65 ], Mask 1
+Type: P, Coords [-0.725 12.189 16.78 ], Mask 1
+Type: O, Coords [-1.366 13.512 16.581], Mask 1
+Type: O, Coords [ 0.236 11.679 15.77 ], Mask 1
+Type: O, Coords [-1.1000e-02  1.2208e+01  1.8204e+01], Mask 1
+Type: C, Coords [-0.766 12.517 19.362], Mask 1
+Type: C, Coords [ 0.029 12.25  20.618], Mask 1
+Type: O, Coords [ 0.024 10.847 20.979], Mask 1
+Type: C, Coords [ 1.49  12.705 20.639], Mask 1
+Type: O, Coords [ 1.678 13.512 21.802], Mask 1
+Type: C, Coords [ 2.27  11.401 20.765], Mask 1
+Type: C, Coords [ 1.286 10.537 21.536], Mask 1
+Type: N, Coords [ 1.458  9.06  21.517], Mask 1
+Type: C, Coords [ 1.364  8.409 22.734], Mask 1
+Type: O, Coords [ 1.195  8.992 23.79 ], Mask 1
+Type: N, Coords [ 1.481  7.044 22.671], Mask 1
+Type: C, Coords [ 1.691  6.275 21.544], Mask 1
+Type: O, Coords [ 1.76   5.055 21.649], Mask 1
+Type: C, Coords [ 1.811  7.017 20.3  ], Mask 1
+Type: C, Coords [ 2.069  6.265 19.031], Mask 1
+Type: C, Coords [ 1.686  8.354 20.347], Mask 1
+Type: P, Coords [ 2.846 14.608 21.847], Mask 1
+Type: O, Coords [ 2.259 15.928 22.192], Mask 1
+Type: O, Coords [ 3.742 14.475 20.662], Mask 1
+Type: O, Coords [ 3.694 14.128 23.085], Mask 1
+Type: C, Coords [ 4.153 12.811 23.124], Mask 1
+Type: C, Coords [ 4.366 12.395 24.552], Mask 1
+Type: O, Coords [ 3.941 11.024 24.639], Mask 1
+Type: C, Coords [ 5.835 12.424 24.942], Mask 1
+Type: O, Coords [ 5.99  12.882 26.286], Mask 1
+Type: C, Coords [ 6.288 10.992 24.741], Mask 1
+Type: C, Coords [ 5.023 10.184 24.968], Mask 1
+Type: N, Coords [ 4.916  8.977 24.134], Mask 1
+Type: C, Coords [ 4.779  7.746 24.769], Mask 1
+Type: O, Coords [ 4.671  7.719 26.008], Mask 1
+Type: N, Coords [ 4.759  6.617 24.027], Mask 1
+Type: C, Coords [ 4.848  6.688 22.696], Mask 1
+Type: N, Coords [ 4.842  5.546 22.012], Mask 1
+Type: C, Coords [ 4.949  7.933 22.013], Mask 1
+Type: C, Coords [ 4.975  9.047 22.764], Mask 1
+Type: P, Coords [ 7.458 13.23  26.845], Mask 1
+Type: O, Coords [ 7.322 14.261 27.894], Mask 1
+Type: O, Coords [ 8.393 13.457 25.712], Mask 1
+Type: O, Coords [ 7.925 11.87  27.513], Mask 1
+Type: C, Coords [ 6.986 10.967 28.08 ], Mask 1
+Type: C, Coords [ 7.703  9.812 28.733], Mask 1
+Type: O, Coords [ 7.405  8.604 27.996], Mask 1
+Type: C, Coords [ 9.228  9.932 28.78 ], Mask 1
+Type: O, Coords [ 9.708  9.565 30.071], Mask 1
+Type: C, Coords [ 9.717  8.96  27.719], Mask 1
+Type: C, Coords [ 8.596  7.933 27.619], Mask 1
+Type: N, Coords [ 8.397  7.391 26.256], Mask 1
+Type: C, Coords [ 8.285  6.003 26.089], Mask 1
+Type: O, Coords [ 8.296  5.273 27.09 ], Mask 1
+Type: N, Coords [ 8.164  5.492 24.838], Mask 1
+Type: C, Coords [ 8.142  6.31  23.782], Mask 1
+Type: N, Coords [ 8.051  5.758 22.567], Mask 1
+Type: C, Coords [ 8.219  7.727 23.925], Mask 1
+Type: C, Coords [ 8.343  8.22  25.168], Mask 1
+Type: P, Coords [11.166 10.04  30.548], Mask 1
+Type: O, Coords [11.034 10.651 31.899], Mask 1
+Type: O, Coords [11.806 10.821 29.449], Mask 1
+Type: O, Coords [11.922  8.656 30.729], Mask 1
+Type: C, Coords [11.366  7.651 31.566], Mask 1
+Type: C, Coords [11.906  6.297 31.181], Mask 1
+Type: O, Coords [11.524  5.98  29.82 ], Mask 1
+Type: C, Coords [13.431  6.181 31.221], Mask 1
+Type: O, Coords [13.757  4.851 31.639], Mask 1
+Type: C, Coords [13.815  6.355 29.759], Mask 1
+Type: C, Coords [12.682  5.594 29.109], Mask 1
+Type: N, Coords [12.444  5.808 27.686], Mask 1
+Type: C, Coords [12.673  6.938 26.939], Mask 1
+Type: N, Coords [12.337  6.794 25.684], Mask 1
+Type: C, Coords [11.86   5.493 25.602], Mask 1
+Type: C, Coords [11.338  4.759 24.493], Mask 1
+Type: O, Coords [11.174  5.136 23.325], Mask 1
+Type: N, Coords [10.979  3.465 24.858], Mask 1
+Type: C, Coords [11.095  2.943 26.125], Mask 1
+Type: N, Coords [10.697  1.673 26.295], Mask 1
+Type: N, Coords [11.566  3.616 27.157], Mask 1
+Type: C, Coords [11.926  4.872 26.827], Mask 1
+Type: P, Coords [14.934  4.598 32.701], Mask 1
+Type: O, Coords [14.272  4.275 33.993], Mask 1
+Type: O, Coords [15.897  5.721 32.631], Mask 1
+Type: O, Coords [15.618  3.277 32.137], Mask 1
+Type: C, Coords [14.88   2.066 32.087], Mask 1
+Type: C, Coords [15.215  1.267 30.847], Mask 1
+Type: O, Coords [14.518  1.761 29.665], Mask 1
+Type: C, Coords [16.697  1.151 30.479], Mask 1
+Type: O, Coords [17.074 -0.224 30.37 ], Mask 1
+Type: C, Coords [16.768  1.791 29.109], Mask 1
+Type: C, Coords [15.369  1.542 28.553], Mask 1
+Type: N, Coords [15.053  2.496 27.493], Mask 1
+Type: C, Coords [15.207  3.853 27.554], Mask 1
+Type: N, Coords [15.039  4.442 26.406], Mask 1
+Type: C, Coords [14.704  3.416 25.535], Mask 1
+Type: C, Coords [14.429  3.451 24.138], Mask 1
+Type: O, Coords [14.446  4.427 23.375], Mask 1
+Type: N, Coords [14.123  2.186 23.645], Mask 1
+Type: C, Coords [14.091  1.037 24.394], Mask 1
+Type: N, Coords [13.773 -0.085 23.737], Mask 1
+Type: N, Coords [14.352  0.99  25.697], Mask 1
+Type: C, Coords [14.656  2.211 26.198], Mask 1
+Type: P, Coords [18.558 -0.628 29.88 ], Mask 1
+Type: O, Coords [19.093 -1.612 30.86 ], Mask 1
+Type: O, Coords [19.359  0.577 29.549], Mask 1
+Type: O, Coords [18.278 -1.397 28.509], Mask 1
+Type: C, Coords [17.371 -2.5   28.462], Mask 1
+Type: C, Coords [17.458 -3.202 27.125], Mask 1
+Type: O, Coords [16.921 -2.338 26.091], Mask 1
+Type: C, Coords [18.87  -3.588 26.675], Mask 1
+Type: O, Coords [18.878 -4.76  25.881], Mask 1
+Type: C, Coords [19.255 -2.469 25.727], Mask 1
+Type: C, Coords [17.917 -2.075 25.104], Mask 1
+Type: N, Coords [17.828 -0.639 24.74 ], Mask 1
+Type: C, Coords [17.473 -0.302 23.449], Mask 1
+Type: O, Coords [17.233 -1.129 22.581], Mask 1
+Type: N, Coords [17.413  1.05  23.213], Mask 1
+Type: C, Coords [17.677  2.071 24.108], Mask 1
+Type: O, Coords [17.588  3.243 23.75 ], Mask 1
+Type: C, Coords [18.053  1.644 25.435], Mask 1
+Type: C, Coords [18.376  2.676 26.47 ], Mask 1
+Type: C, Coords [18.102  0.333 25.68 ], Mask 1
+Type: ZN, Coords [12.87   8.232 24.146], Mask 1
+Type: ZN, Coords [ -8.319 -18.103   2.886], Mask 1
+/opt/LigandMPNN/run.py:67: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  checkpoint = torch.load(checkpoint_path, map_location=device)
+/opt/LigandMPNN/run.py:115: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  checkpoint_sc = torch.load(args.checkpoint_path_sc, map_location=device)
+Designing protein from this path: 1BC8.pdb
+These residues will be redesigned:  ['C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13', 'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21', 'C22', 'C23', 'C24', 'C25', 'C26', 'C27', 'C28', 'C29', 'C30', 'C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37', 'C38', 'C39', 'C40', 'C41', 'C42', 'C43', 'C44', 'C45', 'C46', 'C47', 'C48', 'C49', 'C50', 'C51', 'C52', 'C53', 'C54', 'C55', 'C56', 'C57', 'C58', 'C59', 'C60', 'C61', 'C62', 'C63', 'C64', 'C65', 'C66', 'C67', 'C68', 'C69', 'C70', 'C71', 'C72', 'C73', 'C74', 'C75', 'C76', 'C77', 'C78', 'C79', 'C80', 'C81', 'C82', 'C83', 'C84', 'C85', 'C86', 'C87', 'C88', 'C89', 'C90', 'C91', 'C92', 'C93']
+These residues will be fixed:  ['C1', 'C2', 'C3', 'C4', 'C5']
+The number of ligand atoms parsed is equal to: 406
+Type: O, Coords [18.304 10.313 14.82 ], Mask 1
+Type: C, Coords [19.094  9.803 13.737], Mask 1
+Type: C, Coords [18.917  8.315 13.559], Mask 1
+Type: O, Coords [19.697  7.616 14.562], Mask 1
+Type: C, Coords [17.47   7.855 13.741], Mask 1
+Type: O, Coords [17.095  6.863 12.788], Mask 1
+Type: C, Coords [17.458  7.238 15.125], Mask 1
+Type: C, Coords [18.865  6.691 15.255], Mask 1
+Type: N, Coords [19.304  6.626 16.668], Mask 1
+Type: C, Coords [19.705  5.412 17.182], Mask 1
+Type: O, Coords [19.791  4.385 16.537], Mask 1
+Type: N, Coords [20.012  5.437 18.502], Mask 1
+Type: C, Coords [19.951  6.509 19.368], Mask 1
+Type: O, Coords [20.205  6.342 20.562], Mask 1
+Type: C, Coords [19.567  7.762 18.762], Mask 1
+Type: C, Coords [19.513  8.999 19.602], Mask 1
+Type: C, Coords [19.273  7.759 17.458], Mask 1
+Type: P, Coords [15.599  6.249 12.825], Mask 1
+Type: O, Coords [15.051  6.238 11.437], Mask 1
+Type: O, Coords [14.829  6.923 13.914], Mask 1
+Type: O, Coords [15.831  4.747 13.296], Mask 1
+Type: C, Coords [16.645  3.854 12.539], Mask 1
+Type: C, Coords [16.501  2.449 13.077], Mask 1
+Type: O, Coords [17.058  2.395 14.415], Mask 1
+Type: C, Coords [15.052  1.969 13.198], Mask 1
+Type: O, Coords [14.977  0.578 12.848], Mask 1
+Type: C, Coords [14.719  2.214 14.663], Mask 1
+Type: C, Coords [16.062  2.014 15.36 ], Mask 1
+Type: N, Coords [16.254  2.824 16.57 ], Mask 1
+Type: C, Coords [16.103  4.182 16.715], Mask 1
+Type: N, Coords [16.322  4.612 17.935], Mask 1
+Type: C, Coords [16.643  3.462 18.643], Mask 1
+Type: C, Coords [16.964  3.235 20.   ], Mask 1
+Type: N, Coords [17.022  4.194 20.924], Mask 1
+Type: N, Coords [17.226  1.969 20.377], Mask 1
+Type: C, Coords [17.176  1.003 19.457], Mask 1
+Type: N, Coords [16.887  1.084 18.163], Mask 1
+Type: C, Coords [16.619  2.355 17.813], Mask 1
+Type: P, Coords [13.558 -0.169 12.821], Mask 1
+Type: O, Coords [13.64  -1.321 11.905], Mask 1
+Type: O, Coords [12.525  0.871 12.617], Mask 1
+Type: O, Coords [13.38  -0.737 14.299], Mask 1
+Type: C, Coords [14.4   -1.524 14.907], Mask 1
+Type: C, Coords [13.967 -2.001 16.275], Mask 1
+Type: O, Coords [14.336 -1.015 17.272], Mask 1
+Type: C, Coords [12.472 -2.279 16.468], Mask 1
+Type: O, Coords [12.313 -3.566 17.075], Mask 1
+Type: C, Coords [12.009 -1.161 17.39 ], Mask 1
+Type: C, Coords [13.266 -0.839 18.181], Mask 1
+Type: N, Coords [13.361  0.526 18.749], Mask 1
+Type: C, Coords [13.811  0.679 20.081], Mask 1
+Type: O, Coords [14.117 -0.328 20.74 ], Mask 1
+Type: N, Coords [13.895  1.92  20.611], Mask 1
+Type: C, Coords [13.551  2.986 19.881], Mask 1
+Type: N, Coords [13.648  4.189 20.454], Mask 1
+Type: C, Coords [13.09   2.863 18.53 ], Mask 1
+Type: C, Coords [13.015  1.628 18.01 ], Mask 1
+Type: P, Coords [10.841 -4.169 17.337], Mask 1
+Type: O, Coords [10.889 -5.642 17.128], Mask 1
+Type: O, Coords [ 9.841 -3.354 16.599], Mask 1
+Type: O, Coords [10.61  -3.896 18.887], Mask 1
+Type: C, Coords [11.624 -4.211 19.84 ], Mask 1
+Type: C, Coords [11.077 -4.102 21.242], Mask 1
+Type: O, Coords [11.519 -2.836 21.796], Mask 1
+Type: C, Coords [ 9.548 -4.087 21.27 ], Mask 1
+Type: O, Coords [ 8.983 -5.058 22.133], Mask 1
+Type: C, Coords [ 9.174 -2.695 21.73 ], Mask 1
+Type: C, Coords [10.429 -2.136 22.378], Mask 1
+Type: N, Coords [10.556 -0.702 22.049], Mask 1
+Type: C, Coords [10.557  0.249 23.091], Mask 1
+Type: O, Coords [10.547 -0.14  24.273], Mask 1
+Type: N, Coords [10.56   1.564 22.778], Mask 1
+Type: C, Coords [10.559  1.949 21.496], Mask 1
+Type: N, Coords [10.505  3.253 21.236], Mask 1
+Type: C, Coords [10.602  1.011 20.425], Mask 1
+Type: C, Coords [10.612 -0.291 20.743], Mask 1
+Type: P, Coords [ 7.455 -5.511 21.91 ], Mask 1
+Type: O, Coords [ 7.431 -6.984 21.812], Mask 1
+Type: O, Coords [ 6.832 -4.697 20.834], Mask 1
+Type: O, Coords [ 6.759 -5.086 23.279], Mask 1
+Type: C, Coords [ 7.337 -5.436 24.539], Mask 1
+Type: C, Coords [ 6.876 -4.472 25.61 ], Mask 1
+Type: O, Coords [ 7.321 -3.132 25.288], Mask 1
+Type: C, Coords [ 5.362 -4.373 25.791], Mask 1
+Type: O, Coords [ 5.084 -4.149 27.177], Mask 1
+Type: C, Coords [ 4.998 -3.139 24.982], Mask 1
+Type: C, Coords [ 6.203 -2.256 25.23 ], Mask 1
+Type: N, Coords [ 6.465 -1.239 24.213], Mask 1
+Type: C, Coords [ 6.402 -1.381 22.845], Mask 1
+Type: N, Coords [ 6.676 -0.276 22.204], Mask 1
+Type: C, Coords [ 6.938  0.65  23.208], Mask 1
+Type: C, Coords [ 7.28   2.026 23.126], Mask 1
+Type: O, Coords [ 7.421  2.721 22.118], Mask 1
+Type: N, Coords [ 7.454  2.589 24.393], Mask 1
+Type: C, Coords [ 7.313  1.908 25.583], Mask 1
+Type: N, Coords [ 7.525  2.605 26.721], Mask 1
+Type: N, Coords [ 6.988  0.633 25.665], Mask 1
+Type: C, Coords [ 6.816  0.069 24.451], Mask 1
+Type: P, Coords [ 3.574 -4.238 27.728], Mask 1
+Type: O, Coords [ 3.439 -5.516 28.484], Mask 1
+Type: O, Coords [ 2.597 -3.914 26.651], Mask 1
+Type: O, Coords [ 3.529 -3.055 28.788], Mask 1
+Type: C, Coords [ 4.595 -2.864 29.713], Mask 1
+Type: C, Coords [ 4.483 -1.505 30.357], Mask 1
+Type: O, Coords [ 4.861 -0.45  29.443], Mask 1
+Type: C, Coords [ 3.078 -1.162 30.839], Mask 1
+Type: O, Coords [ 3.181 -0.493 32.087], Mask 1
+Type: C, Coords [ 2.543 -0.236 29.76 ], Mask 1
+Type: C, Coords [ 3.794  0.483 29.279], Mask 1
+Type: N, Coords [ 3.768  0.876 27.87 ], Mask 1
+Type: C, Coords [ 3.526  0.057 26.79 ], Mask 1
+Type: N, Coords [ 3.64   0.671 25.646], Mask 1
+Type: C, Coords [ 3.957  1.979 25.985], Mask 1
+Type: C, Coords [ 4.211  3.105 25.157], Mask 1
+Type: O, Coords [ 4.217  3.166 23.918], Mask 1
+Type: N, Coords [ 4.481  4.244 25.909], Mask 1
+Type: C, Coords [ 4.495  4.294 27.286], Mask 1
+Type: N, Coords [ 4.734  5.494 27.835], Mask 1
+Type: N, Coords [ 4.28   3.244 28.067], Mask 1
+Type: C, Coords [ 4.019  2.13  27.355], Mask 1
+Type: P, Coords [ 1.858 -0.155 32.916], Mask 1
+Type: O, Coords [ 2.2800e+00 -1.7000e-02  3.4333e+01], Mask 1
+Type: O, Coords [ 0.793 -1.13  32.549], Mask 1
+Type: O, Coords [ 1.457  1.274 32.352], Mask 1
+Type: C, Coords [ 2.256  2.408 32.638], Mask 1
+Type: C, Coords [ 1.571  3.659 32.146], Mask 1
+Type: O, Coords [ 1.761  3.835 30.718], Mask 1
+Type: C, Coords [ 0.062  3.741 32.403], Mask 1
+Type: O, Coords [-0.223  5.027 32.953], Mask 1
+Type: C, Coords [-0.543  3.574 31.013], Mask 1
+Type: C, Coords [ 0.526  4.18  30.11 ], Mask 1
+Type: N, Coords [ 0.561  3.7   28.723], Mask 1
+Type: C, Coords [ 0.339  2.431 28.248], Mask 1
+Type: N, Coords [ 0.472  2.322 26.946], Mask 1
+Type: C, Coords [ 0.796  3.608 26.534], Mask 1
+Type: C, Coords [ 1.071  4.161 25.263], Mask 1
+Type: N, Coords [ 1.055  3.462 24.126], Mask 1
+Type: N, Coords [ 1.367  5.481 25.204], Mask 1
+Type: C, Coords [ 1.386  6.182 26.342], Mask 1
+Type: N, Coords [ 1.145  5.776 27.587], Mask 1
+Type: C, Coords [ 0.852  4.467 27.616], Mask 1
+Type: P, Coords [-1.702  5.389 33.46 ], Mask 1
+Type: O, Coords [-1.561  6.127 34.742], Mask 1
+Type: O, Coords [-2.599  4.209 33.379], Mask 1
+Type: O, Coords [-2.185  6.443 32.385], Mask 1
+Type: C, Coords [-1.409  7.602 32.152], Mask 1
+Type: C, Coords [-1.868  8.288 30.891], Mask 1
+Type: O, Coords [-1.571  7.465 29.737], Mask 1
+Type: C, Coords [-3.366  8.586 30.831], Mask 1
+Type: O, Coords [-3.512  9.915 30.341], Mask 1
+Type: C, Coords [-3.89   7.566 29.83 ], Mask 1
+Type: C, Coords [-2.708  7.462 28.894], Mask 1
+Type: N, Coords [-2.646  6.287 28.027], Mask 1
+Type: C, Coords [-2.861  4.961 28.316], Mask 1
+Type: N, Coords [-2.739  4.168 27.273], Mask 1
+Type: C, Coords [-2.417  5.031 26.231], Mask 1
+Type: C, Coords [-2.153  4.819 24.852], Mask 1
+Type: N, Coords [-2.167  3.618 24.263], Mask 1
+Type: N, Coords [-1.865  5.902 24.097], Mask 1
+Type: C, Coords [-1.838  7.105 24.684], Mask 1
+Type: N, Coords [-2.065  7.431 25.958], Mask 1
+Type: C, Coords [-2.352  6.337 26.685], Mask 1
+Type: P, Coords [-4.956 10.607 30.276], Mask 1
+Type: O, Coords [-4.885 11.863 31.061], Mask 1
+Type: O, Coords [-6.006  9.603 30.576], Mask 1
+Type: O, Coords [-5.074 10.984 28.734], Mask 1
+Type: C, Coords [-4.136 11.869 28.135], Mask 1
+Type: C, Coords [-4.463 12.06  26.674], Mask 1
+Type: O, Coords [-4.156 10.846 25.948], Mask 1
+Type: C, Coords [-5.927 12.387 26.371], Mask 1
+Type: O, Coords [-5.991 13.394 25.36 ], Mask 1
+Type: C, Coords [-6.494 11.069 25.879], Mask 1
+Type: C, Coords [-5.294 10.411 25.218], Mask 1
+Type: N, Coords [-5.318  8.951 25.254], Mask 1
+Type: C, Coords [-5.424  8.148 26.366], Mask 1
+Type: N, Coords [-5.433  6.876 26.08 ], Mask 1
+Type: C, Coords [-5.321  6.831 24.7  ], Mask 1
+Type: C, Coords [-5.28   5.728 23.832], Mask 1
+Type: O, Coords [-5.335  4.529 24.121], Mask 1
+Type: N, Coords [-5.165  6.122 22.498], Mask 1
+Type: C, Coords [-5.094  7.428 22.065], Mask 1
+Type: N, Coords [-4.988  7.619 20.737], Mask 1
+Type: N, Coords [-5.127  8.474 22.875], Mask 1
+Type: C, Coords [-5.244  8.103 24.171], Mask 1
+Type: P, Coords [-7.414 13.887 24.796], Mask 1
+Type: O, Coords [-7.222 15.289 24.332], Mask 1
+Type: O, Coords [-8.502 13.575 25.763], Mask 1
+Type: O, Coords [-7.631 12.962 23.511], Mask 1
+Type: C, Coords [-6.781 13.101 22.371], Mask 1
+Type: C, Coords [-7.422 12.481 21.152], Mask 1
+Type: O, Coords [-7.287 11.044 21.195], Mask 1
+Type: C, Coords [-8.913 12.766 20.979], Mask 1
+Type: O, Coords [-9.196 12.942 19.592], Mask 1
+Type: C, Coords [-9.566 11.479 21.453], Mask 1
+Type: C, Coords [-8.549 10.431 21.02 ], Mask 1
+Type: N, Coords [-8.545  9.162 21.79 ], Mask 1
+Type: C, Coords [-8.395  7.963 21.106], Mask 1
+Type: O, Coords [-8.268  7.885 19.896], Mask 1
+Type: N, Coords [-8.402  6.847 21.907], Mask 1
+Type: C, Coords [-8.544  6.798 23.283], Mask 1
+Type: O, Coords [-8.535  5.711 23.865], Mask 1
+Type: C, Coords [-8.698  8.081 23.932], Mask 1
+Type: C, Coords [-8.86   8.129 25.419], Mask 1
+Type: C, Coords [-8.689  9.183 23.166], Mask 1
+Type: O, Coords [-11.321  -3.165  21.625], Mask 1
+Type: C, Coords [-12.292  -3.56   20.649], Mask 1
+Type: C, Coords [-12.04   -2.969  19.28 ], Mask 1
+Type: O, Coords [-12.252  -1.543  19.299], Mask 1
+Type: C, Coords [-10.634  -3.172  18.721], Mask 1
+Type: O, Coords [-10.731  -3.375  17.306], Mask 1
+Type: C, Coords [-9.907 -1.883 19.079], Mask 1
+Type: C, Coords [-11.009  -0.837  19.267], Mask 1
+Type: N, Coords [-10.895  -0.158  20.561], Mask 1
+Type: C, Coords [-10.718  -0.787  21.775], Mask 1
+Type: N, Coords [-1.0705e+01  2.0000e-02  2.2795e+01], Mask 1
+Type: C, Coords [-10.869   1.266  22.226], Mask 1
+Type: C, Coords [-10.952   2.518  22.793], Mask 1
+Type: N, Coords [-10.919   2.716  24.101], Mask 1
+Type: N, Coords [-11.095   3.571  21.975], Mask 1
+Type: C, Coords [-11.181   3.342  20.659], Mask 1
+Type: N, Coords [-11.138   2.195  19.991], Mask 1
+Type: C, Coords [-10.974   1.177  20.848], Mask 1
+Type: P, Coords [-9.435 -3.789 16.458], Mask 1
+Type: O, Coords [-9.943 -4.405 15.206], Mask 1
+Type: O, Coords [-8.497 -4.55  17.314], Mask 1
+Type: O, Coords [-8.783 -2.383 16.114], Mask 1
+Type: C, Coords [-9.447 -1.484 15.234], Mask 1
+Type: C, Coords [-8.656 -0.207 15.093], Mask 1
+Type: O, Coords [-8.76   0.577 16.303], Mask 1
+Type: C, Coords [-7.159 -0.372 14.821], Mask 1
+Type: O, Coords [-6.742  0.602 13.862], Mask 1
+Type: C, Coords [-6.528 -0.057 16.164], Mask 1
+Type: C, Coords [-7.47   1.013 16.682], Mask 1
+Type: N, Coords [-7.47   1.24  18.129], Mask 1
+Type: C, Coords [-7.2    0.351 19.14 ], Mask 1
+Type: N, Coords [-7.262  0.878 20.336], Mask 1
+Type: C, Coords [-7.602  2.203 20.099], Mask 1
+Type: C, Coords [-7.821  3.294 20.961], Mask 1
+Type: N, Coords [-7.723  3.223 22.298], Mask 1
+Type: N, Coords [-8.148  4.479 20.399], Mask 1
+Type: C, Coords [-8.248  4.549 19.063], Mask 1
+Type: N, Coords [-8.068  3.597 18.155], Mask 1
+Type: C, Coords [-7.741  2.436 18.744], Mask 1
+Type: P, Coords [-5.372  0.389 13.051], Mask 1
+Type: O, Coords [-5.27   1.456 12.022], Mask 1
+Type: O, Coords [-5.353 -1.032 12.637], Mask 1
+Type: O, Coords [-4.245  0.619 14.163], Mask 1
+Type: C, Coords [-3.37   1.748 14.127], Mask 1
+Type: C, Coords [-4.079  2.979 14.641], Mask 1
+Type: O, Coords [-4.685  2.724 15.936], Mask 1
+Type: C, Coords [-3.171  4.195 14.829], Mask 1
+Type: O, Coords [-3.707  5.358 14.202], Mask 1
+Type: C, Coords [-3.13   4.401 16.333], Mask 1
+Type: C, Coords [-4.457  3.836 16.783], Mask 1
+Type: N, Coords [-4.442  3.375 18.189], Mask 1
+Type: C, Coords [-4.721  4.309 19.207], Mask 1
+Type: O, Coords [-5.002  5.485 18.896], Mask 1
+Type: N, Coords [-4.668  3.91  20.503], Mask 1
+Type: C, Coords [-4.347  2.649 20.802], Mask 1
+Type: N, Coords [-4.276  2.311 22.095], Mask 1
+Type: C, Coords [-4.079  1.679 19.79 ], Mask 1
+Type: C, Coords [-4.142  2.08  18.511], Mask 1
+Type: P, Coords [-2.714  6.556 13.795], Mask 1
+Type: O, Coords [-3.371  7.413 12.777], Mask 1
+Type: O, Coords [-1.372  5.981 13.524], Mask 1
+Type: O, Coords [-2.575  7.406 15.129], Mask 1
+Type: C, Coords [-3.595  8.305 15.516], Mask 1
+Type: C, Coords [-3.146  9.115 16.706], Mask 1
+Type: O, Coords [-3.105  8.274 17.88 ], Mask 1
+Type: C, Coords [-1.766  9.768 16.586], Mask 1
+Type: O, Coords [-1.906 11.127 17.016], Mask 1
+Type: C, Coords [-0.89   8.928 17.513], Mask 1
+Type: C, Coords [-1.88   8.45  18.567], Mask 1
+Type: N, Coords [-1.594  7.183 19.306], Mask 1
+Type: C, Coords [-1.69   7.217 20.684], Mask 1
+Type: O, Coords [-1.86   8.243 21.323], Mask 1
+Type: N, Coords [-1.558  5.999 21.294], Mask 1
+Type: C, Coords [-1.306  4.785 20.705], Mask 1
+Type: O, Coords [-1.257  3.777 21.393], Mask 1
+Type: C, Coords [-1.134  4.822 19.274], Mask 1
+Type: C, Coords [-0.793  3.554 18.555], Mask 1
+Type: C, Coords [-1.289  6.004 18.65 ], Mask 1
+Type: P, Coords [-0.725 12.189 16.78 ], Mask 1
+Type: O, Coords [-1.366 13.512 16.581], Mask 1
+Type: O, Coords [ 0.236 11.679 15.77 ], Mask 1
+Type: O, Coords [-1.1000e-02  1.2208e+01  1.8204e+01], Mask 1
+Type: C, Coords [-0.766 12.517 19.362], Mask 1
+Type: C, Coords [ 0.029 12.25  20.618], Mask 1
+Type: O, Coords [ 0.024 10.847 20.979], Mask 1
+Type: C, Coords [ 1.49  12.705 20.639], Mask 1
+Type: O, Coords [ 1.678 13.512 21.802], Mask 1
+Type: C, Coords [ 2.27  11.401 20.765], Mask 1
+Type: C, Coords [ 1.286 10.537 21.536], Mask 1
+Type: N, Coords [ 1.458  9.06  21.517], Mask 1
+Type: C, Coords [ 1.364  8.409 22.734], Mask 1
+Type: O, Coords [ 1.195  8.992 23.79 ], Mask 1
+Type: N, Coords [ 1.481  7.044 22.671], Mask 1
+Type: C, Coords [ 1.691  6.275 21.544], Mask 1
+Type: O, Coords [ 1.76   5.055 21.649], Mask 1
+Type: C, Coords [ 1.811  7.017 20.3  ], Mask 1
+Type: C, Coords [ 2.069  6.265 19.031], Mask 1
+Type: C, Coords [ 1.686  8.354 20.347], Mask 1
+Type: P, Coords [ 2.846 14.608 21.847], Mask 1
+Type: O, Coords [ 2.259 15.928 22.192], Mask 1
+Type: O, Coords [ 3.742 14.475 20.662], Mask 1
+Type: O, Coords [ 3.694 14.128 23.085], Mask 1
+Type: C, Coords [ 4.153 12.811 23.124], Mask 1
+Type: C, Coords [ 4.366 12.395 24.552], Mask 1
+Type: O, Coords [ 3.941 11.024 24.639], Mask 1
+Type: C, Coords [ 5.835 12.424 24.942], Mask 1
+Type: O, Coords [ 5.99  12.882 26.286], Mask 1
+Type: C, Coords [ 6.288 10.992 24.741], Mask 1
+Type: C, Coords [ 5.023 10.184 24.968], Mask 1
+Type: N, Coords [ 4.916  8.977 24.134], Mask 1
+Type: C, Coords [ 4.779  7.746 24.769], Mask 1
+Type: O, Coords [ 4.671  7.719 26.008], Mask 1
+Type: N, Coords [ 4.759  6.617 24.027], Mask 1
+Type: C, Coords [ 4.848  6.688 22.696], Mask 1
+Type: N, Coords [ 4.842  5.546 22.012], Mask 1
+Type: C, Coords [ 4.949  7.933 22.013], Mask 1
+Type: C, Coords [ 4.975  9.047 22.764], Mask 1
+Type: P, Coords [ 7.458 13.23  26.845], Mask 1
+Type: O, Coords [ 7.322 14.261 27.894], Mask 1
+Type: O, Coords [ 8.393 13.457 25.712], Mask 1
+Type: O, Coords [ 7.925 11.87  27.513], Mask 1
+Type: C, Coords [ 6.986 10.967 28.08 ], Mask 1
+Type: C, Coords [ 7.703  9.812 28.733], Mask 1
+Type: O, Coords [ 7.405  8.604 27.996], Mask 1
+Type: C, Coords [ 9.228  9.932 28.78 ], Mask 1
+/opt/LigandMPNN/openfold/utils/tensor_utils.py:92: UserWarning: Using a non-tuple sequence for multidimensional indexing is deprecated and will be changed in pytorch 2.9; use x[tuple(seq)] instead of x[seq]. In pytorch 2.9 this will be interpreted as tensor index, x[torch.tensor(seq)], which will result either in an error or a different result (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/python_variable_indexing.cpp:356.)
+  return data[ranges]
+Type: O, Coords [ 9.708  9.565 30.071], Mask 1
+Type: C, Coords [ 9.717  8.96  27.719], Mask 1
+Type: C, Coords [ 8.596  7.933 27.619], Mask 1
+Type: N, Coords [ 8.397  7.391 26.256], Mask 1
+Type: C, Coords [ 8.285  6.003 26.089], Mask 1
+Type: O, Coords [ 8.296  5.273 27.09 ], Mask 1
+Type: N, Coords [ 8.164  5.492 24.838], Mask 1
+Type: C, Coords [ 8.142  6.31  23.782], Mask 1
+Type: N, Coords [ 8.051  5.758 22.567], Mask 1
+Type: C, Coords [ 8.219  7.727 23.925], Mask 1
+Type: C, Coords [ 8.343  8.22  25.168], Mask 1
+Type: P, Coords [11.166 10.04  30.548], Mask 1
+Type: O, Coords [11.034 10.651 31.899], Mask 1
+Type: O, Coords [11.806 10.821 29.449], Mask 1
+Type: O, Coords [11.922  8.656 30.729], Mask 1
+Type: C, Coords [11.366  7.651 31.566], Mask 1
+Type: C, Coords [11.906  6.297 31.181], Mask 1
+Type: O, Coords [11.524  5.98  29.82 ], Mask 1
+Type: C, Coords [13.431  6.181 31.221], Mask 1
+Type: O, Coords [13.757  4.851 31.639], Mask 1
+Type: C, Coords [13.815  6.355 29.759], Mask 1
+Type: C, Coords [12.682  5.594 29.109], Mask 1
+Type: N, Coords [12.444  5.808 27.686], Mask 1
+Type: C, Coords [12.673  6.938 26.939], Mask 1
+Type: N, Coords [12.337  6.794 25.684], Mask 1
+Type: C, Coords [11.86   5.493 25.602], Mask 1
+Type: C, Coords [11.338  4.759 24.493], Mask 1
+Type: O, Coords [11.174  5.136 23.325], Mask 1
+Type: N, Coords [10.979  3.465 24.858], Mask 1
+Type: C, Coords [11.095  2.943 26.125], Mask 1
+Type: N, Coords [10.697  1.673 26.295], Mask 1
+Type: N, Coords [11.566  3.616 27.157], Mask 1
+Type: C, Coords [11.926  4.872 26.827], Mask 1
+Type: P, Coords [14.934  4.598 32.701], Mask 1
+Type: O, Coords [14.272  4.275 33.993], Mask 1
+Type: O, Coords [15.897  5.721 32.631], Mask 1
+Type: O, Coords [15.618  3.277 32.137], Mask 1
+Type: C, Coords [14.88   2.066 32.087], Mask 1
+Type: C, Coords [15.215  1.267 30.847], Mask 1
+Type: O, Coords [14.518  1.761 29.665], Mask 1
+Type: C, Coords [16.697  1.151 30.479], Mask 1
+Type: O, Coords [17.074 -0.224 30.37 ], Mask 1
+Type: C, Coords [16.768  1.791 29.109], Mask 1
+Type: C, Coords [15.369  1.542 28.553], Mask 1
+Type: N, Coords [15.053  2.496 27.493], Mask 1
+Type: C, Coords [15.207  3.853 27.554], Mask 1
+Type: N, Coords [15.039  4.442 26.406], Mask 1
+Type: C, Coords [14.704  3.416 25.535], Mask 1
+Type: C, Coords [14.429  3.451 24.138], Mask 1
+Type: O, Coords [14.446  4.427 23.375], Mask 1
+Type: N, Coords [14.123  2.186 23.645], Mask 1
+Type: C, Coords [14.091  1.037 24.394], Mask 1
+Type: N, Coords [13.773 -0.085 23.737], Mask 1
+Type: N, Coords [14.352  0.99  25.697], Mask 1
+Type: C, Coords [14.656  2.211 26.198], Mask 1
+Type: P, Coords [18.558 -0.628 29.88 ], Mask 1
+Type: O, Coords [19.093 -1.612 30.86 ], Mask 1
+Type: O, Coords [19.359  0.577 29.549], Mask 1
+Type: O, Coords [18.278 -1.397 28.509], Mask 1
+Type: C, Coords [17.371 -2.5   28.462], Mask 1
+Type: C, Coords [17.458 -3.202 27.125], Mask 1
+Type: O, Coords [16.921 -2.338 26.091], Mask 1
+Type: C, Coords [18.87  -3.588 26.675], Mask 1
+Type: O, Coords [18.878 -4.76  25.881], Mask 1
+Type: C, Coords [19.255 -2.469 25.727], Mask 1
+Type: C, Coords [17.917 -2.075 25.104], Mask 1
+Type: N, Coords [17.828 -0.639 24.74 ], Mask 1
+Type: C, Coords [17.473 -0.302 23.449], Mask 1
+Type: O, Coords [17.233 -1.129 22.581], Mask 1
+Type: N, Coords [17.413  1.05  23.213], Mask 1
+Type: C, Coords [17.677  2.071 24.108], Mask 1
+Type: O, Coords [17.588  3.243 23.75 ], Mask 1
+Type: C, Coords [18.053  1.644 25.435], Mask 1
+Type: C, Coords [18.376  2.676 26.47 ], Mask 1
+Type: C, Coords [18.102  0.333 25.68 ], Mask 1
+Type: ZN, Coords [12.87   8.232 24.146], Mask 1
+Type: ZN, Coords [ -8.319 -18.103   2.886], Mask 1
+Packing side chains...
+/opt/LigandMPNN/run.py:67: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  checkpoint = torch.load(checkpoint_path, map_location=device)
+Designing protein from this path: /mnt/data/shared/flyloft/nateprice8/np15-ebov-cross-reactive-design/ebov-cross-reactive-design-37ae6c68/runs/b8c5fbec-6499-422d-88cc-ae09b7c2c4d9/code/tools/ligandmpnn/test/1BC8.pdb
+These residues will be redesigned:  ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12', 'C13', 'C14', 'C15', 'C16', 'C17', 'C18', 'C19', 'C20', 'C21', 'C22', 'C23', 'C24', 'C25', 'C26', 'C27', 'C28', 'C29', 'C30', 'C31', 'C32', 'C33', 'C34', 'C35', 'C36', 'C37', 'C38', 'C39', 'C40', 'C41', 'C42', 'C43', 'C44', 'C45', 'C46', 'C47', 'C48', 'C49', 'C50', 'C51', 'C52', 'C53', 'C54', 'C55', 'C56', 'C57', 'C58', 'C59', 'C60', 'C61', 'C62', 'C63', 'C64', 'C65', 'C66', 'C67', 'C68', 'C69', 'C70', 'C71', 'C72', 'C73', 'C74', 'C75', 'C76', 'C77', 'C78', 'C79', 'C80', 'C81', 'C82', 'C83', 'C84', 'C85', 'C86', 'C87', 'C88', 'C89', 'C90', 'C91', 'C92', 'C93']
+These residues will be fixed:  []
+The number of ligand atoms parsed is equal to: 406
+Type: O, Coords [18.304 10.313 14.82 ], Mask 1
+Type: C, Coords [19.094  9.803 13.737], Mask 1
+Type: C, Coords [18.917  8.315 13.559], Mask 1
+Type: O, Coords [19.697  7.616 14.562], Mask 1
+Type: C, Coords [17.47   7.855 13.741], Mask 1
+Type: O, Coords [17.095  6.863 12.788], Mask 1
+Type: C, Coords [17.458  7.238 15.125], Mask 1
+Type: C, Coords [18.865  6.691 15.255], Mask 1
+Type: N, Coords [19.304  6.626 16.668], Mask 1
+Type: C, Coords [19.705  5.412 17.182], Mask 1
+Type: O, Coords [19.791  4.385 16.537], Mask 1
+Type: N, Coords [20.012  5.437 18.502], Mask 1
+Type: C, Coords [19.951  6.509 19.368], Mask 1
+Type: O, Coords [20.205  6.342 20.562], Mask 1
+Type: C, Coords [19.567  7.762 18.762], Mask 1
+Type: C, Coords [19.513  8.999 19.602], Mask 1
+Type: C, Coords [19.273  7.759 17.458], Mask 1
+Type: P, Coords [15.599  6.249 12.825], Mask 1
+Type: O, Coords [15.051  6.238 11.437], Mask 1
+Type: O, Coords [14.829  6.923 13.914], Mask 1
+Type: O, Coords [15.831  4.747 13.296], Mask 1
+Type: C, Coords [16.645  3.854 12.539], Mask 1
+Type: C, Coords [16.501  2.449 13.077], Mask 1
+Type: O, Coords [17.058  2.395 14.415], Mask 1
+Type: C, Coords [15.052  1.969 13.198], Mask 1
+Type: O, Coords [14.977  0.578 12.848], Mask 1
+Type: C, Coords [14.719  2.214 14.663], Mask 1
+Type: C, Coords [16.062  2.014 15.36 ], Mask 1
+Type: N, Coords [16.254  2.824 16.57 ], Mask 1
+Type: C, Coords [16.103  4.182 16.715], Mask 1
+Type: N, Coords [16.322  4.612 17.935], Mask 1
+Type: C, Coords [16.643  3.462 18.643], Mask 1
+Type: C, Coords [16.964  3.235 20.   ], Mask 1
+Type: N, Coords [17.022  4.194 20.924], Mask 1
+Type: N, Coords [17.226  1.969 20.377], Mask 1
+Type: C, Coords [17.176  1.003 19.457], Mask 1
+Type: N, Coords [16.887  1.084 18.163], Mask 1
+Type: C, Coords [16.619  2.355 17.813], Mask 1
+Type: P, Coords [13.558 -0.169 12.821], Mask 1
+Type: O, Coords [13.64  -1.321 11.905], Mask 1
+Type: O, Coords [12.525  0.871 12.617], Mask 1
+Type: O, Coords [13.38  -0.737 14.299], Mask 1
+Type: C, Coords [14.4   -1.524 14.907], Mask 1
+Type: C, Coords [13.967 -2.001 16.275], Mask 1
+Type: O, Coords [14.336 -1.015 17.272], Mask 1
+Type: C, Coords [12.472 -2.279 16.468], Mask 1
+Type: O, Coords [12.313 -3.566 17.075], Mask 1
+Type: C, Coords [12.009 -1.161 17.39 ], Mask 1
+Type: C, Coords [13.266 -0.839 18.181], Mask 1
+Type: N, Coords [13.361  0.526 18.749], Mask 1
+Type: C, Coords [13.811  0.679 20.081], Mask 1
+Type: O, Coords [14.117 -0.328 20.74 ], Mask 1
+Type: N, Coords [13.895  1.92  20.611], Mask 1
+Type: C, Coords [13.551  2.986 19.881], Mask 1
+Type: N, Coords [13.648  4.189 20.454], Mask 1
+Type: C, Coords [13.09   2.863 18.53 ], Mask 1
+Type: C, Coords [13.015  1.628 18.01 ], Mask 1
+Type: P, Coords [10.841 -4.169 17.337], Mask 1
+Type: O, Coords [10.889 -5.642 17.128], Mask 1
+Type: O, Coords [ 9.841 -3.354 16.599], Mask 1
+Type: O, Coords [10.61  -3.896 18.887], Mask 1
+Type: C, Coords [11.624 -4.211 19.84 ], Mask 1
+Type: C, Coords [11.077 -4.102 21.242], Mask 1
+Type: O, Coords [11.519 -2.836 21.796], Mask 1
+Type: C, Coords [ 9.548 -4.087 21.27 ], Mask 1
+Type: O, Coords [ 8.983 -5.058 22.133], Mask 1
+Type: C, Coords [ 9.174 -2.695 21.73 ], Mask 1
+Type: C, Coords [10.429 -2.136 22.378], Mask 1
+Type: N, Coords [10.556 -0.702 22.049], Mask 1
+Type: C, Coords [10.557  0.249 23.091], Mask 1
+Type: O, Coords [10.547 -0.14  24.273], Mask 1
+Type: N, Coords [10.56   1.564 22.778], Mask 1
+Type: C, Coords [10.559  1.949 21.496], Mask 1
+Type: N, Coords [10.505  3.253 21.236], Mask 1
+Type: C, Coords [10.602  1.011 20.425], Mask 1
+Type: C, Coords [10.612 -0.291 20.743], Mask 1
+Type: P, Coords [ 7.455 -5.511 21.91 ], Mask 1
+Type: O, Coords [ 7.431 -6.984 21.812], Mask 1
+Type: O, Coords [ 6.832 -4.697 20.834], Mask 1
+Type: O, Coords [ 6.759 -5.086 23.279], Mask 1
+Type: C, Coords [ 7.337 -5.436 24.539], Mask 1
+Type: C, Coords [ 6.876 -4.472 25.61 ], Mask 1
+Type: O, Coords [ 7.321 -3.132 25.288], Mask 1
+Type: C, Coords [ 5.362 -4.373 25.791], Mask 1
+Type: O, Coords [ 5.084 -4.149 27.177], Mask 1
+Type: C, Coords [ 4.998 -3.139 24.982], Mask 1
+Type: C, Coords [ 6.203 -2.256 25.23 ], Mask 1
+Type: N, Coords [ 6.465 -1.239 24.213], Mask 1
+Type: C, Coords [ 6.402 -1.381 22.845], Mask 1
+Type: N, Coords [ 6.676 -0.276 22.204], Mask 1
+Type: C, Coords [ 6.938  0.65  23.208], Mask 1
+Type: C, Coords [ 7.28   2.026 23.126], Mask 1
+Type: O, Coords [ 7.421  2.721 22.118], Mask 1
+Type: N, Coords [ 7.454  2.589 24.393], Mask 1
+Type: C, Coords [ 7.313  1.908 25.583], Mask 1
+Type: N, Coords [ 7.525  2.605 26.721], Mask 1
+Type: N, Coords [ 6.988  0.633 25.665], Mask 1
+Type: C, Coords [ 6.816  0.069 24.451], Mask 1
+Type: P, Coords [ 3.574 -4.238 27.728], Mask 1
+Type: O, Coords [ 3.439 -5.516 28.484], Mask 1
+Type: O, Coords [ 2.597 -3.914 26.651], Mask 1
+Type: O, Coords [ 3.529 -3.055 28.788], Mask 1
+Type: C, Coords [ 4.595 -2.864 29.713], Mask 1
+Type: C, Coords [ 4.483 -1.505 30.357], Mask 1
+Type: O, Coords [ 4.861 -0.45  29.443], Mask 1
+Type: C, Coords [ 3.078 -1.162 30.839], Mask 1
+Type: O, Coords [ 3.181 -0.493 32.087], Mask 1
+Type: C, Coords [ 2.543 -0.236 29.76 ], Mask 1
+Type: C, Coords [ 3.794  0.483 29.279], Mask 1
+Type: N, Coords [ 3.768  0.876 27.87 ], Mask 1
+Type: C, Coords [ 3.526  0.057 26.79 ], Mask 1
+Type: N, Coords [ 3.64   0.671 25.646], Mask 1
+Type: C, Coords [ 3.957  1.979 25.985], Mask 1
+Type: C, Coords [ 4.211  3.105 25.157], Mask 1
+Type: O, Coords [ 4.217  3.166 23.918], Mask 1
+Type: N, Coords [ 4.481  4.244 25.909], Mask 1
+Type: C, Coords [ 4.495  4.294 27.286], Mask 1
+Type: N, Coords [ 4.734  5.494 27.835], Mask 1
+Type: N, Coords [ 4.28   3.244 28.067], Mask 1
+Type: C, Coords [ 4.019  2.13  27.355], Mask 1
+Type: P, Coords [ 1.858 -0.155 32.916], Mask 1
+Type: O, Coords [ 2.2800e+00 -1.7000e-02  3.4333e+01], Mask 1
+Type: O, Coords [ 0.793 -1.13  32.549], Mask 1
+Type: O, Coords [ 1.457  1.274 32.352], Mask 1
+Type: C, Coords [ 2.256  2.408 32.638], Mask 1
+Type: C, Coords [ 1.571  3.659 32.146], Mask 1
+Type: O, Coords [ 1.761  3.835 30.718], Mask 1
+Type: C, Coords [ 0.062  3.741 32.403], Mask 1
+Type: O, Coords [-0.223  5.027 32.953], Mask 1
+Type: C, Coords [-0.543  3.574 31.013], Mask 1
+Type: C, Coords [ 0.526  4.18  30.11 ], Mask 1
+Type: N, Coords [ 0.561  3.7   28.723], Mask 1
+Type: C, Coords [ 0.339  2.431 28.248], Mask 1
+Type: N, Coords [ 0.472  2.322 26.946], Mask 1
+Type: C, Coords [ 0.796  3.608 26.534], Mask 1
+Type: C, Coords [ 1.071  4.161 25.263], Mask 1
+Type: N, Coords [ 1.055  3.462 24.126], Mask 1
+Type: N, Coords [ 1.367  5.481 25.204], Mask 1
+Type: C, Coords [ 1.386  6.182 26.342], Mask 1
+Type: N, Coords [ 1.145  5.776 27.587], Mask 1
+Type: C, Coords [ 0.852  4.467 27.616], Mask 1
+Type: P, Coords [-1.702  5.389 33.46 ], Mask 1
+Type: O, Coords [-1.561  6.127 34.742], Mask 1
+Type: O, Coords [-2.599  4.209 33.379], Mask 1
+Type: O, Coords [-2.185  6.443 32.385], Mask 1
+Type: C, Coords [-1.409  7.602 32.152], Mask 1
+Type: C, Coords [-1.868  8.288 30.891], Mask 1
+Type: O, Coords [-1.571  7.465 29.737], Mask 1
+Type: C, Coords [-3.366  8.586 30.831], Mask 1
+Type: O, Coords [-3.512  9.915 30.341], Mask 1
+Type: C, Coords [-3.89   7.566 29.83 ], Mask 1
+Type: C, Coords [-2.708  7.462 28.894], Mask 1
+Type: N, Coords [-2.646  6.287 28.027], Mask 1
+Type: C, Coords [-2.861  4.961 28.316], Mask 1
+Type: N, Coords [-2.739  4.168 27.273], Mask 1
+Type: C, Coords [-2.417  5.031 26.231], Mask 1
+Type: C, Coords [-2.153  4.819 24.852], Mask 1
+Type: N, Coords [-2.167  3.618 24.263], Mask 1
+Type: N, Coords [-1.865  5.902 24.097], Mask 1
+Type: C, Coords [-1.838  7.105 24.684], Mask 1
+Type: N, Coords [-2.065  7.431 25.958], Mask 1
+Type: C, Coords [-2.352  6.337 26.685], Mask 1
+Type: P, Coords [-4.956 10.607 30.276], Mask 1
+Type: O, Coords [-4.885 11.863 31.061], Mask 1
+Type: O, Coords [-6.006  9.603 30.576], Mask 1
+Type: O, Coords [-5.074 10.984 28.734], Mask 1
+Type: C, Coords [-4.136 11.869 28.135], Mask 1
+Type: C, Coords [-4.463 12.06  26.674], Mask 1
+Type: O, Coords [-4.156 10.846 25.948], Mask 1
+Type: C, Coords [-5.927 12.387 26.371], Mask 1
+Type: O, Coords [-5.991 13.394 25.36 ], Mask 1
+Type: C, Coords [-6.494 11.069 25.879], Mask 1
+Type: C, Coords [-5.294 10.411 25.218], Mask 1
+Type: N, Coords [-5.318  8.951 25.254], Mask 1
+Type: C, Coords [-5.424  8.148 26.366], Mask 1
+Type: N, Coords [-5.433  6.876 26.08 ], Mask 1
+Type: C, Coords [-5.321  6.831 24.7  ], Mask 1
+Type: C, Coords [-5.28   5.728 23.832], Mask 1
+Type: O, Coords [-5.335  4.529 24.121], Mask 1
+Type: N, Coords [-5.165  6.122 22.498], Mask 1
+Type: C, Coords [-5.094  7.428 22.065], Mask 1
+Type: N, Coords [-4.988  7.619 20.737], Mask 1
+Type: N, Coords [-5.127  8.474 22.875], Mask 1
+Type: C, Coords [-5.244  8.103 24.171], Mask 1
+Type: P, Coords [-7.414 13.887 24.796], Mask 1
+Type: O, Coords [-7.222 15.289 24.332], Mask 1
+Type: O, Coords [-8.502 13.575 25.763], Mask 1
+Type: O, Coords [-7.631 12.962 23.511], Mask 1
+Type: C, Coords [-6.781 13.101 22.371], Mask 1
+Type: C, Coords [-7.422 12.481 21.152], Mask 1
+Type: O, Coords [-7.287 11.044 21.195], Mask 1
+Type: C, Coords [-8.913 12.766 20.979], Mask 1
+Type: O, Coords [-9.196 12.942 19.592], Mask 1
+Type: C, Coords [-9.566 11.479 21.453], Mask 1
+Type: C, Coords [-8.549 10.431 21.02 ], Mask 1
+Type: N, Coords [-8.545  9.162 21.79 ], Mask 1
+Type: C, Coords [-8.395  7.963 21.106], Mask 1
+Type: O, Coords [-8.268  7.885 19.896], Mask 1
+Type: N, Coords [-8.402  6.847 21.907], Mask 1
+Type: C, Coords [-8.544  6.798 23.283], Mask 1
+Type: O, Coords [-8.535  5.711 23.865], Mask 1
+Type: C, Coords [-8.698  8.081 23.932], Mask 1
+Type: C, Coords [-8.86   8.129 25.419], Mask 1
+Type: C, Coords [-8.689  9.183 23.166], Mask 1
+Type: O, Coords [-11.321  -3.165  21.625], Mask 1
+Type: C, Coords [-12.292  -3.56   20.649], Mask 1
+Type: C, Coords [-12.04   -2.969  19.28 ], Mask 1
+Type: O, Coords [-12.252  -1.543  19.299], Mask 1
+Type: C, Coords [-10.634  -3.172  18.721], Mask 1
+Type: O, Coords [-10.731  -3.375  17.306], Mask 1
+Type: C, Coords [-9.907 -1.883 19.079], Mask 1
+Type: C, Coords [-11.009  -0.837  19.267], Mask 1
+Type: N, Coords [-10.895  -0.158  20.561], Mask 1
+Type: C, Coords [-10.718  -0.787  21.775], Mask 1
+Type: N, Coords [-1.0705e+01  2.0000e-02  2.2795e+01], Mask 1
+Type: C, Coords [-10.869   1.266  22.226], Mask 1
+Type: C, Coords [-10.952   2.518  22.793], Mask 1
+Type: N, Coords [-10.919   2.716  24.101], Mask 1
+Type: N, Coords [-11.095   3.571  21.975], Mask 1
+Type: C, Coords [-11.181   3.342  20.659], Mask 1
+Type: N, Coords [-11.138   2.195  19.991], Mask 1
+Type: C, Coords [-10.974   1.177  20.848], Mask 1
+Type: P, Coords [-9.435 -3.789 16.458], Mask 1
+Type: O, Coords [-9.943 -4.405 15.206], Mask 1
+Type: O, Coords [-8.497 -4.55  17.314], Mask 1
+Type: O, Coords [-8.783 -2.383 16.114], Mask 1
+Type: C, Coords [-9.447 -1.484 15.234], Mask 1
+Type: C, Coords [-8.656 -0.207 15.093], Mask 1
+Type: O, Coords [-8.76   0.577 16.303], Mask 1
+Type: C, Coords [-7.159 -0.372 14.821], Mask 1
+Type: O, Coords [-6.742  0.602 13.862], Mask 1
+Type: C, Coords [-6.528 -0.057 16.164], Mask 1
+Type: C, Coords [-7.47   1.013 16.682], Mask 1
+Type: N, Coords [-7.47   1.24  18.129], Mask 1
+Type: C, Coords [-7.2    0.351 19.14 ], Mask 1
+Type: N, Coords [-7.262  0.878 20.336], Mask 1
+Type: C, Coords [-7.602  2.203 20.099], Mask 1
+Type: C, Coords [-7.821  3.294 20.961], Mask 1
+Type: N, Coords [-7.723  3.223 22.298], Mask 1
+Type: N, Coords [-8.148  4.479 20.399], Mask 1
+Type: C, Coords [-8.248  4.549 19.063], Mask 1
+Type: N, Coords [-8.068  3.597 18.155], Mask 1
+Type: C, Coords [-7.741  2.436 18.744], Mask 1
+Type: P, Coords [-5.372  0.389 13.051], Mask 1
+Type: O, Coords [-5.27   1.456 12.022], Mask 1
+Type: O, Coords [-5.353 -1.032 12.637], Mask 1
+Type: O, Coords [-4.245  0.619 14.163], Mask 1
+Type: C, Coords [-3.37   1.748 14.127], Mask 1
+Type: C, Coords [-4.079  2.979 14.641], Mask 1
+Type: O, Coords [-4.685  2.724 15.936], Mask 1
+Type: C, Coords [-3.171  4.195 14.829], Mask 1
+Type: O, Coords [-3.707  5.358 14.202], Mask 1
+Type: C, Coords [-3.13   4.401 16.333], Mask 1
+Type: C, Coords [-4.457  3.836 16.783], Mask 1
+Type: N, Coords [-4.442  3.375 18.189], Mask 1
+Type: C, Coords [-4.721  4.309 19.207], Mask 1
+Type: O, Coords [-5.002  5.485 18.896], Mask 1
+Type: N, Coords [-4.668  3.91  20.503], Mask 1
+Type: C, Coords [-4.347  2.649 20.802], Mask 1
+Type: N, Coords [-4.276  2.311 22.095], Mask 1
+Type: C, Coords [-4.079  1.679 19.79 ], Mask 1
+Type: C, Coords [-4.142  2.08  18.511], Mask 1
+Type: P, Coords [-2.714  6.556 13.795], Mask 1
+Type: O, Coords [-3.371  7.413 12.777], Mask 1
+Type: O, Coords [-1.372  5.981 13.524], Mask 1
+Type: O, Coords [-2.575  7.406 15.129], Mask 1
+Type: C, Coords [-3.595  8.305 15.516], Mask 1
+Type: C, Coords [-3.146  9.115 16.706], Mask 1
+Type: O, Coords [-3.105  8.274 17.88 ], Mask 1
+Type: C, Coords [-1.766  9.768 16.586], Mask 1
+Type: O, Coords [-1.906 11.127 17.016], Mask 1
+Type: C, Coords [-0.89   8.928 17.513], Mask 1
+Type: C, Coords [-1.88   8.45  18.567], Mask 1
+Type: N, Coords [-1.594  7.183 19.306], Mask 1
+Type: C, Coords [-1.69   7.217 20.684], Mask 1
+Type: O, Coords [-1.86   8.243 21.323], Mask 1
+Type: N, Coords [-1.558  5.999 21.294], Mask 1
+Type: C, Coords [-1.306  4.785 20.705], Mask 1
+Type: O, Coords [-1.257  3.777 21.393], Mask 1
+Type: C, Coords [-1.134  4.822 19.274], Mask 1
+Type: C, Coords [-0.793  3.554 18.555], Mask 1
+Type: C, Coords [-1.289  6.004 18.65 ], Mask 1
+Type: P, Coords [-0.725 12.189 16.78 ], Mask 1
+Type: O, Coords [-1.366 13.512 16.581], Mask 1
+Type: O, Coords [ 0.236 11.679 15.77 ], Mask 1
+Type: O, Coords [-1.1000e-02  1.2208e+01  1.8204e+01], Mask 1
+Type: C, Coords [-0.766 12.517 19.362], Mask 1
+Type: C, Coords [ 0.029 12.25  20.618], Mask 1
+Type: O, Coords [ 0.024 10.847 20.979], Mask 1
+Type: C, Coords [ 1.49  12.705 20.639], Mask 1
+Type: O, Coords [ 1.678 13.512 21.802], Mask 1
+Type: C, Coords [ 2.27  11.401 20.765], Mask 1
+Type: C, Coords [ 1.286 10.537 21.536], Mask 1
+Type: N, Coords [ 1.458  9.06  21.517], Mask 1
+Type: C, Coords [ 1.364  8.409 22.734], Mask 1
+Type: O, Coords [ 1.195  8.992 23.79 ], Mask 1
+Type: N, Coords [ 1.481  7.044 22.671], Mask 1
+Type: C, Coords [ 1.691  6.275 21.544], Mask 1
+Type: O, Coords [ 1.76   5.055 21.649], Mask 1
+Type: C, Coords [ 1.811  7.017 20.3  ], Mask 1
+Type: C, Coords [ 2.069  6.265 19.031], Mask 1
+Type: C, Coords [ 1.686  8.354 20.347], Mask 1
+Type: P, Coords [ 2.846 14.608 21.847], Mask 1
+Type: O, Coords [ 2.259 15.928 22.192], Mask 1
+Type: O, Coords [ 3.742 14.475 20.662], Mask 1
+Type: O, Coords [ 3.694 14.128 23.085], Mask 1
+Type: C, Coords [ 4.153 12.811 23.124], Mask 1
+Type: C, Coords [ 4.366 12.395 24.552], Mask 1
+Type: O, Coords [ 3.941 11.024 24.639], Mask 1
+Type: C, Coords [ 5.835 12.424 24.942], Mask 1
+Type: O, Coords [ 5.99  12.882 26.286], Mask 1
+Type: C, Coords [ 6.288 10.992 24.741], Mask 1
+Type: C, Coords [ 5.023 10.184 24.968], Mask 1
+Type: N, Coords [ 4.916  8.977 24.134], Mask 1
+Type: C, Coords [ 4.779  7.746 24.769], Mask 1
+Type: O, Coords [ 4.671  7.719 26.008], Mask 1
+Type: N, Coords [ 4.759  6.617 24.027], Mask 1
+Type: C, Coords [ 4.848  6.688 22.696], Mask 1
+Type: N, Coords [ 4.842  5.546 22.012], Mask 1
+Type: C, Coords [ 4.949  7.933 22.013], Mask 1
+Type: C, Coords [ 4.975  9.047 22.764], Mask 1
+Type: P, Coords [ 7.458 13.23  26.845], Mask 1
+Type: O, Coords [ 7.322 14.261 27.894], Mask 1
+Type: O, Coords [ 8.393 13.457 25.712], Mask 1
+Type: O, Coords [ 7.925 11.87  27.513], Mask 1
+Type: C, Coords [ 6.986 10.967 28.08 ], Mask 1
+Type: C, Coords [ 7.703  9.812 28.733], Mask 1
+Type: O, Coords [ 7.405  8.604 27.996], Mask 1
+Type: C, Coords [ 9.228  9.932 28.78 ], Mask 1
+Type: O, Coords [ 9.708  9.565 30.071], Mask 1
+Type: C, Coords [ 9.717  8.96  27.719], Mask 1
+Type: C, Coords [ 8.596  7.933 27.619], Mask 1
+Type: N, Coords [ 8.397  7.391 26.256], Mask 1
+Type: C, Coords [ 8.285  6.003 26.089], Mask 1
+Type: O, Coords [ 8.296  5.273 27.09 ], Mask 1
+Type: N, Coords [ 8.164  5.492 24.838], Mask 1
+Type: C, Coords [ 8.142  6.31  23.782], Mask 1
+Type: N, Coords [ 8.051  5.758 22.567], Mask 1
+Type: C, Coords [ 8.219  7.727 23.925], Mask 1
+Type: C, Coords [ 8.343  8.22  25.168], Mask 1
+Type: P, Coords [11.166 10.04  30.548], Mask 1
+Type: O, Coords [11.034 10.651 31.899], Mask 1
+Type: O, Coords [11.806 10.821 29.449], Mask 1
+Type: O, Coords [11.922  8.656 30.729], Mask 1
+Type: C, Coords [11.366  7.651 31.566], Mask 1
+Type: C, Coords [11.906  6.297 31.181], Mask 1
+Type: O, Coords [11.524  5.98  29.82 ], Mask 1
+Type: C, Coords [13.431  6.181 31.221], Mask 1
+Type: O, Coords [13.757  4.851 31.639], Mask 1
+Type: C, Coords [13.815  6.355 29.759], Mask 1
+Type: C, Coords [12.682  5.594 29.109], Mask 1
+Type: N, Coords [12.444  5.808 27.686], Mask 1
+Type: C, Coords [12.673  6.938 26.939], Mask 1
+Type: N, Coords [12.337  6.794 25.684], Mask 1
+Type: C, Coords [11.86   5.493 25.602], Mask 1
+Type: C, Coords [11.338  4.759 24.493], Mask 1
+Type: O, Coords [11.174  5.136 23.325], Mask 1
+Type: N, Coords [10.979  3.465 24.858], Mask 1
+Type: C, Coords [11.095  2.943 26.125], Mask 1
+Type: N, Coords [10.697  1.673 26.295], Mask 1
+Type: N, Coords [11.566  3.616 27.157], Mask 1
+Type: C, Coords [11.926  4.872 26.827], Mask 1
+Type: P, Coords [14.934  4.598 32.701], Mask 1
+Type: O, Coords [14.272  4.275 33.993], Mask 1
+Type: O, Coords [15.897  5.721 32.631], Mask 1
+Type: O, Coords [15.618  3.277 32.137], Mask 1
+Type: C, Coords [14.88   2.066 32.087], Mask 1
+Type: C, Coords [15.215  1.267 30.847], Mask 1
+Type: O, Coords [14.518  1.761 29.665], Mask 1
+Type: C, Coords [16.697  1.151 30.479], Mask 1
+Type: O, Coords [17.074 -0.224 30.37 ], Mask 1
+Type: C, Coords [16.768  1.791 29.109], Mask 1
+Type: C, Coords [15.369  1.542 28.553], Mask 1
+Type: N, Coords [15.053  2.496 27.493], Mask 1
+Type: C, Coords [15.207  3.853 27.554], Mask 1
+Type: N, Coords [15.039  4.442 26.406], Mask 1
+Type: C, Coords [14.704  3.416 25.535], Mask 1
+Type: C, Coords [14.429  3.451 24.138], Mask 1
+Type: O, Coords [14.446  4.427 23.375], Mask 1
+Type: N, Coords [14.123  2.186 23.645], Mask 1
+Type: C, Coords [14.091  1.037 24.394], Mask 1
+Type: N, Coords [13.773 -0.085 23.737], Mask 1
+Type: N, Coords [14.352  0.99  25.697], Mask 1
+Type: C, Coords [14.656  2.211 26.198], Mask 1
+Type: P, Coords [18.558 -0.628 29.88 ], Mask 1
+Type: O, Coords [19.093 -1.612 30.86 ], Mask 1
+Type: O, Coords [19.359  0.577 29.549], Mask 1
+Type: O, Coords [18.278 -1.397 28.509], Mask 1
+Type: C, Coords [17.371 -2.5   28.462], Mask 1
+Type: C, Coords [17.458 -3.202 27.125], Mask 1
+Type: O, Coords [16.921 -2.338 26.091], Mask 1
+Type: C, Coords [18.87  -3.588 26.675], Mask 1
+Type: O, Coords [18.878 -4.76  25.881], Mask 1
+Type: C, Coords [19.255 -2.469 25.727], Mask 1
+Type: C, Coords [17.917 -2.075 25.104], Mask 1
+Type: N, Coords [17.828 -0.639 24.74 ], Mask 1
+Type: C, Coords [17.473 -0.302 23.449], Mask 1
+Type: O, Coords [17.233 -1.129 22.581], Mask 1
+Type: N, Coords [17.413  1.05  23.213], Mask 1
+Type: C, Coords [17.677  2.071 24.108], Mask 1
+Type: O, Coords [17.588  3.243 23.75 ], Mask 1
+Type: C, Coords [18.053  1.644 25.435], Mask 1
+Type: C, Coords [18.376  2.676 26.47 ], Mask 1
+Type: C, Coords [18.102  0.333 25.68 ], Mask 1
+Type: ZN, Coords [12.87   8.232 24.146], Mask 1
+Type: ZN, Coords [ -8.319 -18.103   2.886], Mask 1
+/mnt/data/shared/flyloft/nateprice8/np15-ebov-cross-reactive-design/ebov-cross-reactive-design-37ae6c68/runs/b8c5fbec-6499-422d-88cc-ae09b7c2c4d9/code/tools/ligandmpnn/test/check.py:123: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  stats = torch.load(T / "fixed" / "stats" / "1BC8.pt", map_location="cpu")
+PASS: ligandmpnn designed 1BC8 chain C with DNA/zinc context; 32 + 8 + 4
+PASS: sequences are 93 amino acids; confidences and seq_rec in range;
+PASS: fixed residues C1-C5 kept as MDSAI; stats and packed PDBs written.

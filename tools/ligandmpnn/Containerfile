@@ -1,0 +1,38 @@
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# LigandMPNN's checkpoints are plain torch.save dictionaries; torch >= 2.6
+# loads with weights_only=True by default and refuses them, so they load the
+# way upstream saves them (they are the IPD's own published files).
+ENV TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 HF_HUB_OFFLINE=1
+# This base is the shed's shared CUDA-13 stack (python 3.12, torch 2.14.1,
+# gcc already in it). ProDy is 2.6.1, not upstream's 2.4.1 pin: no ProDy
+# release ships Linux wheels before 2.6.1 (2.4.1 carries Windows wheels and
+# an sdist only, and that sdist does not compile on a current toolchain),
+# while 2.6.1 has a cp312 manylinux wheel, so nothing in this image
+# compiles. The API LigandMPNN uses -- parsePDB, select, AtomGroup,
+# setResnames, writePDB -- is unchanged between the two. numpy is 2.5.4,
+# what esm2-650m and esmc-600m pin on this base, not upstream's 1.23.5
+# (see the patch two steps below). scipy, biopython and pyparsing are
+# ProDy's own requirements; dm-tree and ml-collections are what the
+# vendored openfold imports (residue_constants, config).
+RUN pip install --no-cache-dir --break-system-packages \
+      numpy==2.5.4 scipy==1.18.1 biopython==1.88 pyparsing==3.1.1 \
+      ProDy==2.6.1 dm-tree==0.1.10 ml-collections==1.1.0
+# Upstream code at commit 26ec57a and its public checkpoints from the IPD
+# server. The weights carry no license of their own; the repository's MIT
+# license is what publishes them, and the LICENSE file ships beside the code.
+RUN python3 -I -c "import pathlib, tarfile, urllib.request; sha='26ec57ac976ade5379920dbd43c7f97a91cf82de'; root=pathlib.Path('/opt/LigandMPNN'); root.mkdir(parents=True); tmp=root.parent/'ligandmpnn.tar.gz'; urllib.request.urlretrieve(f'https://github.com/dauparas/LigandMPNN/archive/{sha}.tar.gz', tmp); tarfile.open(tmp).extractall(root.parent); src=root.parent/f'LigandMPNN-{sha}'; [p.rename(root/p.name) for p in src.iterdir()]; src.rmdir(); tmp.unlink(); params=root/'model_params'; params.mkdir(); [urllib.request.urlretrieve(f'https://files.ipd.uw.edu/pub/ligandmpnn/{n}.pt', params/f'{n}.pt') for n in ('ligandmpnn_v_32_005_25','ligandmpnn_v_32_010_25','ligandmpnn_v_32_020_25','ligandmpnn_v_32_030_25','proteinmpnn_v_48_020','ligandmpnn_sc_v_32_002_16')]"
+# The one patch: upstream pins numpy 1.23.5 because this commit's vendored
+# openfold still names the np.int dtype alias, which numpy 1.24 removed, and
+# python 3.12 has no numpy that old. All three uses are module-level dtype
+# declarations in openfold/np/residue_constants.py; np.int only ever aliased
+# the built-in, so dtype=int is the same array. The assert makes the build
+# fail if upstream moves underneath the patch.
+RUN python3 -I -c "import pathlib; p=pathlib.Path('/opt/LigandMPNN/openfold/np/residue_constants.py'); s=p.read_text(); n=s.count('dtype=np.int)'); assert n==3, n; p.write_text(s.replace('dtype=np.int)', 'dtype=int)'))"
+# The stack run.py needs, proven before the image is pushed: every module
+# imports (sc_utils pulls the vendored openfold and model_utils), the
+# checkpoint loads under this torch, and its state dict fits the model
+# code's shapes.
+RUN cd /opt/LigandMPNN && python3 -E -s -c "import numpy, scipy, Bio, tree, ml_collections, prody, torch, sc_utils, run; ckpt=torch.load('model_params/ligandmpnn_v_32_010_25.pt', map_location='cpu'); from model_utils import ProteinMPNN; m=ProteinMPNN(node_features=128, edge_features=128, hidden_dim=128, num_encoder_layers=3, num_decoder_layers=3, k_neighbors=ckpt['num_edges'], device=torch.device('cpu'), atom_context_num=ckpt['atom_context_num'], model_type='ligand_mpnn', ligand_mpnn_use_side_chain_context=0); m.load_state_dict(ckpt['model_state_dict']); print('numpy', numpy.__version__, 'torch', torch.__version__, 'prody', prody.__version__, 'checkpoint loads and fits')"
+COPY --chmod=755 bin/ligandmpnn /usr/local/bin/ligandmpnn
+COPY test /toolshed/test
