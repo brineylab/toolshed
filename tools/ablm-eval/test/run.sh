@@ -31,3 +31,16 @@ tasks:
 YAML
 ablm-eval run "$d/run.yaml" --cache-dir "$d/cache"
 python3 -I /toolshed/test/check.py "$d/results"
+
+# the documented --overwrite: a rerun into a task directory that already holds
+# files is refused without it, and recomputes with it -- the commands a user
+# coming back to a finished (or failed, or preempted) run needs, in order.
+# COLUMNS=1000 keeps rich from wrapping the refusal at 80 columns, and the tr
+# joins whatever wrap remains before the grep
+if COLUMNS=1000 ablm-eval run "$d/run.yaml" --cache-dir "$d/cache" > "$d/refused.txt" 2>&1; then
+  echo "the rerun without --overwrite was not refused" >&2
+  exit 1
+fi
+tr "\n" " " < "$d/refused.txt" | grep -q "exists and is not empty"
+COLUMNS=1000 ablm-eval run "$d/run.yaml" --cache-dir "$d/cache" --overwrite
+python3 -I /toolshed/test/check.py "$d/results"
