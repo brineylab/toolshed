@@ -10,21 +10,30 @@
 FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 # git and ca-certificates: pip installs AbLM-Eval (and its BALM dependency)
-# from GitHub at pinned commits
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+# from GitHub at pinned commits.  gcc and g++: AbLM-Eval requires numpy<2, and
+# abutils' fastcluster is the one dependency that leaves wheel-land there --
+# 1.3.0 needs numpy 2, so numpy<2 holds it at 1.2.6, whose wheels stop at
+# cp311; pip compiles its C++ sdist in the image (against the numpy 1.26
+# wheel its pyproject's oldest_supported_numpy pins), and the runtime base
+# ships no C++ compiler -- the first build died on exactly that.  A compiler
+# at run time also covers Triton, which JIT-compiles kernels on first use
+# (boltz-2 1.0.1's lesson, e1-150m's gcc g++).
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates gcc g++ \
   && rm -rf /var/lib/apt/lists/*
+# torch first, in its own layer: it replaces the base's 2.14.1, and its wheel
+# plus the nvidia-* CUDA-13 dependencies it pulls are the download, so a later
+# step that fails and is retried does not fetch them again
+RUN pip install --no-cache-dir --break-system-packages torch==2.15.0
 # The brief's known-good set: AbLM-Eval's tests passed (38 passed) on exactly
 # these versions (a Python 3.11 venv; this base is Python 3.12, which the same
-# wheels support).  torch 2.15.0 (the PyPI wheel is the CUDA-13 build, matching
-# this base) replaces the base's 2.14.1, and numpy 1.26.4 / pyarrow 20.0.0 pin
-# under the base's numpy 2, because AbLM-Eval requires numpy<2 and pyarrow<21
+# wheels support).  numpy 1.26.4 / pyarrow 20.0.0 pin under the base's numpy 2,
+# because AbLM-Eval requires numpy<2 and pyarrow<21
 # (any pyarrow 21 or later needs numpy 2 and breaks the import).  pyyaml,
 # matplotlib, seaborn and tqdm are pinned at the versions the same set resolved
 # to in the campaign's Python 3.12 build of it.  BALM rides AbLM-Eval's own
 # dependency pin, git 36a8001.
 RUN pip install --no-cache-dir --break-system-packages \
   "ablm-eval @ git+https://github.com/smburbach/AbLM-Eval@641cff87aa688967d61a5beaacb8c9b51b29c78e" \
-  torch==2.15.0 \
   numpy==1.26.4 \
   pyarrow==20.0.0 \
   transformers==5.23.0 \
