@@ -22,8 +22,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
   && rm -rf /var/lib/apt/lists/*
 # torch first, in its own layer: it replaces the base's 2.14.1, and its wheel
 # plus the nvidia-* CUDA-13 dependencies it pulls are the download, so a later
-# step that fails and is retried does not fetch them again
-RUN pip install --no-cache-dir --break-system-packages torch==2.15.0
+# step that fails and is retried does not fetch them again.  The base also
+# ships torchaudio and torchvision built against its 2.14.1+cu13.0; the pinned
+# torch is a cu132 wheel, transformers' Trainer imports torchaudio at import
+# time, and torchaudio's torch-CUDA check then raises a RuntimeError that
+# transformers' ImportError guards do not catch -- the first candidate's test
+# died on exactly that.  torchaudio has no release past 2.11.1, so none
+# matches torch 2.15, and nothing in AbLM-Eval, BALM or transformers needs
+# either companion (the known-good set's own freeze carries neither) -- they
+# go with the torch they were built for
+RUN pip uninstall -y --break-system-packages torchaudio torchvision \
+  && pip install --no-cache-dir --break-system-packages torch==2.15.0
 # The brief's known-good set: AbLM-Eval's tests passed (38 passed) on exactly
 # these versions (a Python 3.11 venv; this base is Python 3.12, which the same
 # wheels support).  numpy 1.26.4 / pyarrow 20.0.0 pin under the base's numpy 2,
@@ -53,4 +62,10 @@ RUN pip install --no-cache-dir --break-system-packages \
   matplotlib==3.11.2 \
   seaborn==0.13.2 \
   tqdm==4.70.1
+# The import chain that broke the first candidate, proven at build time
+# instead of in the test slot: transformers' Trainer (whose import pulls
+# torchaudio's torch-CUDA check), BALM's trainer (which imports Trainer at
+# module level) and the CLI's entry module.  The asserts make an uninstall
+# that silently missed the stale companions fail the build, not the test.
+RUN python3 -E -s -c "import importlib.util as u; import torch, transformers, balm; from transformers import Trainer; from ablm_eval.cli import app; assert u.find_spec('torchaudio') is None; assert u.find_spec('torchvision') is None; print('torch', torch.__version__, '| transformers', transformers.__version__, '| Trainer, balm and the cli import')"
 COPY test /toolshed/test
