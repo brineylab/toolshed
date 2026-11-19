@@ -1,16 +1,16 @@
 ---
 tool: ablm-eval
 version: 1.0.0
-image: ghcr.io/brineylab/toolshed/ablm-eval@sha256:ebede71dcbe39456385bbc41e86251f8cd64bf1b44e9140d52623cda847adcc8
-digest: sha256:ebede71dcbe39456385bbc41e86251f8cd64bf1b44e9140d52623cda847adcc8
+image: ghcr.io/brineylab/toolshed/ablm-eval@sha256:3c085794fae7635e7daaa699fbaab5626f928ba63ac33af52fecfc447ef93f89
+digest: sha256:3c085794fae7635e7daaa699fbaab5626f928ba63ac33af52fecfc447ef93f89
 runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
 host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
-started: 2026-11-19T20:38:59Z
+started: 2026-11-19T21:47:04Z
 exit: 0
 ---
-Job 933: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=933
-pyxis: importing docker image: ghcr.io#brineylab/toolshed/ablm-eval@sha256:ebede71dcbe39456385bbc41e86251f8cd64bf1b44e9140d52623cda847adcc8
-pyxis: imported docker image: ghcr.io#brineylab/toolshed/ablm-eval@sha256:ebede71dcbe39456385bbc41e86251f8cd64bf1b44e9140d52623cda847adcc8
+Job 996: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=996
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/ablm-eval@sha256:3c085794fae7635e7daaa699fbaab5626f928ba63ac33af52fecfc447ef93f89
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/ablm-eval@sha256:3c085794fae7635e7daaa699fbaab5626f928ba63ac33af52fecfc447ef93f89
 node: slurm-b200-204-039
 GPU 0: NVIDIA B200 (UUID: GPU-e67ed7ef-398a-0e83-f718-d4959ff8659b)
 ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┓
@@ -27,13 +27,13 @@ GPU 0: NVIDIA B200 (UUID: GPU-e67ed7ef-398a-0e83-f718-d4959ff8659b)
 │ scaling-350m-full │ brineylab/350M_full_checkpoint-500000 │ 9cd9e8af5138 │ <cls><cls>         │
 └───────────────────┴───────────────────────────────────────┴──────────────┴────────────────────┘
 tiny: brineylab/8M_full_checkpoint-500000 @ 01e6532f9091
-Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files:  14%|█▍        | 1/7 [00:00<00:01,  5.27it/s]Fetching 7 files: 100%|██████████| 7/7 [00:01<00:00,  4.11it/s]Fetching 7 files: 100%|██████████| 7/7 [00:01<00:00,  4.15it/s]
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files:  14%|█▍        | 1/7 [00:00<00:01,  5.46it/s]Fetching 7 files: 100%|██████████| 7/7 [00:01<00:00,  3.73it/s]Fetching 7 files: 100%|██████████| 7/7 [00:01<00:00,  3.78it/s]
 [4mRunning Task #1: Mini Per Pos Inference[0m
-Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 14575.38it/s]
-Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 8 examples [00:00, 3154.20 examples/s]
-Map:   0%|          | 0/8 [00:00<?, ? examples/s]Map: 100%|██████████| 8/8 [00:00<00:00, 2078.45 examples/s]
-Map:   0%|          | 0/8 [00:00<?, ? examples/s]Map: 100%|██████████| 8/8 [00:00<00:00, 1262.16 examples/s]
-Running inference:   0%|          | 0/8 [00:00<?, ?it/s]Running inference:  12%|█▎        | 1/8 [00:00<00:02,  3.13it/s]Running inference:  50%|█████     | 4/8 [00:00<00:00, 10.18it/s]Running inference:  88%|████████▊ | 7/8 [00:00<00:00, 14.36it/s]Running inference: 100%|██████████| 8/8 [00:00<00:00, 12.53it/s]
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 14329.20it/s]
+Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 8 examples [00:00, 2801.10 examples/s]
+Map:   0%|          | 0/8 [00:00<?, ? examples/s]Map: 100%|██████████| 8/8 [00:00<00:00, 2051.38 examples/s]
+Map:   0%|          | 0/8 [00:00<?, ? examples/s]Map: 100%|██████████| 8/8 [00:00<00:00, 1248.03 examples/s]
+Running inference:   0%|          | 0/8 [00:00<?, ?it/s]Running inference:  12%|█▎        | 1/8 [00:00<00:02,  2.52it/s]Running inference:  50%|█████     | 4/8 [00:00<00:00,  8.85it/s]Running inference:  75%|███████▌  | 6/8 [00:00<00:00, 11.68it/s]Running inference: 100%|██████████| 8/8 [00:00<00:00, 11.01it/s]
 python 3.12.3
 token ids of the first paired input: [ 0  9  7 16  4  7  9  8  6  6  6  4  7 16 14  6  6  8  4 10  4  8 23  5
   5  8  6 18 11 18  8  8 19  5 20  8 22  7 10 16  5 14  6 15  6  4  9 22
@@ -46,4 +46,21 @@ token ids of the first paired input: [ 0  9  7 16  4  7  9  8  6  6  6  4  7 16 
  18  8  6  8  6  8  6 11 13 18 11  4 11 12  8  8  4 16 14  9 13  7  5 11
  19 19 23 16 15 19 17  8  5 14  4 11 18  6  6  6  8 15  7  9 12 15  2]
 mean per-residue log-probability: -0.311014 (reference -0.311014, tolerance 0.0001)
-Job 933: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=933
+tiny: brineylab/8M_full_checkpoint-500000 @ 01e6532f9091
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 1246.50it/s]
+[4mRunning Task #1: Mini Per Pos Inference[0m
+Loading weights:   0%|          | 0/107 [00:00<?, ?it/s]Loading weights: 100%|██████████| 107/107 [00:00<00:00, 15717.26it/s]
+Running inference:   0%|          | 0/8 [00:00<?, ?it/s]Running inference:  12%|█▎        | 1/8 [00:00<00:02,  3.16it/s]Running inference:  38%|███▊      | 3/8 [00:00<00:00,  8.20it/s]Running inference:  75%|███████▌  | 6/8 [00:00<00:00, 13.41it/s]Running inference: 100%|██████████| 8/8 [00:00<00:00, 12.36it/s]
+python 3.12.3
+token ids of the first paired input: [ 0  9  7 16  4  7  9  8  6  6  6  4  7 16 14  6  6  8  4 10  4  8 23  5
+  5  8  6 18 11 18  8  8 19  5 20  8 22  7 10 16  5 14  6 15  6  4  9 22
+  7  8  5 12  8  6  8  6  6  8 11 19 19  6 13  8  7 15  6 10 18 11 12  8
+ 10 13 17  8 15 17 11  4 19  4 16 20 17  8  4 10  5  9 13 11  5  7 19 19
+ 23  5 15  5  5 20 14  5 10 14  6 12  7 19 19 19 19 19 19 20 13  7 22  6
+ 15  6 11 11  7 11  7  8  8  0  0 13 12 16 20 11 16  8 14  8  8  4  8  5
+  8  7  6 13 10  7 11 12 11 23 10  5  8 16  6 12 17 17 19  4  5 22 19 16
+ 16 15 14  6 15  7 14 15  4  4 12 19  5  5  8 11  4 16  8  6  7 14  8 10
+ 18  8  6  8  6  8  6 11 13 18 11  4 11 12  8  8  4 16 14  9 13  7  5 11
+ 19 19 23 16 15 19 17  8  5 14  4 11 18  6  6  6  8 15  7  9 12 15  2]
+mean per-residue log-probability: -0.311014 (reference -0.311014, tolerance 0.0001)
+Job 996: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=996
