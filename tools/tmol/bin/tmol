@@ -1,0 +1,330 @@
+#!/usr/bin/env -S python3 -I
+"""tmol: score, minimize, pack, and relax structures with tmol.
+
+tmol (https://github.com/RosettaCommons/tmol, BSD-3-Clause) is
+RosettaCommons' GPU implementation of the Rosetta energy function in
+PyTorch.  This wrapper gives it four verbs with defaults; anything
+past the defaults is the library way, ``python3 -I script.py``,
+documented in this tool's skill.
+
+    tmol score     <in> <scores.tsv>          [--device DEV]
+    tmol minimize  <in> <outdir>             [--device DEV]
+    tmol pack      <in> <outdir> [--seed N]  [--device DEV]
+    tmol relax     <in> <outdir> [--seed N]  [--device DEV]
+
+``<in>`` is one structure file (PDB, mmCIF, MOL2 or SDF, optionally
+gzip/Zstandard compressed) or a directory of them; every input is
+loaded into one batch and processed together on the device.  All verbs
+score with the beta2016 score function.  Each verb seeds torch and the
+load-time hydrogen packer, and ``--seed`` (default 0) additionally
+drives packing and relaxation: seeded ``pack`` runs write
+byte-identical structures, while seeded ``relax`` runs on GPU land in
+different local minima (see this tool's skill).  The optimizer verbs
+write one structure per input into ``<outdir>`` (the input's format
+and file name) plus ``<outdir>/scores.tsv``, which matches what
+``tmol score <outdir>`` reports to within GPU reduction noise (~2e-4),
+so the verbs chain through files: ``tmol relax in/ out/`` then
+``tmol score out/ s.tsv``.
+"""
+
+import argparse
+import sys
+import time
+from pathlib import Path
+
+import biotite.structure
+import torch
+from tmol import (
+    PackerPalette,
+    PackerTask,
+    PoseStackBuilder,
+    atom_array_from_file,
+    beta2016_score_function,
+    fast_relax,
+    file_from_pose_stack,
+    pack_rotamers,
+    pose_stack_from_atom_array,
+    run_cart_min,
+)
+from tmol.io import build_context_from_atom_array
+from tmol.pack import (
+    FixedAAChiSampler,
+    IncludeCurrentSampler,
+    create_dunbrack_sampler_from_database,
+)
+
+_STRUCTURE_SUFFIXES = {
+    ".pdb",
+    ".ent",
+    ".cif",
+    ".mmcif",
+    ".bcif",
+    ".mol2",
+    ".sdf",
+    ".mol",
+}
+_COMPRESSION_SUFFIXES = {".gz", ".gzip", ".zst"}
+
+# `tmol score` always runs at this seed, and the optimizer verbs score
+# their written outputs at it too, so scores.tsv matches a later
+# `tmol score <outdir>` up to GPU reduction noise (~2e-4).
+_SCORE_SEED = 0
+
+_PAST_TENSE = {"minimize": "minimized", "pack": "packed", "relax": "relaxed"}
+
+
+def _note(message):
+    print(f"tmol: {message}", file=sys.stderr, flush=True)
+
+
+def _suffixes(path):
+    """A path's suffixes in path order, lowercased (the extension is last)."""
+    return [suffix.lower() for suffix in Path(path).suffixes]
+
+
+def _is_structure_file(path):
+    suffixes = _suffixes(path)
+    if not suffixes:
+        return False
+    if suffixes[-1] in _COMPRESSION_SUFFIXES:
+        # e.g. 1UBQ.pdb.gz: a compressed structure file
+        return len(suffixes) > 1 and suffixes[-2] in _STRUCTURE_SUFFIXES
+    return suffixes[-1] in _STRUCTURE_SUFFIXES
+
+
+def collect_inputs(input_path):
+    """The sorted list of structure files an input path names."""
+    path = Path(input_path)
+    if path.is_file():
+        return [path]
+    if path.is_dir():
+        files = sorted(
+            entry
+            for entry in path.iterdir()
+            if entry.is_file() and _is_structure_file(entry)
+        )
+        if not files:
+            raise SystemExit(f"tmol: no structure files found in {path}")
+        return files
+    raise SystemExit(f"tmol: input not found: {path}")
+
+
+def output_path_for(outdir, input_file):
+    """Where one input's optimized structure is written."""
+    name = Path(input_file).name
+    suffixes = _suffixes(name)
+    if suffixes and suffixes[-1] in _COMPRESSION_SUFFIXES:
+        # Compressed inputs are written back uncompressed.
+        name = Path(name).with_suffix("").name
+    return Path(outdir) / name
+
+
+def resolve_device(value):
+    if value is None:
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    try:
+        return torch.device(value)
+    except RuntimeError as error:
+        raise SystemExit(f"tmol: bad --device {value!r}: {error}")
+
+
+def load_batch(files, device, seed):
+    """Load every input file into one pose stack, sharing one context.
+
+    The build context (residue types, parameter database, packed block
+    types) is derived once from all inputs together -- preparing any
+    ligands they hold -- and each file's pose is built against it, so
+    mixed protein/ligand inputs land in one batch.  This is tmol's
+    documented way to score many structures that share ligands.
+    """
+    arrays = [atom_array_from_file(str(file)) for file in files]
+    combined = (
+        arrays[0]
+        if len(arrays) == 1
+        else biotite.structure.concatenate(arrays)
+    )
+    context = build_context_from_atom_array(
+        combined, device, prepare_ligands=True, ligand_seed=seed
+    )
+    poses = [
+        pose_stack_from_atom_array(array, device, context=context, packer_seed=seed)
+        for array in arrays
+    ]
+    stack = (
+        poses[0] if len(poses) == 1 else PoseStackBuilder.from_poses(poses, device)
+    )
+    return stack, context
+
+
+def score_stack(stack, context, device):
+    """Total and per-term beta2016 scores for every pose in a stack."""
+    sfxn = beta2016_score_function(device, param_db=context.parameter_database)
+    scorer = sfxn.render_whole_pose_scoring_module(stack)
+    with torch.no_grad():
+        totals = scorer(stack.coords).detach().cpu()
+        terms = scorer(stack.coords, sum_terms=False).detach().cpu()
+    names = [score_type.name for score_type in sfxn.all_score_types()]
+    if tuple(terms.shape) != (len(names), stack.n_poses):
+        raise SystemExit(
+            f"tmol: unexpected score-term shape {tuple(terms.shape)} "
+            f"for {len(names)} terms and {stack.n_poses} poses"
+        )
+    return names, totals, terms
+
+
+def write_scores_tsv(path, files, names, totals, terms):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as handle:
+        handle.write("\t".join(["name", "total", *names]) + "\n")
+        for pose, file in enumerate(files):
+            values = [totals[pose].item()]
+            values.extend(terms[:, pose].tolist())
+            row = "\t".join([file.name, *(f"{value:.6f}" for value in values)])
+            handle.write(row + "\n")
+
+
+def score_files(files, device, seed):
+    """Load, score and tabulate a list of files (the score verb's core)."""
+    stack, context = load_batch(files, device, seed)
+    names, totals, terms = score_stack(stack, context, device)
+    return names, totals, terms
+
+
+def verb_score(args):
+    device = resolve_device(args.device)
+    started = time.perf_counter()
+    torch.manual_seed(_SCORE_SEED)
+    files = collect_inputs(args.input)
+    names, totals, terms = score_files(files, device, _SCORE_SEED)
+    write_scores_tsv(args.scores_tsv, files, names, totals, terms)
+    _note(
+        f"scored {len(files)} structure(s) on {device} in "
+        f"{time.perf_counter() - started:.1f}s -> {args.scores_tsv}"
+    )
+
+
+def verb_optimize(args, operation, seed):
+    device = resolve_device(args.device)
+    started = time.perf_counter()
+    torch.manual_seed(seed)
+    files = collect_inputs(args.input)
+    stack, context = load_batch(files, device, seed)
+    sfxn = beta2016_score_function(device, param_db=context.parameter_database)
+    loaded = time.perf_counter()
+
+    if operation == "minimize":
+        result = run_cart_min(stack, sfxn)
+    elif operation == "pack":
+        task = PackerTask(stack, PackerPalette())
+        task.restrict_to_repacking()
+        task.add_conformer_sampler(
+            create_dunbrack_sampler_from_database(
+                context.parameter_database, device
+            )
+        )
+        task.add_conformer_sampler(FixedAAChiSampler())
+        task.add_conformer_sampler(IncludeCurrentSampler())
+        result = pack_rotamers(stack, sfxn, task, seed=seed)
+    elif operation == "relax":
+        # fast_relax has no seed argument; its packer draws from torch's
+        # global generator, so reseed right before the call.
+        torch.manual_seed(seed)
+        result = fast_relax(stack, sfxn)
+    else:
+        raise AssertionError(operation)
+    optimized = time.perf_counter()
+
+    outdir = Path(args.outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    outputs = [output_path_for(outdir, file) for file in files]
+    for pose, output in enumerate(outputs):
+        file_from_pose_stack(result.split(pose), str(output))
+    written = time.perf_counter()
+
+    # scores.tsv describes the written structures as `tmol score` sees
+    # them, so the verbs chain through files.
+    names, totals, terms = score_files(outputs, device, _SCORE_SEED)
+    write_scores_tsv(outdir / "scores.tsv", outputs, names, totals, terms)
+    _note(
+        f"{_PAST_TENSE[operation]} {len(files)} structure(s) on {device}: "
+        f"load {loaded - started:.1f}s, {operation} {optimized - loaded:.1f}s, "
+        f"write {written - optimized:.1f}s, score {time.perf_counter() - written:.1f}s"
+    )
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="tmol",
+        description=(
+            "Score, minimize, pack, or relax structures with tmol's "
+            "beta2016 score function. Everything past these defaults is "
+            "the library way: python3 -I script.py (see the tool's skill)."
+        ),
+    )
+    subparsers = parser.add_subparsers(dest="verb", required=True)
+
+    def add_verb(name, help_text):
+        subparser = subparsers.add_parser(name, help=help_text)
+        subparser.add_argument(
+            "input",
+            help="one structure file, or a directory of them",
+        )
+        subparser.add_argument(
+            "--device",
+            metavar="DEV",
+            default=None,
+            help="torch device (default: cuda when available, else cpu)",
+        )
+        return subparser
+
+    score_parser = add_verb(
+        "score", "score structures and write a TSV of beta2016 totals and terms"
+    )
+    score_parser.add_argument(
+        "scores_tsv", help="output TSV path (columns: name, total, one per term)"
+    )
+    score_parser.set_defaults(run=verb_score)
+
+    minimize_parser = add_verb(
+        "minimize", "Cartesian minimization with every atom free"
+    )
+    minimize_parser.add_argument("outdir", help="output directory")
+    minimize_parser.set_defaults(
+        run=lambda args: verb_optimize(args, "minimize", _SCORE_SEED)
+    )
+
+    pack_parser = add_verb("pack", "fixed-sequence side-chain repacking")
+    pack_parser.add_argument("outdir", help="output directory")
+    pack_parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="random seed (default: 0)",
+    )
+    pack_parser.set_defaults(
+        run=lambda args: verb_optimize(args, "pack", args.seed)
+    )
+
+    relax_parser = add_verb("relax", "fast_relax with its defaults")
+    relax_parser.add_argument("outdir", help="output directory")
+    relax_parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="random seed (default: 0)",
+    )
+    relax_parser.set_defaults(
+        run=lambda args: verb_optimize(args, "relax", args.seed)
+    )
+
+    return parser
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    args.run(args)
+
+
+if __name__ == "__main__":
+    main()
