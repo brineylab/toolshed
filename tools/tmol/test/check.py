@@ -7,10 +7,23 @@ the packer chunks a pose stack whose poses hold at most 256 blocks into
 chunks of 25 poses, so `tmol pack` on this batch runs the chunked path --
 25 poses, then 1. Fewer than 25 poses would never leave one chunk.
 
-The reference values are pinned from the campaign's measurement run; the
-docstring below records where they came from and what the tolerances
-cover. TODO(measure): fill in the run, the hardware, and the rationale
-for each tolerance.
+The reference values are pinned by the campaign's measurement run on
+this same fixture (NVIDIA L40S, driver 580.178.04; torch 2.14.1+cu126,
+tmol 1.0.0 with tmol-ops-cu12 1.0.0 -- the image's pins), which also
+measured what each tolerance has to cover:
+
+- score: the 26 identical poses spread 0.000274 within one batch, and
+  two runs in separate processes differ by at most 0.000183 -- GPU
+  score reductions are deterministic only to that noise, never byte
+  for byte, so the checks below compare within it and
+  TOTAL_TOLERANCE keeps 100x headroom for a different GPU;
+- minimize lowered every pose by at least 437.3, pack by 288.2, relax
+  by 473.0, and the demo script by 473.9;
+- two `tmol pack --seed 1` runs wrote byte-identical structures, their
+  scores.tsv totals 0.000161 apart;
+- `tmol score` on minimize's outdir reproduced its scores.tsv within
+  0.000184 -- the same reduction noise, so the chain check tolerates
+  it instead of demanding byte equality.
 """
 import csv
 import math
@@ -22,18 +35,25 @@ T = Path(sys.argv[1])
 NPOSES = 26
 NAMES = [f"pose_{i:02d}.pdb" for i in range(1, NPOSES + 1)]
 
-# TODO(measure): pinned by the measurement run.
-HEADER = None  # the exact "name\ttotal\t<terms>" header of a score TSV
-REFERENCE_TOTAL = None  # 1UBQ's beta2016 total at seed 0
-TOTAL_TOLERANCE = None  # slack on the reference, across processes and GPUs
-POSE_SPREAD = None  # identical poses in one batch may still spread by this
-MIN_LOWER_BY = None  # minimize lowers every pose by at least this
-PACK_LOWER_BY = None  # pack likewise
-RELAX_LOWER_BY = None  # relax likewise
-DEMO_LOWER_BY = None  # the library script's relax lowers by at least this
-SEEDED_MAX_TOTAL_DELTA = None  # seeded pack pair: None = byte-identical
-SEEDED_MAX_COORD_DELTA = None  # seeded pack pair: max coordinate delta, A
-CHAIN_EXACT = True  # tmol score <outdir> reproduces scores.tsv byte for byte
+# Pinned by the measurement run described above.
+HEADER = (  # a score TSV's exact header: name, total, 25 weighted terms
+    "name\ttotal\tfa_ljatr\tfa_ljrep\tfa_lk\tfa_elec\thbond\t"
+    "cart_lengths\tcart_angles\tcart_torsions\tcart_impropers\t"
+    "cart_hxltorsions\tdisulfide\trama\tomega\tdunbrack_rot\t"
+    "dunbrack_rotdev\tdunbrack_semirot\tlk_ball_iso\tlk_ball\t"
+    "lk_bridge\tlk_bridge_uncpl\tref\tgen_torsions\tna_torsion\t"
+    "na_torsion_well\tmetal_coordination"
+)
+REFERENCE_TOTAL = 195.064756  # the batch's mean total; poses spread around it
+TOTAL_TOLERANCE = 0.05  # cross-run noise is 0.0004; headroom for another GPU
+POSE_SPREAD = 0.01  # identical poses in one batch spread 0.000274
+MIN_LOWER_BY = 400  # measured: every pose lowered by at least 437.3
+PACK_LOWER_BY = 250  # measured: at least 288.2
+RELAX_LOWER_BY = 400  # measured: at least 473.0
+DEMO_LOWER_BY = 400  # measured: 473.9
+SEEDED_MAX_TOTAL_DELTA = 0.01  # the seeded pair measured 0.000161
+SEEDED_MAX_COORD_DELTA = 0.05  # the pair measured 0.0; a flipped rotamer is > 0.5
+CHAIN_MAX_TOTAL_DELTA = 0.01  # the chain measured 0.000184, not byte-identical
 
 
 def fail(msg):
@@ -101,8 +121,6 @@ def check_seeded_pair():
     b = {p.name: p.read_bytes() for p in (T / "pack-b").iterdir()}
     if a == b:
         return  # byte-identical: the strongest outcome
-    if SEEDED_MAX_TOTAL_DELTA is None:
-        fail("seeded pack pair: outputs are not byte-identical")
     if set(a) != set(b):
         fail("seeded pack pair: different file sets")
     totals_a = totals_of(T / "pack-a" / "scores.tsv")
@@ -131,13 +149,15 @@ def check_chain():
     written = (T / "min" / "scores.tsv").read_bytes()
     rescored = (T / "score-min.tsv").read_bytes()
     if written == rescored:
-        return
-    if CHAIN_EXACT:
-        fail("tmol score on minimize's outdir does not reproduce "
-             "scores.tsv byte for byte")
+        return  # byte-identical: the strongest outcome
+    # Not byte-identical on GPU: score reductions carry ~1e-4 of noise
+    # between processes. The written and rescored tables must still hold
+    # the same totals, pose by pose.
     worst = max(abs(x - y) for x, y in zip(
         totals_of(T / "min" / "scores.tsv"), totals_of(T / "score-min.tsv")))
-    fail(f"chained scores differ by {worst:.6f}")
+    if worst > CHAIN_MAX_TOTAL_DELTA:
+        fail("tmol score on minimize's outdir does not reproduce scores.tsv "
+             f"within {CHAIN_MAX_TOTAL_DELTA}: {worst:.6f}")
 
 
 def check_demo():
@@ -155,8 +175,6 @@ def check_demo():
 
 
 def main():
-    if HEADER is None:
-        raise SystemExit("check.py: reference values not pinned yet")
     totals = check_scores_tsv(T / "scores.tsv", "score")
     check_verb_outdir(T / "min", "minimize", MIN_LOWER_BY)
     check_verb_outdir(T / "pack-a", "pack", PACK_LOWER_BY)

@@ -8,7 +8,7 @@ metadata:
 
 Image: `ghcr.io/brineylab/toolshed/tmol:1.0.0`
 
-tmol 1.0.0 — the RosettaCommons `tmol` package, BSD-3-Clause (Institute for Protein Design; the upstream `LICENSE` ships in the image at `/opt/tmol/LICENSE`; documentation, quickstart, and runnable tutorials at https://github.com/RosettaCommons/tmol/tree/v1.0.0) — on the shed's CUDA-12.6 PyTorch 2.14.1 image (Python 3.12), with the `cu12` extra (`tmol-ops-cu12`, the CUDA operators) and the `ligand` extra (Open Babel, which ligand preparation uses). The beta2016 parameters ship inside the wheel: no weights are fetched, the image needs no network, and it runs on CPU too (`--device cpu`), many times slower. tmol's scores are tmol score units — not kcal/mol, and not numerically interchangeable with Rosetta's. Upstream ships no command-line program, so the image carries the shed's wrapper, `tmol`, four verbs with defaults; everything past the defaults is the library way, `python3 -I script.py`, below.
+tmol 1.0.0 — the RosettaCommons `tmol` package, BSD-3-Clause (Institute for Protein Design; the upstream `LICENSE` ships in the image at `/opt/tmol/LICENSE`; documentation, quickstart, and runnable tutorials at https://github.com/RosettaCommons/tmol/tree/v1.0.0) — on the shed's CUDA-12.6 PyTorch 2.14.1 image (Python 3.12), with the `cu12` extra (`tmol-ops-cu12`, the CUDA operators) and the `ligand` extra (Open Babel, which ligand preparation uses). The beta2016 parameters ship inside the wheel: no weights are fetched, the image needs no network, and it runs on CPU too (`--device cpu`), slower there (measured below). tmol's scores are tmol score units — not kcal/mol, and not numerically interchangeable with Rosetta's. Upstream ships no command-line program, so the image carries the shed's wrapper, `tmol`, four verbs with defaults; everything past the defaults is the library way, `python3 -I script.py`, below.
 
 ## Commands
 
@@ -23,7 +23,7 @@ tmol relax in/ out/
 
 - `score` writes a TSV, one row per input — `name`, `total`, then one column per weighted beta2016 term, `%.6f` values. Every verb scores with beta2016.
 - `minimize` is Cartesian minimization with every atom free; `pack` is fixed-sequence side-chain repacking; `relax` is FastRelax with its defaults (Cartesian, every atom free).
-- The optimizer verbs write one structure per input into `out/` — the input's own format and file name, compression stripped — plus `out/scores.tsv`, exactly what `tmol score out/` reports, so the verbs chain through files:
+- The optimizer verbs write one structure per input into `out/` — the input's own format and file name, compression stripped — plus `out/scores.tsv`, the same numbers `tmol score out/` reports again to within GPU reduction noise (measured ≤ 2×10⁻⁴ on the total; not byte-identical), so the verbs chain through files:
 
 ```bash
 tmol relax in/ out/
@@ -157,11 +157,20 @@ gradient = coords.grad    # stack.coords' shape
 ## Inputs and outputs
 
 - **In:** one structure file, or a directory of them (read flat, not recursively): PDB (`.pdb`, `.ent`), mmCIF (`.cif`, `.mmcif`, `.bcif`), MOL2, SDF, or MDL `.mol`, each optionally `.gz`, `.gzip`, or `.zst`. Proteins, nucleic acids, ligands, and complexes; waters are dropped.
-- **Out:** `score` writes its TSV with a `name` column (the input's file name), `total`, and one column per weighted beta2016 term. The optimizer verbs write one structure per input — same format, same file name, compression stripped — plus `scores.tsv` in the same shape, so `tmol score <outdir>` reproduces it exactly.
+- **Out:** `score` writes its TSV with a `name` column (the input's file name), `total`, and one column per weighted beta2016 term. The optimizer verbs write one structure per input — same format, same file name, compression stripped — plus `scores.tsv` in the same shape, which `tmol score <outdir>` reproduces to within GPU reduction noise (≤ 2×10⁻⁴ measured on the total).
 
 ## Compute
 
-One GPU. TODO(measure): the measured end-to-end rate of each verb on the batch, the GPU memory it peaks at, the driver floor, and the CPU-runtime note.
+One GPU. Measured end to end — load, compute, write, and the written structures' rescore — on the test's fixture (26 poses of 1UBQ, 72 KB a pose) on one NVIDIA L40S (46 GB, driver 580.178.04), torch 2.14.1+cu126:
+
+| verb | time | rate |
+| --- | --- | --- |
+| `score` | 23–24 s | ~1.1 structures/s |
+| `minimize` | 28 s | ~0.9 structures/s |
+| `pack` | 16–18 s | ~1.5 structures/s |
+| `relax` | 38–39 s | ~0.7 structures/s |
+
+The library way's one-pose relax-then-score script took 14 s. Most of a small run is fixed cost — structure load, parameter-database rendering, first-use CUDA compilation — so rates rise with batch size until the packer's chunking (25 poses a chunk here) and GPU memory bind; every verb prints its own load / operate / write / score breakdown to stderr. On CPU (16 cluster cores) the same batch ran `score` 29 s, `minimize` 29 s, `pack` 21 s, `relax` 72 s — 1.0–1.9× slower end to end, the gap widening with the compute's share — and the one-pose script 77 s (5.6× slower: a single pose's tensors leave the CPU cores idle where a batch spreads over them). The fixture's CPU and GPU totals agree within the same ~3×10⁻⁴ reduction noise.
 
 ## Running it
 
@@ -185,8 +194,9 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/tmol:1.0.0 \
 - The test's fixture is 26 copies of water-stripped 1UBQ because tmol's packer chunks a pose stack: a pose of at most 256 blocks (1UBQ's 76) packs in chunks of 25 poses, so 26 copies crosses the boundary — the test exercises the chunked path (25 poses, then 1); fewer than 25 poses never leaves one chunk. `TMOL_PACK_MAX_POSES_PER_CHUNK` lowers the bound when GPU memory is tight.
 - tmol's scores are tmol score units, not kcal/mol, and not numerically interchangeable with Rosetta's; compare tmol numbers with tmol numbers.
 - Waters (HOH) are silently dropped on load, in every path; everything else non-protein — ligands, metals, DNA — is parameterized and kept.
-- Seeding: every verb seeds torch and the load-time hydrogen packer; `--seed` (pack/relax, default 0) additionally drives the packer's annealer and FastRelax. `score` always runs at seed 0, and the optimizer verbs score their written outputs at seed 0, which is why `tmol score <outdir>` reproduces `scores.tsv` exactly. `fast_relax` takes no seed argument — library callers `torch.manual_seed` before it.
-- TODO(measure): seeded-run reproducibility on GPU (byte-identical or the measured delta), if the pair is not byte-identical.
-- The image is CUDA 12.6: it needs an NVIDIA driver from the CUDA 12 era. TODO(measure): the driver the campaign measured on.
+- Seeding: every verb seeds torch and the load-time hydrogen packer; `--seed` (pack/relax, default 0) additionally drives the packer's annealer and FastRelax. `score` always runs at seed 0, and the optimizer verbs score their written outputs at seed 0, which is why `tmol score <outdir>` reproduces `scores.tsv` within the reduction noise above. `fast_relax` takes no seed argument — library callers `torch.manual_seed` before it.
+- Seeded reproducibility, measured on the fixture: two `tmol pack --seed 1` runs wrote byte-identical structures (their `scores.tsv` totals 1.6×10⁻⁴ apart — the reduction noise), but two `tmol relax --seed 1` runs did **not**: CUDA score reductions are non-deterministic at the ~10⁻⁴ level, and FastRelax's iterated pack-and-minimize cycles amplify that noise into different local minima — the pair's totals differed by up to 3.1 and a few side-chain atoms by up to 5.4 Å, pose for pose, at the same seed. Treat `relax` as stochastic: compare energies, not coordinates, and take the best of several seeds when the structure matters.
+- The image is CUDA 12.6: it needs an NVIDIA driver from the CUDA 12 era (≥ 525.60.13). The campaign measured on an L40S with driver 580.178.04.
+- On CPU (`--device cpu`) every verb works and the totals agree with the GPU's within the same ~3×10⁻⁴ noise, but the compute falls behind as the batch shrinks: 1.0–1.9× slower per verb on the 26-pose fixture and 5.6× on a single pose (see Compute).
 - The wrapper runs under `python3 -I`, and the library way above is the same flag: a caller's `PYTHONPATH` or user site-packages never replace what the image tested.
 - A directory is read flat (no recursion) and only structure-suffixed files are collected, so the `scores.tsv` inside an optimizer verb's outdir does not confuse a later `tmol score` of that directory.

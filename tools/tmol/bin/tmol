@@ -15,13 +15,16 @@ documented in this tool's skill.
 ``<in>`` is one structure file (PDB, mmCIF, MOL2 or SDF, optionally
 gzip/Zstandard compressed) or a directory of them; every input is
 loaded into one batch and processed together on the device.  All verbs
-score with the beta2016 score function.  Runs are reproducible: each
-verb seeds torch and the load-time hydrogen packer, and ``--seed``
-(default 0) additionally seeds packing and relaxation.  The optimizer
-verbs write one structure per input into ``<outdir>`` (the input's
-format and file name) plus ``<outdir>/scores.tsv``, which is exactly
-what ``tmol score <outdir>`` reports, so the verbs chain through
-files: ``tmol relax in/ out/`` then ``tmol score out/ s.tsv``.
+score with the beta2016 score function.  Each verb seeds torch and the
+load-time hydrogen packer, and ``--seed`` (default 0) additionally
+drives packing and relaxation: seeded ``pack`` runs write
+byte-identical structures, while seeded ``relax`` runs on GPU land in
+different local minima (see this tool's skill).  The optimizer verbs
+write one structure per input into ``<outdir>`` (the input's format
+and file name) plus ``<outdir>/scores.tsv``, which matches what
+``tmol score <outdir>`` reports to within GPU reduction noise (~2e-4),
+so the verbs chain through files: ``tmol relax in/ out/`` then
+``tmol score out/ s.tsv``.
 """
 
 import argparse
@@ -64,7 +67,7 @@ _COMPRESSION_SUFFIXES = {".gz", ".gzip", ".zst"}
 
 # `tmol score` always runs at this seed, and the optimizer verbs score
 # their written outputs at it too, so scores.tsv matches a later
-# `tmol score <outdir>` exactly.
+# `tmol score <outdir>` up to GPU reduction noise (~2e-4).
 _SCORE_SEED = 0
 
 _PAST_TENSE = {"minimize": "minimized", "pack": "packed", "relax": "relaxed"}
