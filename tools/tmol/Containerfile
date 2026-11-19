@@ -1,5 +1,14 @@
-FROM docker.io/pytorch/pytorch:2.14.1-cuda12.6-cudnn9-runtime@sha256:1262abc856a428933c0477b4be87079173a0b087b7691c47fcb396b7e5775c56
+FROM docker.io/pytorch/pytorch:2.14.1-cuda12.6-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# Pinned by version tag, not digest, on purpose: Docker Hub serves
+# pytorch/pytorch's manifests by digest only intermittently -- a build
+# pinned to this tag's own digest, its manifest's true sha256
+# (sha256:1262abc856a428933c0477b4be87079173a0b087b7691c47fcb396b7e5775c56,
+# confirmed against the registry), failed at the pull with
+# "manifest unknown" -- while the tag resolves every time, the way
+# tools/ligandmpnn pins its pytorch base. The tag is pytorchbot's
+# one-time push: torch 2.14.1+cu126, CUDA 12.6.3, Ubuntu 24.04 with
+# python 3.12 at /usr/local, where pip sees the installed torch.
 # tmol is a library with no command-line program of its own, so the image
 # carries the shed's wrapper (bin/tmol: score, minimize, pack, relax, with
 # defaults; past the defaults is the library way, python3 -I script.py).
