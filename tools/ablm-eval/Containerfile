@@ -1,0 +1,47 @@
+# AbLM-Eval (github.com/smburbach/AbLM-Eval, MIT) at commit 641cff8: evaluation
+# of antibody language models -- inference, per-position inference, mutation
+# prediction, naturalness, classification (fine-tuning a classification head
+# over folds) and MoE routing -- from a YAML config, on the lab's published
+# models, each downloaded at a pinned Hugging Face revision with the chain
+# separator it was trained with.  A general-purpose image (DESIGN §1), like
+# datascience: it carries no weights and sets no HF_HUB_OFFLINE, because its
+# work reaches the network -- it downloads the models a config names at run
+# time.
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# git and ca-certificates: pip installs AbLM-Eval (and its BALM dependency)
+# from GitHub at pinned commits
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+# The brief's known-good set: AbLM-Eval's tests passed (38 passed) on exactly
+# these versions (a Python 3.11 venv; this base is Python 3.12, which the same
+# wheels support).  torch 2.15.0 (the PyPI wheel is the CUDA-13 build, matching
+# this base) replaces the base's 2.14.1, and numpy 1.26.4 / pyarrow 20.0.0 pin
+# under the base's numpy 2, because AbLM-Eval requires numpy<2 and pyarrow<21
+# (any pyarrow 21 or later needs numpy 2 and breaks the import).  pyyaml,
+# matplotlib, seaborn and tqdm are pinned at the versions the same set resolved
+# to in the campaign's Python 3.12 build of it.  BALM rides AbLM-Eval's own
+# dependency pin, git 36a8001.
+RUN pip install --no-cache-dir --break-system-packages \
+  "ablm-eval @ git+https://github.com/smburbach/AbLM-Eval@641cff87aa688967d61a5beaacb8c9b51b29c78e" \
+  torch==2.15.0 \
+  numpy==1.26.4 \
+  pyarrow==20.0.0 \
+  transformers==5.23.0 \
+  accelerate==1.16.0 \
+  deepspeed==0.20.0 \
+  datasets==4.0.0 \
+  pandas==3.0.6 \
+  huggingface-hub==2.4.0 \
+  tokenizers==0.23.3 \
+  safetensors==0.8.0 \
+  scikit-learn==1.9.1 \
+  abutils==0.5.4 \
+  typer==0.29.2 \
+  rich==15.0.0 \
+  wandb==0.31.0 \
+  pyyaml==6.0.3 \
+  matplotlib==3.11.2 \
+  seaborn==0.13.2 \
+  tqdm==4.70.1
+COPY test /toolshed/test
