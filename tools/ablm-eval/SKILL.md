@@ -2,12 +2,12 @@
 name: ablm-eval
 description: "AbLM-Eval: score antibody datasets with the lab's antibody language models from one YAML config — per-position and whole-sequence log-likelihoods, mutation and naturalness prediction, MoE routing, and classification fine-tuning over CV folds. Reach for it to score, compare or fine-tune the lab's published models (BALM-paired, BALM-unpaired, ft-ESM, BALM-MoE, CurrAb, the preferential/uniform checkpoints, the 350M scaling model) on paired or single-chain antibody data."
 metadata:
-  version: 1.0.2
+  version: 1.0.3
 ---
 
 # ablm-eval
 
-Image: `ghcr.io/brineylab/toolshed/ablm-eval:1.0.2`
+Image: `ghcr.io/brineylab/toolshed/ablm-eval:1.0.3`
 
 AbLM-Eval (github.com/smburbach/AbLM-Eval at commit `32a3961`, MIT) runs its evaluation tasks on the lab's published antibody language models from one YAML config: inference, per-position inference, mutation prediction, naturalness, classification (fine-tuning a head over CV folds) and MoE routing. The nine lab models are registered by name, each pinned to a full Hugging Face commit and carrying the chain separator it was trained with. A general-purpose image (DESIGN §1): it carries no weights and sets no `HF_HUB_OFFLINE`, because it downloads the models a config names at run time, into `--cache-dir`.
 
@@ -58,25 +58,25 @@ A config names any of them as a bare string, or spells a model out in full — `
 
 ## Compute
 
-One GPU per job: the models are small enough that one is faster than several through the DataParallel the code falls back to when it sees more. Per-position inference costs one forward pass per sequence position (each sequence becomes one batch of L masked copies), so its cost grows as sequence count times the square of length; the other inference tasks cost one pass per sequence. Measured on one b200 in a venv carrying the image's pinned package set on CPython 3.12, the image's Python — the image's twin, since the image cannot be measured before it publishes — downloading each model once into `--cache-dir` and running `per_position` on the 8-pair fixture (heavy chains 124-134 residues, light 107-113):
+One GPU per job: the models are small enough that one is faster than several through the DataParallel the code falls back to when it sees more. Per-position inference costs one forward pass per sequence position (each sequence becomes one batch of L masked copies), so its cost grows as sequence count times the square of length; the other inference tasks cost one pass per sequence. Measured inside the published image itself (the 1.0.2 digest; 1.0.3 is a prose-only bump of that same image) on one b200, downloading each model once into `--cache-dir` and running `per_position` on the 8-pair fixture (heavy chains 124-134 residues, light 107-113):
 
 | model | separator | mean per-residue log-probability | wall time |
 | --- | --- | --- | --- |
-| `balm-paired` | `</s>` | -0.3063 | 18.5 s |
-| `balm-unpaired` | single chains only | -0.3713 | 12.7 s |
-| `ft-esm` | `<cls><cls>` | -0.2964 | 25.9 s |
-| `balm-moe` | `<cls>` | -0.2848 | 15.9 s |
-| `currab` | `<cls>` | -0.2723 | 20.1 s |
-| `preferential-250k` | `<cls><cls>` | -0.2817 | 13.5 s |
-| `uniform-250k` | `<cls><cls>` | -0.2924 | 12.8 s |
-| `uniform-350k` | `<cls><cls>` | -0.2739 | 14.6 s |
-| `scaling-350m-full` | `<cls><cls>` | -0.2915 | 14.4 s |
+| `balm-paired` | `</s>` | -0.3063 | 17.0 s |
+| `balm-unpaired` | single chains only | -0.3713 | 15.5 s |
+| `ft-esm` | `<cls><cls>` | -0.2964 | 25.0 s |
+| `balm-moe` | `<cls>` | -0.2821 | 15.0 s |
+| `currab` | `<cls>` | -0.2723 | 20.8 s |
+| `preferential-250k` | `<cls><cls>` | -0.2817 | 13.2 s |
+| `uniform-250k` | `<cls><cls>` | -0.2924 | 14.0 s |
+| `uniform-350k` | `<cls><cls>` | -0.2739 | 14.1 s |
+| `scaling-350m-full` | `<cls><cls>` | -0.2915 | 14.1 s |
 
-Each row spans the line that announces the model — printed just before its download — to its results parquet, so its weights download is inside the number. All nine load under AbLM-Eval's strict weight check and finish: the eight paired models ran in one config (154.9 s cold, to the final comparison), and `balm-unpaired` ran the same eight heavy chains as an unpaired task (29.6 s cold). The per-residue log-probabilities are deterministic — for the eight models the AbLM-Eval 32a3961 bump leaves alone they equal the 1.0.1 image's measurements — while wall times vary run to run.
+Each row spans the line that announces the model — printed just before its download — to its results parquet, so its weights download is inside the number. All nine load under AbLM-Eval's strict weight check and finish: the eight paired models ran in one config (145.1 s cold, to the final comparison), and `balm-unpaired` ran the same eight heavy chains as an unpaired task (22.6 s cold). The per-residue log-probabilities are reproducible — for the eight models the AbLM-Eval 32a3961 bump leaves alone they equal the 1.0.1 image's measurements, in the image's venv twin and in the image itself — while wall times vary run to run. `balm-moe`, which only this AbLM-Eval runs, is the exception: its mean measured -0.2848 in the venv twin and -0.2821 in the image, so treat its per-residue log-probability as good to the third decimal.
 
-Classification fine-tuning costs one forward and backward pass per training step plus one predict pass over the test fold. The HD-CoV check — fold 0 of the MoE paper's data (Zenodo record 19411192), one fold, through `ablm-eval run` on one GPU with AbLM-Eval's default accelerate config (DeepSpeed ZeRO 0, bf16, one process) and its default training arguments (no `training_args` in the task: warmup_steps 0.1, bf16, batch 32, 3 epochs of the fold's 20,257 rows, about 1,900 steps), measured in the same venv as the table above — trains and writes scores for both the 8M checkpoint (139.4 s wall from a cold cache, fetch to final metrics) and `balm-moe`, whose attention classifier is on by default (752.4 s); their test metrics on the fold's 5,065 test rows are from that short default-args run, not model quality: the 8M checkpoint's accuracy 0.7765, precision 0.7827, recall 0.7654, AUROC 0.8613, AUPR 0.8651, F1 0.7740, MCC 0.5531, and `balm-moe`'s accuracy 0.7822, precision 0.7816, recall 0.7832, AUROC 0.8569, AUPR 0.8374, F1 0.7824, MCC 0.5645.
+Classification fine-tuning costs one forward and backward pass per training step plus one predict pass over the test fold. The HD-CoV check — fold 0 of the MoE paper's data (Zenodo record 19411192), one fold, through `ablm-eval run` on one GPU with AbLM-Eval's default accelerate config (DeepSpeed ZeRO 0, bf16, one process) and its default training arguments (no `training_args` in the task: warmup_steps 0.1, bf16, batch 32, 3 epochs of the fold's 20,257 rows, about 1,900 steps), measured in the same image as the table above — trains and writes scores for both the 8M checkpoint (106.0 s wall from a cold cache, fetch to final metrics) and `balm-moe`, whose attention classifier is on by default (748.3 s); their test metrics on the fold's 5,065 test rows are from that short default-args run, not model quality, and vary run to run with training's shuffling: the 8M checkpoint's accuracy 0.7761, precision 0.7752, recall 0.7776, AUROC 0.8608, AUPR 0.8651, F1 0.7764, MCC 0.5522, and `balm-moe`'s accuracy 0.7972, precision 0.7968, recall 0.7978, AUROC 0.8799, AUPR 0.8893, F1 0.7973, MCC 0.5945.
 
-The shed's test (`test/run.sh`) took 2.5 minutes of job wall on one b200 in the 1.0.1 candidate's run (image import, the registry check, the 8M checkpoint fetch, `per_position` and the reference comparison); the test is unchanged in 1.0.2, and its `--overwrite` exercise — the refused rerun, the recomputation, the comparison again — adds well under a minute, the checkpoint being already in the cache.
+The shed's test (`test/run.sh`, unchanged since 1.0.1) took about two minutes of job wall on one b200 in the 1.0.2 record's run — the image import, the registry check, the 8M checkpoint fetch, `per_position`, the reference comparison, and the `--overwrite` exercise (the refused rerun, the recomputation, the comparison again) all inside it.
 
 ## Running it
 
@@ -84,13 +84,13 @@ On a laptop, from the directory holding `config.yaml` and the data (the tasks us
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/ablm-eval:1.0.2 ablm-eval run config.yaml --cache-dir /work/cache
+  ghcr.io/brineylab/toolshed/ablm-eval:1.0.3 ablm-eval run config.yaml --cache-dir /work/cache
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablm-eval:1.0.2 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablm-eval:1.0.3 \
   --container-mounts="$PWD":/work --container-workdir=/work \
   ablm-eval run config.yaml --cache-dir /work/cache
 ```
@@ -104,6 +104,6 @@ The model files land in `--cache-dir` (the default `.ablm-eval-cache` sits in th
 - **The separator comes from the model:** each registered model carries the separator it was trained with and applies it to every task; setting `separator` in a task config alongside such a model is refused. Only full model entries with `separator` of their own, and `balm-unpaired` (which leaves the task's separator alone), differ.
 - **`num_proc` defaults to 128** dataset-preparation workers; on a node with fewer cores, set it to what the node has.
 - **Rich wraps at 80 columns** when a terminal is not a tty: export `COLUMNS=1000` before `ablm-eval models` in scripts, or the table's repository and revision columns wrap.
-- **Classification's `attention_classifier` follows the model:** the task field is unset by default — a model whose config defines it (`balm-moe` only) gets it on, every other model gets nothing, and setting it on a model whose config does not define it is refused with a `ValueError` naming the model. A task with no `training_args` trains on AbLM-Eval's defaults (warmup_steps 0.1, bf16, batch 32, 3 epochs, report_to none); spell out `training_args` only to depart from them. One trap is the caller's, not AbLM-Eval's: under Slurm/pyxis the caller's environment is passed into the container, and an ambient `LOCAL_RANK`/`RANK` with no `WORLD_SIZE` kills a CLI validating a config whose task carries `training_args` — transformers' `TrainingArguments`, built while the config is validated, inits `torch.distributed` at the `env://` rendezvous and dies (`environment variable WORLD_SIZE expected, but not set`); unset them for the CLI, which is a single process that launches its own training through accelerate and sets the training subprocess's variables itself. A task with no `training_args` builds no `TrainingArguments` at validation, so it does not hit the trap.
+- **Classification's `attention_classifier` follows the model:** the task field is unset by default — a model whose config defines it (`balm-moe` only) gets it on, every other model gets nothing, and setting it on a model whose config does not define it is refused with a `ValueError` naming the model. A task with no `training_args` trains on AbLM-Eval's defaults (warmup_steps 0.1, bf16, batch 32, 3 epochs, report_to none); spell out `training_args` only to depart from them. One trap is the caller's, not AbLM-Eval's: under Slurm/pyxis the caller's environment is passed into the container, and an ambient `LOCAL_RANK`/`RANK` with no `WORLD_SIZE` kills a CLI validating a config whose task carries `training_args` — transformers' `TrainingArguments`, built while the config is validated, inits `torch.distributed` at the `env://` rendezvous and dies (`environment variable WORLD_SIZE expected, but not set`); unset them for the CLI, which is a single process that launches its own training through accelerate and sets the training subprocess's variables itself. A task with no `training_args` builds no `TrainingArguments` at validation, so it does not hit the trap. The trap is not gone in the image: the classification check's in-image run arrived with `LOCAL_RANK=0` and `RANK=0` and no `WORLD_SIZE`, and its probe failed exactly there until they were unset.
 - **The test** (`test/run.sh`) runs `per_position` through the CLI on AbLM-Eval's own fixture `test/paired-mini.parquet` — the 8 public pairs from Jaffe et al. 2022 (figshare 19617633), heavy chains 124-134 and light 107-113 residues, so each sequence builds a real masked batch of 107-134 rows — with the 8M checkpoint `brineylab/8M_full_checkpoint-500000` @ `01e6532f` spelled out as a full model entry with separator `<cls><cls>`, fetched at test time. It compares the pooled mean per-residue log-probability and each sequence's mean with `test/reference.json`, computed once with `evaluate_ablms` (AbLM-Eval's Python API) at commit `641cff8` on the same fixture, model and pinned versions, to 1e-4 — unchanged for 1.0.2: the AbLM-Eval bump touches no per-position inference path, and the reference still matches. It also checks every registered model's name is listed by `ablm-eval models`, and exercises the documented `--overwrite`: the same config rerun without it is refused (`The directory '...' exists and is not empty!`), and rerun with it the results are recomputed and the comparison passes again.
 - **Licenses:** AbLM-Eval is MIT; every model the registry names (and the 8M test checkpoint) is MIT-licensed on the Hub. The image carries no weights — it downloads them at run time — so a run needs the network and a place to put `--cache-dir`.
