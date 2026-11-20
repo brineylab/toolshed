@@ -1,8 +1,9 @@
-"""Fixture facts for the openmm test; the checks themselves come in later tasks.
+"""Fixture facts and checks for the openmm test (run as `python3 -I check.py <tmpdir>`).
 
 complex.cif is Boltz-2's model_0 for complex.yaml, unmodified (CPU, seed 0, single-sequence).
 It has no _struct_conn loop, so no glycosidic or Asn-NAG bond is recorded: the test must find
-them by distance. Boltz writes each sugar as its own chain (C-H), HETATM, residue number 1.
+them by distance; run.sh writes a copy with the six links in a _struct_conn loop for the bonded
+path. Boltz writes each sugar as its own chain (C-H), HETATM, residue number 1.
 
 Asn sites, as (chain, residue number): the lone NAG (chain C) on A:17, the core on B:13.
 Core, from the Asn: D NAG, E NAG, F BMA, G MAN (alpha1-3), H MAN (alpha1-6).
@@ -24,3 +25,85 @@ ML_REGION_CHARGE = -1
 # `or self.nb_threshold < N`: more than 120 atoms switches from dense to neighbor list.
 # The region (23 residues, about 17 atoms each with hydrogens, about 400 atoms) is above it.
 AIMNET_NB_THRESHOLD = 120
+
+# relax: GLYCAM residue names the fixture must come out with. Asn carrying a sugar is NLN; the
+# sugars, in chain order C-H: the lone GlcNAc is terminal beta-GlcNAc (0YB); the core's two
+# GlcNAc are 4-linked (4YB), the beta-Man is 3,6-linked (VMB), the two alpha-Man are terminal
+# (0MA). The codes follow GLYCAM's naming guide (glycam.org/docs/forcefield/glycam-naming-2,
+# Tables 1, 2 and 4) and each is a template in OpenMM's amber14/GLYCAM_06j-1.xml.
+SUGAR_CHAINS = ["C", "D", "E", "F", "G", "H"]
+SUGAR_NAMES = ["0YB", "4YB", "4YB", "VMB", "0MA", "0MA"]
+RELAX_HEADER = "name\tenergy_before\tenergy_after\theavy_atom_rmsd"
+RELAX_NAMES = ["1UBQ.pdb", "complex.cif"]
+RELAX_MAX_RMSD = 0.5  # Angstrom; the restraints are meant to allow a few tenths
+# relax/complex.cif's atom count, pinned from the first passing run (2026-11-20, CPU, the
+# dev image): both chains and all six sugars with hydrogens at pH 7, each linked sugar's
+# leaving O1 gone. A dropped or doubled hydrogen, or a kept O1, changes it. The complex has
+# no His, so no protonation choice moves it.
+COMPLEX_ATOMS = 1478
+
+
+def fail(msg):
+    raise SystemExit(f"FAIL: {msg}")
+
+
+def residues(path):
+    from openmm.app import PDBxFile
+
+    return list(PDBxFile(str(path)).topology.residues())
+
+
+def check_relax_tsv(path):
+    lines = path.read_text().splitlines()
+    if lines[0] != RELAX_HEADER:
+        fail(f"{path}: header {lines[0]!r}")
+    rows = [line.split("\t") for line in lines[1:]]
+    if [row[0] for row in rows] != RELAX_NAMES:
+        fail(f"{path}: rows {[row[0] for row in rows]}, expected {RELAX_NAMES}")
+    for name, before, after, rmsd in rows:
+        if not float(after) < float(before):
+            fail(f"{name}: energy rose, {before} -> {after}")
+        if not float(rmsd) < RELAX_MAX_RMSD:
+            fail(f"{name}: heavy-atom RMSD {rmsd} >= {RELAX_MAX_RMSD}")
+
+
+def check_complex(path):
+    res = residues(path)
+    by_site = {(r.chain.id, int(r.id)): r.name for r in res}
+    for site in ASN_SITES:
+        if by_site.get(site) != "NLN":
+            fail(f"{path}: {site} is {by_site.get(site)}, expected NLN")
+    sugars = [r for r in res if r.chain.id in SUGAR_CHAINS]
+    if [r.name for r in sugars] != SUGAR_NAMES:
+        fail(f"{path}: sugars {[r.name for r in sugars]}, expected {SUGAR_NAMES}")
+    for r in sugars:
+        if not any(a.element.symbol == "H" for a in r.atoms()):
+            fail(f"{path}: sugar {r.name} chain {r.chain.id} has no hydrogens")
+    natoms = sum(len(list(r.atoms())) for r in res)
+    if natoms != COMPLEX_ATOMS:
+        fail(f"{path}: {natoms} atoms, expected {COMPLEX_ATOMS}")
+    return [r.name for r in res]
+
+
+def main():
+    from pathlib import Path
+    import sys
+
+    T = Path(sys.argv[1])
+    check_relax_tsv(T / "relax" / "relax.tsv")
+    names = check_complex(T / "relax" / "complex.cif")
+    if check_complex(T / "relax-withbonds" / "complex.cif") != names:
+        fail("the _struct_conn variant's residue names differ from the distance-inferred ones")
+    err = (T / "bad.err").read_text()
+    if "unsupported residue GLC chain G" not in err:
+        fail(f"the unsupported sugar's error does not name GLC chain G: {err!r}")
+    out = T / "clash-out"
+    if out.exists() and any(p.suffix in (".pdb", ".cif") for p in out.iterdir()):
+        fail("the stem clash wrote a structure")
+    if "a.cif" not in (T / "clash.err").read_text():
+        fail("the stem clash's error does not name the files")
+    print(f"openmm test: relax passed ({len(names)} residues in the complex, GLYCAM names on both paths)")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,314 @@
+#!/usr/bin/env -S python3 -I
+"""openmm: prepare and relax protein structures, N-glycans included, with OpenMM.
+
+    openmm relax <in> <out>
+
+<in> is one structure file (PDB or mmCIF) or a flat directory of them. Every
+structure is prepared the same way (``prepare``): PDBFixer adds missing heavy
+atoms to standard residues; N-glycans named by their PDB chemical components
+(NAG, BMA, MAN, ...) are renamed to GLYCAM_06j, residue and atom, with their
+links read from the file's bonds or, where it has none, found by distance;
+Modeller adds hydrogens at pH 7. Any residue the force field cannot place
+stops the run, naming it. Outputs keep the GLYCAM names. Everything past these
+defaults is the library way, ``python3 -I script.py`` (see the tool's skill).
+"""
+
+import argparse
+import re
+import sys
+import time
+from collections import Counter, defaultdict
+from functools import lru_cache
+from pathlib import Path
+
+import numpy as np
+import openmm
+from openmm import unit
+from openmm.app import ForceField, Modeller, NoCutoff, PDBFile, PDBxFile, element
+from pdbfixer import PDBFixer
+
+FORCEFIELD = ("amber14-all.xml", "amber14/tip3pfb.xml", "amber14/GLYCAM_06j-1.xml")
+WRITERS = {".pdb": PDBFile, ".cif": PDBxFile}
+Modeller.loadHydrogenDefinitions("glycam-hydrogens.xml")  # NLN, 4YB, ...: OpenMM's own file
+
+# CCD sugar -> GLYCAM sugar letter + anomer letter. GLYCAM's naming guide
+# (glycam.org/docs/forcefield/glycam-naming-2), Table 1: Y GlcNAc, M Man, L Gal,
+# S Neu5Ac, and lowercase for an L-sugar (f, L-Fuc); Table 2: in pyranoses
+# A is alpha, B is beta.
+SUGARS = {
+    "NAG": "YB", "NDG": "YA", "BMA": "MB", "MAN": "MA", "FUC": "fA",
+    "FUL": "fB", "GAL": "LB", "GLA": "LA", "SIA": "SA", "SLB": "SB",
+}
+# Linked positions -> the name's first character: the guide's Table 2 (and
+# Table 4 for Neu5Ac's 7, 8, 9). Each is checked against GLYCAM_06j-1.xml's
+# external bonds; where the guide disagrees with itself (Table 4 gives
+# GlcNAc 3,4,6 as R, Table 2 as Q) the XML, which has QYB, decides.
+LINKAGE = {
+    (): "0", (2,): "2", (3,): "3", (4,): "4", (6,): "6", (7,): "7", (8,): "8",
+    (9,): "9", (2, 3): "Z", (2, 4): "Y", (2, 6): "X", (3, 4): "W", (3, 6): "V",
+    (4, 6): "U", (2, 3, 4): "T", (2, 3, 6): "S", (2, 4, 6): "R",
+    (3, 4, 6): "Q", (2, 3, 4, 6): "P",
+}
+# CCD -> GLYCAM atom names: the N-acetyl group (GLYCAM_06j-1.xml's 0YB, 0SA).
+ATOM_NAMES = {
+    "NAG": {"C7": "C2N", "O7": "O2N", "C8": "CME"},
+    "NDG": {"C7": "C2N", "O7": "O2N", "C8": "CME"},
+    "SIA": {"C10": "C5N", "O10": "O5N", "C11": "CME"},
+    "SLB": {"C10": "C5N", "O10": "O5N", "C11": "CME"},
+}
+# The anomeric carbon, its leaving hydroxyl O, and the ring O: Neu5Ac is a
+# 2-ketose (C2, O2, ring O6); the pyranoses here are aldoses (C1, O1, O5).
+ANOMERIC = defaultdict(lambda: ("C1", "O1", "O5"), {"S": ("C2", "O2", "O6")})
+# A sugar on a protein side chain: the atom it links to, and GLYCAM's name.
+ATTACHMENTS = {("ASN", "ND2"): "NLN", ("SER", "OG"): "OLS", ("THR", "OG1"): "OLT"}
+ATTACH_ATOMS = {atom for _, atom in ATTACHMENTS}
+ATTACH_RESIDUES = {res for res, _ in ATTACHMENTS} | set(ATTACHMENTS.values())
+# Distance below which an unbonded anomeric carbon is linked to the nearest O
+# of another sugar (or Asn ND2, Ser OG, Thr OG1). A C-O bond is 1.43 A and a
+# non-bonded C...O contact is 2.8 A or more; Boltz-2 writes its links between
+# 1.1 and 1.8 A (the test fixture), so 2.0 A takes them all and nothing else.
+LINK_CUTOFF = 2.0
+# relax: heavy atoms held to their input positions by 10 kcal/mol/A^2, the
+# AlphaFold relax stiffness, and minimized to OpenMM's default tolerance.
+# Glycosylated inputs relax in GBn2 like any other, not in vacuum: GBn2's
+# parameters (GBSAGBn2Force.getStandardParameters) go by element, mbondi3 radii
+# and per-element screening for H, C, N, O, S, with no per-residue table, so
+# GLYCAM's sugar atoms get exactly what protein atoms of the same element get
+# (checked on the test's glycosylated fixture, 2026-11-20). GBn2 was fit on
+# proteins and nucleic acids, not carbohydrates.
+RESTRAINT_K = 10 * unit.kilocalorie_per_mole / unit.angstrom**2
+
+
+def note(message):
+    print(f"openmm: {message}", file=sys.stderr, flush=True)
+
+
+@lru_cache(maxsize=None)
+def forcefield():
+    """The force field both verbs use: Amber14, TIP3P-FB, and GLYCAM_06j (one shared instance)."""
+    return ForceField(*FORCEFIELD)
+
+
+def select_platform():
+    """CUDA at mixed precision when its plugin loaded (a GPU driver is present), else CPU."""
+    names = [openmm.Platform.getPlatform(i).getName() for i in range(openmm.Platform.getNumPlatforms())]
+    if "CUDA" in names:
+        return openmm.Platform.getPlatformByName("CUDA"), {"Precision": "mixed"}
+    return openmm.Platform.getPlatformByName("CPU"), {}
+
+
+def _sugar(name):
+    """A supported sugar's GLYCAM letters (sugar + anomer), whether named by CCD or GLYCAM."""
+    if name in SUGARS:
+        return SUGARS[name]
+    if len(name) == 3 and name[0] in LINKAGE.values() and name[1:] in SUGARS.values():
+        return name[1:]
+    return None
+
+
+def _bonded(topology):
+    bonded = defaultdict(set)
+    for a, b in topology.bonds():
+        bonded[a].add(b)
+        bonded[b].add(a)
+    return bonded
+
+
+def _linked(atom, bonded):
+    return any(b.residue is not atom.residue for b in bonded[atom])
+
+
+def _atom(residue, name):
+    return next((a for a in residue.atoms() if a.name == name), None)
+
+
+def glycam_rename(topology, positions):
+    """Rename CCD sugars and the residues they hang on to GLYCAM, in place.
+
+    Atom names first (CCD's N-acetyl names to GLYCAM's), then links: a sugar
+    whose anomeric carbon has no bond to another residue is bonded to the
+    nearest acceptor within LINK_CUTOFF (a ring hydroxyl O of another sugar, or
+    Asn ND2 / Ser OG / Thr OG1). Then residue names: a sugar's linked hydroxyl
+    positions give its GLYCAM linkage code, and an Asn/Ser/Thr carrying a sugar
+    becomes NLN/OLS/OLT. GLYCAM-named residues keep their names.
+    """
+    for residue in topology.residues():
+        for atom in residue.atoms():
+            atom.name = ATOM_NAMES.get(residue.name, {}).get(atom.name, atom.name)
+    sugars = [r for r in topology.residues() if _sugar(r.name)]
+    bonded = _bonded(topology)
+
+    def acceptor(atom):
+        res = atom.residue
+        if _sugar(res.name):
+            _, leaving, ring = ANOMERIC[_sugar(res.name)[0]]
+            return re.fullmatch(r"O\d", atom.name) and atom.name not in (leaving, ring)
+        return res.name in ATTACH_RESIDUES and atom.name in ATTACH_ATOMS
+
+    acceptors = [a for a in topology.atoms() if acceptor(a)]
+    xyz = np.array(positions.value_in_unit(unit.angstrom))
+    for residue in sugars:
+        carbon = _atom(residue, ANOMERIC[_sugar(residue.name)[0]][0])
+        if carbon is None or _linked(carbon, bonded):
+            continue
+        others = [a for a in acceptors if a.residue is not residue]
+        if not others:
+            continue
+        distances = np.linalg.norm(xyz[[a.index for a in others]] - xyz[carbon.index], axis=1)
+        nearest = int(np.argmin(distances))
+        if distances[nearest] < LINK_CUTOFF:
+            topology.addBond(carbon, others[nearest])
+            bonded[carbon].add(others[nearest])
+            bonded[others[nearest]].add(carbon)
+
+    templates = forcefield()._templates  # by name; ForceField has no public lookup
+    for residue in sugars:
+        if residue.name not in SUGARS:
+            continue
+        letters = SUGARS[residue.name]
+        sites = tuple(sorted(int(a.name[1:]) for a in residue.atoms() if acceptor(a) and _linked(a, bonded)))
+        name = LINKAGE.get(sites, "?") + letters
+        if name not in templates:
+            raise SystemExit(f"no GLYCAM residue for {residue.name} chain {residue.chain.id} {residue.id} linked at {sites}")
+        carbon = _atom(residue, ANOMERIC[letters[0]][0])
+        for partner in bonded[carbon] if carbon else ():
+            key = (partner.residue.name, partner.name)
+            if key in ATTACHMENTS:
+                partner.residue.name = ATTACHMENTS[key]
+        residue.name = name
+
+    # Bonds inside each GLYCAM residue, from its template: PDBxFile and PDBFile bond only
+    # the standard residues, so a sugar read without chem_comp_bond or CONECT has none.
+    for residue in topology.residues():
+        template = templates.get(residue.name) if _sugar(residue.name) or residue.name in ATTACHMENTS.values() else None
+        atoms = {a.name: a for a in residue.atoms()}
+        for i, j in template.bonds if template else ():
+            a, b = atoms.get(template.atoms[i].name), atoms.get(template.atoms[j].name)
+            if a and b and b not in bonded[a]:
+                topology.addBond(a, b)
+                bonded[a].add(b)
+                bonded[b].add(a)
+
+
+def prepare(path):
+    """Load a PDB or mmCIF file and return a Modeller ready for ForceField: GLYCAM-named, with hydrogens."""
+    path = Path(path)
+    started = time.perf_counter()
+    fixer = PDBFixer(filename=str(path))  # PDBFile/PDBxFile; mmCIF struct_conn bonds kept
+    loaded = time.perf_counter()
+    # Missing heavy atoms in standard residues only: no missing-residue modelling, no
+    # heterogen removal, never PDBFixer's hydrogen step (it downloads from RCSB). Its
+    # templates are the standard residues, so a sugar is left alone and nothing is fetched.
+    fixer.missingResidues = {}
+    fixer.findMissingAtoms()
+    fixer.addMissingAtoms(seed=0)
+    modeller = Modeller(fixer.topology, fixer.positions)
+    modeller.delete([a for a in modeller.topology.atoms() if a.element is element.hydrogen])
+    glycans = [(r.chain.id, r.id) for r in modeller.topology.residues() if _sugar(r.name)]
+    try:
+        glycam_rename(modeller.topology, modeller.positions)
+    except SystemExit as error:
+        raise SystemExit(f"{path}: {error}")
+    # A linked sugar's anomeric hydroxyl O is the leaving atom: CCD lists it, GLYCAM does not.
+    bonded = _bonded(modeller.topology)
+    leaving = []
+    for residue in modeller.topology.residues():
+        if _sugar(residue.name):
+            carbon, oxygen, _ = (_atom(residue, n) for n in ANOMERIC[_sugar(residue.name)[0]])
+            if carbon and oxygen and _linked(carbon, bonded):
+                leaving.append(oxygen)
+    modeller.delete(leaving)
+    ff = forcefield()
+    try:
+        modeller.addHydrogens(ff, pH=7.0)
+        ff.createSystem(modeller.topology)  # every residue matches a template
+    except Exception as error:
+        # OpenMM names the residue by its index, which addHydrogens keeps; give chain and number.
+        found = re.search(r"for residue (\d+) \(", str(error))
+        if not found:
+            raise SystemExit(f"{path}: {error}")
+        r = list(modeller.topology.residues())[int(found[1])]
+        raise SystemExit(f"{path}: unsupported residue {r.name} chain {r.chain.id} {r.id}\n{error}")
+    after = {(r.chain.id, r.id): r for r in modeller.topology.residues() if _sugar(r.name)}
+    for key in glycans:
+        r = after.get(key)
+        if r is None or not any(a.element is element.hydrogen for a in r.atoms()):
+            raise SystemExit(f"{path}: glycan residue chain {key[0]} {key[1]} lost or left without hydrogens")
+    note(f"{path.name}: load {loaded - started:.1f}s, prepare {time.perf_counter() - loaded:.1f}s")
+    return modeller
+
+
+def collect_inputs(source):
+    """The structure files <in> names, refusing two that share a stem."""
+    source = Path(source)
+    if source.is_dir():
+        files = sorted(p for p in source.iterdir() if p.is_file() and p.suffix.lower() in WRITERS)
+        if not files:
+            raise SystemExit(f"openmm: no .pdb or .cif files in {source}")
+    elif source.is_file() and source.suffix.lower() in WRITERS:
+        files = [source]
+    else:
+        raise SystemExit(f"openmm: not a .pdb or .cif file or a directory of them: {source}")
+    stems = Counter(p.stem for p in files)
+    clashes = sorted(p.name for p in files if stems[p.stem] > 1)
+    if clashes:
+        raise SystemExit(f"openmm: inputs share a stem, so their outputs would collide: {', '.join(clashes)}")
+    return files
+
+
+def relax(args):
+    files = collect_inputs(args.input)
+    out = Path(args.output)
+    out.mkdir(parents=True, exist_ok=True)
+    platform, properties = select_platform()
+    gbn2 = ForceField(*FORCEFIELD, "implicit/gbn2.xml")
+    note(f"relax: {len(files)} structure(s) on {platform.getName()}")
+    with open(out / "relax.tsv", "w") as table:
+        table.write("name\tenergy_before\tenergy_after\theavy_atom_rmsd\n")
+        for path in files:
+            modeller = prepare(path)
+            started = time.perf_counter()
+            topology, positions = modeller.topology, modeller.positions
+            system = gbn2.createSystem(topology, nonbondedMethod=NoCutoff, constraints=None)
+            heavy = [a.index for a in topology.atoms() if a.element is not element.hydrogen]
+            restraint = openmm.CustomExternalForce("0.5*k*((x-x0)^2+(y-y0)^2+(z-z0)^2)")
+            restraint.addGlobalParameter("k", RESTRAINT_K)
+            for p in ("x0", "y0", "z0"):
+                restraint.addPerParticleParameter(p)
+            for i in heavy:
+                restraint.addParticle(i, positions[i].value_in_unit(unit.nanometer))
+            restraint.setForceGroup(1)
+            system.addForce(restraint)
+            context = openmm.Context(system, openmm.VerletIntegrator(0.001), platform, properties)
+            context.setPositions(positions)
+            before = context.getState(getEnergy=True, groups={0}).getPotentialEnergy()
+            openmm.LocalEnergyMinimizer.minimize(context)
+            state = context.getState(getEnergy=True, getPositions=True, groups={0})
+            after = state.getPotentialEnergy()
+            relaxed = state.getPositions(asNumpy=True)
+            start = np.array(positions.value_in_unit(unit.angstrom))[heavy]
+            moved = relaxed.value_in_unit(unit.angstrom)[heavy] - start
+            rmsd = float(np.sqrt((moved**2).sum(axis=1).mean()))
+            minimized = time.perf_counter()
+            writer = WRITERS[path.suffix.lower()]
+            with open(out / f"{path.stem}{path.suffix.lower()}", "w") as handle:
+                writer.writeFile(topology, relaxed, handle, keepIds=True)
+            kj = unit.kilojoule_per_mole
+            table.write(f"{path.name}\t{before.value_in_unit(kj):.3f}\t{after.value_in_unit(kj):.3f}\t{rmsd:.4f}\n")
+            table.flush()
+            note(f"{path.name}: minimize {minimized - started:.1f}s, write {time.perf_counter() - minimized:.1f}s")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog="openmm", description=__doc__.split("\n")[0])
+    verbs = parser.add_subparsers(dest="verb", required=True)
+    p = verbs.add_parser("relax", help="restrained minimization in GBn2 implicit solvent")
+    p.add_argument("input", help="a .pdb or .cif file, or a directory of them")
+    p.add_argument("output", help="output directory: <stem>.<pdb|cif> per input, and relax.tsv")
+    p.set_defaults(run=relax)
+    args = parser.parse_args(argv)
+    args.run(args)
+
+
+if __name__ == "__main__":
+    main()

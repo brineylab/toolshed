@@ -45,4 +45,8 @@ RUN mkdir -p /opt/openmm/licenses \
 RUN python3 -I -c "from aimnet.calculators.model_registry import get_registry_model_path as g; print(g('aimnet2'))" \
  && chmod a+rX -R /opt/openmm/models \
  && python3 -I -c "from openmm import app, unit; from openmmml import MLPotential; t = app.Topology(); c = t.addChain(); r = t.addResidue('HOH', c); o = t.addAtom('O', app.Element.getBySymbol('O'), r); [t.addBond(o, t.addAtom(n, app.Element.getBySymbol('H'), r)) for n in ('H1', 'H2')]; print(MLPotential('aimnet', modelPath='/opt/openmm/models/aimnet2/aimnet2_wb97m_d3_0.pt').createSystem(t).getNumParticles())"
+# The wrapper, the only code the shed writes for this tool; its --help proves
+# it imports against the environment.
+COPY --chmod=755 bin/openmm /usr/local/bin/openmm
+RUN openmm --help > /dev/null && openmm relax --help > /dev/null
 COPY test /toolshed/test
