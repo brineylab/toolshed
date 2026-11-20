@@ -124,6 +124,7 @@ openmm fep analyze fep/ ddg.tsv
 - `analyze` combines every replicate found into ΔG per leg and ΔΔG, with uncertainty, as a TSV.
 - Defaults (cycle length, cycles per replicate) are feflow's, recorded in the skill.
 - feflow is labelled experimental upstream; the skill says so. If its conda pins cannot coexist with 1.0.0's environment (openmm 8.6.1, openmm-ml 1.8, aimnet's PyTorch), the fallback is a separate tool, `openmm-fep`, decided then with the human.
+- **Dry-run, 2026-11-20 (task 1):** `feflow=0.2.1` does not resolve beside `openmm=8.6.1` and `openmm-ml=1.8` (python 3.12, cuda-version 12.9, pytorch 2.14.1): feflow requires `openfe >=1.10.0,<2`, whose `openfe-base` requires `openmm !=8.1.0,(!=8.3,(>=8.0.0,<8.5.0))`, so openmm 8.6.1 cannot be installed with it.
 
 ## 7. The test
 

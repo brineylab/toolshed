@@ -1,0 +1,30 @@
+# NVIDIA's CUDA 12.9.1 base on Ubuntu 24.04 (glibc, so pyxis gives it a GPU).
+# 12.9 rather than 12.6: conda-forge's CUDA 12 builds of openmm 8.6.1 and
+# pytorch 2.14.1 exist only for cuda-version 12.9 (12.6 builds are gone).
+FROM docker.io/nvidia/cuda:12.9.1-base-ubuntu24.04
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility HF_HUB_OFFLINE=1 AIMNET_CACHE_DIR=/opt/openmm/models/aimnet2
+# micromamba 2.9.0's static binary, pinned by version and sha256.
+ADD --checksum=sha256:366cd9cd8be14df1ab8ed50352a82111082a36686b2d389fdb79a92c3fafb3e3 --chmod=755 https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-linux-64 /usr/local/bin/micromamba
+# One conda-forge environment, every top-level package exact. cuda-version
+# 12.9 selects the CUDA 12 builds; CONDA_OVERRIDE_CUDA lets the solver
+# accept them with no driver on the build host. pytorch is conda's (CUDA 12.9
+# MKL build) so the pip step below sees it already installed. feflow (1.1.0)
+# does not resolve beside openmm 8.6.1 today: see the design's section 6.
+RUN CONDA_OVERRIDE_CUDA=12.9 micromamba create -y -p /opt/env -c conda-forge --override-channels \
+      python=3.12 openmm=8.6.1 pdbfixer=1.12 openmm-ml=1.8 \
+      cuda-version=12.9 "pytorch=2.14.1=cuda129_mkl*" \
+ && micromamba clean -a -y
+ENV PATH=/opt/env/bin:$PATH
+# aimnet is on PyPI only, with its two compute dependencies; torch (>=2.10)
+# is already satisfied by the conda build.
+RUN pip install --no-cache-dir aimnet==0.2.6 nvalchemi-toolkit-ops==0.5.0 warp-lang==1.19.0
+# Proven at build time: the four packages import, the force field triple
+# loads, and the CUDA plugin is present. Build hosts have no NVIDIA driver, so
+# the CUDA platform cannot register here: its plugin fails to load for want of
+# libcuda.so.1 (the driver's library), and only that. The check asserts the
+# plugin file exists and that every load failure is a missing libcuda.so.1
+# (or, for the HIP/ROCm plugins this image never uses, libhiprtc.so.6), with
+# at least one libcuda.so.1 entry. The GPU test is what proves the platform
+# registers. CUDA 12.9 needs NVIDIA driver R575 or newer at run time.
+RUN python3 -I -c "import os, openmm, pdbfixer, openmmml, aimnet; from openmm import Platform; from openmm.app import ForceField; print('openmm', openmm.__version__); f = Platform.getPluginLoadFailures(); print(f); assert os.path.exists('/opt/env/lib/plugins/libOpenMMCUDA.so'); assert any('libcuda.so.1' in e for e in f); assert all('libcuda.so.1' in e or 'libhiprtc.so.6' in e for e in f); ForceField('amber14-all.xml', 'amber14/tip3pfb.xml', 'amber14/GLYCAM_06j-1.xml')"
+COPY test /toolshed/test
