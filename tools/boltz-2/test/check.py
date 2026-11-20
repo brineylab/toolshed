@@ -10,20 +10,22 @@ OUT_FIELDS = ("confidence_score", "ptm", "iptm", "ligand_iptm", "protein_iptm",
               "complex_plddt", "complex_iplddt", "complex_pde", "complex_ipde")
 RANGED = ("confidence_score", "ptm", "iptm", "protein_iptm", "complex_plddt")
 # One diffusion sample per fixture, not 1.0.1's five: the tool test has a
-# 30-minute budget that the image import, the 3 GB checkpoint load, and the
-# first complex past cuequivariance's 100-residue crossover's first-use Triton
-# compile all come out of, and on a Blackwell B200 that compile is the slowest
-# step of a short run. run.sh folds both fixtures through one boltz
-# invocation for the same reason. Sample ranking (model_0 the most confident
-# of five) was exercised by 1.0.1's test at five samples on an L40S; nothing
-# this version changes touches ranking.
+# 30-minute budget that the image import and the 3 GB checkpoint load also
+# come out of. run.sh folds both fixtures through one boltz invocation for
+# the same reason, and raises cuequivariance's crossover thresholds so both
+# run its plain-PyTorch ops: on a Blackwell B200 the Triton kernels'
+# first-use compile for sm_100 did not finish inside 29 minutes in two runs
+# of this test. Sample ranking (model_0 the most confident of five) was
+# exercised by 1.0.1's test at five samples on an L40S; nothing this
+# version changes touches ranking.
 N_SAMPLES = 1
 # Each fixture is a homodimer run in single-sequence mode. complex is GCN4-p1,
-# a 33-residue coiled-coil zipper: 66 residues, at or under cuequivariance's
-# 100-residue crossover, so it runs the plain-PyTorch fallback. complex_large
-# is HIV-1 protease (PDB 1HHP), a 99-residue obligate homodimer: 198 residues,
-# past the crossover, so it runs the cuEquivariance Triton kernels that a
-# larger complex needs, and only passes when the image can compile them.
+# a 33-residue coiled-coil zipper: 66 residues. complex_large is HIV-1
+# protease (PDB 1HHP), a 99-residue obligate homodimer: 198 residues, past
+# cuequivariance's 100-residue crossover, so with the skill's default
+# environment it would run the cuEquivariance Triton kernels; this test
+# raises the crossover thresholds (see run.sh) and checks the plain-PyTorch
+# path, the same code `--no_kernels` runs, on the same complex.
 FIXTURES = {
     "complex": "RMKQLEDKVEELLSKNYHLENEVARLKKLVGER",
     "complex_large": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF",
