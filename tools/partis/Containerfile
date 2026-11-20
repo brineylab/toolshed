@@ -1,0 +1,27 @@
+# partis v1.0.30 run from its source tree at the tag's commit, as upstream's own image does, so it finds bcrham, ig-sw,
+# and the bpp-newlik bppseqgen that its default per-base simulation needs where it expects them. R and its CRAN packages
+# come from rocker's image of R 4.5.3, whose CRAN is frozen at a dated snapshot; TreeSim/TreeSimGM generate trees.
+FROM docker.io/rocker/r-ver:4.5.3@sha256:f5a72ffeea7ed592b2a5990f87101beef8ef3cae0e4ff7327088e80368f0aef9
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv python3-dev build-essential cmake \
+  scons git ca-certificates mafft libgsl-dev libyaml-cpp-dev libncurses-dev zlib1g-dev \
+  libglpk40 libblas-dev liblapack-dev libboost-dev libeigen3-dev libsuitesparse-dev libfftw3-dev \
+  && rm -rf /var/lib/apt/lists/*
+RUN Rscript -e 'install.packages(c("TreeSim", "TreeSimGM", "geiger", "MASS")); for (p in c("TreeSim", "TreeSimGM", "geiger", "MASS")) library(p, character.only = TRUE)'
+# colored_traceback only colors tracebacks, and its curses call kills every partis program under a TERM the image has no
+# terminfo for (pyxis passes the caller's in), so an empty module stands in for it
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir biopython==1.88 \
+  dendropy==5.1.3 fire==0.7.1 matplotlib==3.11.2 numpy==2.5.5 pandas==3.1.1 psutil==7.2.2 pot==0.9.7.post1 \
+  pysam==0.24.1 PyYAML==6.0.3 scikit-learn==1.9.1 scipy==1.18.1 seaborn==0.13.2 six==1.17.0 \
+  && mkdir /opt/venv/lib/python3.12/site-packages/colored_traceback \
+  && touch /opt/venv/lib/python3.12/site-packages/colored_traceback/__init__.py /opt/venv/lib/python3.12/site-packages/colored_traceback/always.py
+RUN git clone https://github.com/psathyrella/partis.git /opt/partis && cd /opt/partis \
+  && git checkout 40ff8e3c9b07309193aa76c29652ca4a2531f101 \
+  && git submodule update --init packages/ham packages/ig-sw packages/bpp-newlik/eigen3 packages/bpp-newlik/bpp-core \
+     packages/bpp-newlik/bpp-seq packages/bpp-newlik/bpp-phyl packages/bpp-newlik/bpp-popgen packages/bpp-newlik/bppsuite \
+  && ./bin/build.sh with-simulation \
+  && rm -rf .git packages/*/.git packages/bpp-newlik/*/.git packages/bpp-newlik/_build/*/CMakeFiles
+# pyxis passes the caller's environment in: run partis's programs under the image's python, isolated, with partis importable
+RUN sed -i '1s|.*|#!/opt/venv/bin/python3 -I|' /opt/partis/bin/partis /opt/partis/bin/parse-output.py \
+  && echo /opt/partis > /opt/venv/lib/python3.12/site-packages/partis.pth
+ENV PATH=/opt/partis/bin:/opt/venv/bin:$PATH PYTHONNOUSERSITE=1
+COPY test /toolshed/test
