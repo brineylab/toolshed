@@ -2,7 +2,8 @@
 # openmm's test. Fixtures: complex.cif (Boltz-2, two chains, a branched
 # N-glycan core on B:13 and a lone GlcNAc on A:17, no _struct_conn, so the
 # glycan links are found by distance) and water-stripped 1UBQ. Runs:
-# `openmm relax` on a directory of both; the complex again with its six links
+# `openmm relax` on a directory of both; relax's GLYCAM-named output again,
+# which must come back the same; the complex again with its six links
 # written into a _struct_conn loop, which must give the same GLYCAM names;
 # the complex with its first MAN renamed GLC, which must stop naming GLC; and
 # a directory where a.pdb and a.cif share a stem, which must stop before
@@ -14,7 +15,11 @@ trap 'rm -rf "$T"' EXIT
 
 mkdir -p "$T/in"
 cp complex.cif 1UBQ.pdb "$T/in/"
-openmm relax "$T/in" "$T/relax"
+# stderr is kept (and still shown) so check.py can count the links found by distance
+openmm relax "$T/in" "$T/relax" 2>&1 | tee "$T/relax.err" >&2
+
+# relax's own output, GLYCAM-named, goes back in unchanged (the input md takes)
+openmm relax "$T/relax/complex.cif" "$T/rerelax"
 
 # the bonded path: the same file with the six links in _struct_conn
 mkdir -p "$T/withbonds"
@@ -36,7 +41,7 @@ text += "loop_\n" + "".join(f"_struct_conn.{c}\n" for c in cols)
 text += "".join(f"link{i} covale {' '.join(link)}\n" for i, link in enumerate(links, 1)) + "#\n"
 open(sys.argv[2], "w").write(text)
 PY
-openmm relax "$T/withbonds/complex.cif" "$T/relax-withbonds"
+openmm relax "$T/withbonds/complex.cif" "$T/relax-withbonds" 2>&1 | tee "$T/withbonds.err" >&2
 
 # an unsupported sugar: the first MAN (chain G) renamed GLC
 mkdir -p "$T/bad"
@@ -45,7 +50,7 @@ import sys
 
 out = []
 for line in open(sys.argv[1]):
-    if line.startswith("HETATM") and line.split()[9] == "G":
+    if line.startswith("HETATM") and line.split()[9] == "G":  # column 9: label_asym_id
         line = line.replace(" MAN ", " GLC ")
     out.append(line)
 open(sys.argv[2], "w").write("".join(out))

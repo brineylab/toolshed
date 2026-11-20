@@ -43,6 +43,13 @@ RELAX_MAX_RMSD = 0.5  # Angstrom; the restraints are meant to allow a few tenths
 COMPLEX_ATOMS = 1478
 
 
+# Glycan links found by distance, one count per structure in input order: the directory run
+# is 1UBQ.pdb (no glycans, 0) then complex.cif (no _struct_conn, all 6); the _struct_conn
+# variant records all 6, so none is inferred and the bonded path is the one exercised.
+INFERRED_PLAIN = [0, 6]
+INFERRED_WITHBONDS = [0]
+
+
 def fail(msg):
     raise SystemExit(f"FAIL: {msg}")
 
@@ -87,6 +94,7 @@ def check_complex(path):
 
 def main():
     from pathlib import Path
+    import re
     import sys
 
     T = Path(sys.argv[1])
@@ -94,9 +102,15 @@ def main():
     names = check_complex(T / "relax" / "complex.cif")
     if check_complex(T / "relax-withbonds" / "complex.cif") != names:
         fail("the _struct_conn variant's residue names differ from the distance-inferred ones")
+    if check_complex(T / "rerelax" / "complex.cif") != names:
+        fail("relaxing relax's own output changed its residue names")
+    for err, expected in (("relax.err", INFERRED_PLAIN), ("withbonds.err", INFERRED_WITHBONDS)):
+        found = [int(n) for n in re.findall(r"inferred (\d+) glycan link", (T / err).read_text())]
+        if found != expected:
+            fail(f"{err}: links inferred by distance {found}, expected {expected}")
     err = (T / "bad.err").read_text()
-    if "unsupported residue GLC chain G" not in err:
-        fail(f"the unsupported sugar's error does not name GLC chain G: {err!r}")
+    if "complex.cif: unsupported residue GLC chain G" not in err:
+        fail(f"the unsupported sugar's error does not name the file and GLC chain G: {err!r}")
     out = T / "clash-out"
     if out.exists() and any(p.suffix in (".pdb", ".cif") for p in out.iterdir()):
         fail("the stem clash wrote a structure")

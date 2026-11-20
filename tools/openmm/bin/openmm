@@ -67,6 +67,8 @@ ATTACH_RESIDUES = {res for res, _ in ATTACHMENTS} | set(ATTACHMENTS.values())
 # of another sugar (or Asn ND2, Ser OG, Thr OG1). A C-O bond is 1.43 A and a
 # non-bonded C...O contact is 2.8 A or more; Boltz-2 writes its links between
 # 1.1 and 1.8 A (the test fixture), so 2.0 A takes them all and nothing else.
+# The rare mislink: an Asn ND2 link stretched past 2.0 A while a Ser OG or Thr
+# OG1 sits within 2.0 A of the same C1 links the sugar to the Ser/Thr instead.
 LINK_CUTOFF = 2.0
 # relax: heavy atoms held to their input positions by 10 kcal/mol/A^2, the
 # AlphaFold relax stiffness, and minimized to OpenMM's default tolerance.
@@ -97,9 +99,16 @@ def select_platform():
     return openmm.Platform.getPlatformByName("CPU"), {}
 
 
-def _sugar(name):
-    """A supported sugar's GLYCAM letters (sugar + anomer), whether named by CCD or GLYCAM."""
-    if name in SUGARS:
+def _sugar(residue):
+    """A supported sugar's GLYCAM letters (sugar + anomer), whether named by CCD or GLYCAM.
+
+    One CCD code is also a GLYCAM_06j template name: SLB, CCD beta-Neu5Ac and GLYCAM's
+    2,3,6-linked beta-Gal (checked: no other key of SUGARS is a template name in the force
+    field). A residue so named is CCD only if it carries CCD-only atom names (Neu5Ac's C10).
+    """
+    name = residue.name
+    if name in SUGARS and (name not in forcefield()._templates
+                           or any(a.name in ATOM_NAMES.get(name, {}) for a in residue.atoms())):
         return SUGARS[name]
     if len(name) == 3 and name[0] in LINKAGE.values() and name[1:] in SUGARS.values():
         return name[1:]
@@ -132,23 +141,27 @@ def glycam_rename(topology, positions):
     positions give its GLYCAM linkage code, and an Asn/Ser/Thr carrying a sugar
     becomes NLN/OLS/OLT. GLYCAM-named residues keep their names.
     """
-    for residue in topology.residues():
+    # Decided before any atom is renamed, since _sugar reads CCD atom names.
+    letters = {r: _sugar(r) for r in topology.residues() if _sugar(r)}
+    ccd = [r for r in letters if SUGARS.get(r.name) == letters[r]]
+    for residue in ccd:
         for atom in residue.atoms():
             atom.name = ATOM_NAMES.get(residue.name, {}).get(atom.name, atom.name)
-    sugars = [r for r in topology.residues() if _sugar(r.name)]
+    sugars = list(letters)
     bonded = _bonded(topology)
 
     def acceptor(atom):
         res = atom.residue
-        if _sugar(res.name):
-            _, leaving, ring = ANOMERIC[_sugar(res.name)[0]]
+        if res in letters:
+            _, leaving, ring = ANOMERIC[letters[res][0]]
             return re.fullmatch(r"O\d", atom.name) and atom.name not in (leaving, ring)
         return res.name in ATTACH_RESIDUES and atom.name in ATTACH_ATOMS
 
     acceptors = [a for a in topology.atoms() if acceptor(a)]
     xyz = np.array(positions.value_in_unit(unit.angstrom))
+    inferred = 0
     for residue in sugars:
-        carbon = _atom(residue, ANOMERIC[_sugar(residue.name)[0]][0])
+        carbon = _atom(residue, ANOMERIC[letters[residue][0]][0])
         if carbon is None or _linked(carbon, bonded):
             continue
         others = [a for a in acceptors if a.residue is not residue]
@@ -160,17 +173,16 @@ def glycam_rename(topology, positions):
             topology.addBond(carbon, others[nearest])
             bonded[carbon].add(others[nearest])
             bonded[others[nearest]].add(carbon)
+            inferred += 1
+    note(f"inferred {inferred} glycan link(s) by distance")
 
     templates = forcefield()._templates  # by name; ForceField has no public lookup
-    for residue in sugars:
-        if residue.name not in SUGARS:
-            continue
-        letters = SUGARS[residue.name]
+    for residue in ccd:
         sites = tuple(sorted(int(a.name[1:]) for a in residue.atoms() if acceptor(a) and _linked(a, bonded)))
-        name = LINKAGE.get(sites, "?") + letters
+        name = LINKAGE.get(sites, "?") + letters[residue]
         if name not in templates:
             raise SystemExit(f"no GLYCAM residue for {residue.name} chain {residue.chain.id} {residue.id} linked at {sites}")
-        carbon = _atom(residue, ANOMERIC[letters[0]][0])
+        carbon = _atom(residue, ANOMERIC[letters[residue][0]][0])
         for partner in bonded[carbon] if carbon else ():
             key = (partner.residue.name, partner.name)
             if key in ATTACHMENTS:
@@ -180,7 +192,7 @@ def glycam_rename(topology, positions):
     # Bonds inside each GLYCAM residue, from its template: PDBxFile and PDBFile bond only
     # the standard residues, so a sugar read without chem_comp_bond or CONECT has none.
     for residue in topology.residues():
-        template = templates.get(residue.name) if _sugar(residue.name) or residue.name in ATTACHMENTS.values() else None
+        template = templates.get(residue.name) if residue in letters or residue.name in ATTACHMENTS.values() else None
         atoms = {a.name: a for a in residue.atoms()}
         for i, j in template.bonds if template else ():
             a, b = atoms.get(template.atoms[i].name), atoms.get(template.atoms[j].name)
@@ -204,7 +216,7 @@ def prepare(path):
     fixer.addMissingAtoms(seed=0)
     modeller = Modeller(fixer.topology, fixer.positions)
     modeller.delete([a for a in modeller.topology.atoms() if a.element is element.hydrogen])
-    glycans = [(r.chain.id, r.id) for r in modeller.topology.residues() if _sugar(r.name)]
+    glycans = [(r.chain.id, r.id) for r in modeller.topology.residues() if _sugar(r)]
     try:
         glycam_rename(modeller.topology, modeller.positions)
     except SystemExit as error:
@@ -213,8 +225,8 @@ def prepare(path):
     bonded = _bonded(modeller.topology)
     leaving = []
     for residue in modeller.topology.residues():
-        if _sugar(residue.name):
-            carbon, oxygen, _ = (_atom(residue, n) for n in ANOMERIC[_sugar(residue.name)[0]])
+        if _sugar(residue):
+            carbon, oxygen, _ = (_atom(residue, n) for n in ANOMERIC[_sugar(residue)[0]])
             if carbon and oxygen and _linked(carbon, bonded):
                 leaving.append(oxygen)
     modeller.delete(leaving)
@@ -229,7 +241,7 @@ def prepare(path):
             raise SystemExit(f"{path}: {error}")
         r = list(modeller.topology.residues())[int(found[1])]
         raise SystemExit(f"{path}: unsupported residue {r.name} chain {r.chain.id} {r.id}\n{error}")
-    after = {(r.chain.id, r.id): r for r in modeller.topology.residues() if _sugar(r.name)}
+    after = {(r.chain.id, r.id): r for r in modeller.topology.residues() if _sugar(r)}
     for key in glycans:
         r = after.get(key)
         if r is None or not any(a.element is element.hydrogen for a in r.atoms()):
