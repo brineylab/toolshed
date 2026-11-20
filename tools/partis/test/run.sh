@@ -65,9 +65,10 @@ run simu2 partis simulate --parameter-dir "$w/params" --outfname "$w/simu2.yaml"
 
 # Paired heavy/light: simulate, partition from the mixed FASTA and its pairing, and score each chain against the truth.
 # partition is not deterministic, and families of a few sequences make completeness coarse, so the bar is purity, and
-# that pairing never leaves a chain less pure than single-chain partitioning does. A few light-chain sequences fail
-# annotation in some runs (5 of 56 IGL once), so at least 85% of each chain must be partitioned.
-run psimu partis simulate --paired-loci --rearrange-from-scratch --paired-outdir "$w/psimu" --n-sim-events 40 --seed 3 --n-procs 2
+# that pairing never leaves a chain less pure than single-chain partitioning does. 80 families give IGL about 100
+# sequences: at 40 (56 IGL), parameter inference sometimes pruned a J gene one family needed, which then failed
+# annotation and took its heavy partners with it (45 of 56 IGL kept). Here at least 85% of each chain must be kept.
+run psimu partis simulate --paired-loci --rearrange-from-scratch --paired-outdir "$w/psimu" --n-sim-events 80 --seed 3 --n-procs 2
 run ppartition partis partition --paired-loci --infname "$w/psimu/all-seqs.fa" --input-metafnames "$w/psimu/meta.yaml" --paired-outdir "$w/ppart" --n-procs 2
 for l in igh igk igl; do
   read -r n p c <<< "$(score "$w/ppart/partition-$l.yaml" "$w/psimu/$l.yaml")"
