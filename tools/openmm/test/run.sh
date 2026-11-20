@@ -7,7 +7,11 @@
 # written into a _struct_conn loop, which must give the same GLYCAM names;
 # the complex with its first MAN renamed GLC, which must stop naming GLC; and
 # a directory where a.pdb and a.cif share a stem, which must stop before
-# writing anything. check.py verifies the answers. Writes only under /tmp.
+# writing anything. Then `openmm md` on relax's complex: 0.2 ns, extended to
+# 0.4; rerun at 0.3, which must touch nothing; a crash simulated between a
+# frame and its state.xml (one extra frame and log row), resumed to 0.5; and
+# 1UBQ into the same directory, which must stop touching nothing. check.py
+# verifies the answers. Writes only under /tmp.
 set -euo pipefail
 cd "$(dirname "$0")"
 T=$(mktemp -d /tmp/openmm.XXXXXX)
@@ -68,5 +72,45 @@ if openmm relax "$T/clash" "$T/clash-out" 2> "$T/clash.err"; then
     echo "FAIL: relax accepted two inputs sharing a stem" >&2
     exit 1
 fi
+
+# md: relax's GLYCAM-named output (the chaining path) for 0.2 ns, then extended to 0.4
+openmm md "$T/relax/complex.cif" "$T/md" --ns 0.2 --seed 1
+openmm md "$T/relax/complex.cif" "$T/md" --ns 0.4 --seed 1
+hashes() { (cd "$T/md" && sha256sum -- *) > "$1"; }
+hashes "$T/md-0.4.sha256"
+# a smaller --ns: already there, so nothing changes
+openmm md "$T/relax/complex.cif" "$T/md" --ns 0.3 2> "$T/md-smaller.err"
+hashes "$T/md-0.3.sha256"
+
+# a crash after a frame was written but before its state.xml was saved: one more
+# frame (OpenMM's own DCDFile, appending) and one more log row than state.xml holds
+python3 -I - "$T/md" <<'PY'
+import sys
+from pathlib import Path
+
+from openmm.app import DCDFile, PDBFile
+
+md = Path(sys.argv[1])
+topology = PDBFile(str(md / "topology.pdb")).topology
+final = PDBFile(str(md / "final.pdb"))
+keep = [a.index for a in final.topology.atoms() if a.residue.name not in ("HOH", "NA", "CL")]
+positions = final.getPositions(asNumpy=True)[keep]
+with open(md / "trajectory.dcd", "r+b") as f:
+    dcd = DCDFile(f, topology, 0.004, firstStep=25000, interval=25000, append=True)
+    dcd.writeModel(positions, periodicBoxVectors=final.topology.getPeriodicBoxVectors())
+row = (md / "log.csv").read_text().splitlines()[-1].split(",")
+row[0], row[1] = str(int(row[0]) + 25000), str(float(row[1]) + 100)
+with open(md / "log.csv", "a") as f:
+    f.write(",".join(row) + "\n")
+PY
+openmm md "$T/relax/complex.cif" "$T/md" --ns 0.5 --seed 1
+hashes "$T/md-0.5.sha256"
+
+# a different input into the same directory
+if openmm md "$T/in/1UBQ.pdb" "$T/md" --ns 0.5 2> "$T/md-other.err"; then
+    echo "FAIL: md resumed a run of a different input" >&2
+    exit 1
+fi
+hashes "$T/md-other.sha256"
 
 python3 -I check.py "$T"

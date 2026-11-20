@@ -49,6 +49,17 @@ COMPLEX_ATOMS = 1478
 INFERRED_PLAIN = [0, 6]
 INFERRED_WITHBONDS = [0]
 
+# md: frames every 25,000 steps (100 ps at 4 fs), counted from production's step 0. The test
+# ends at 0.5 ns, so 5 frames and log rows at 25,000 ... 125,000, each step once.
+MD_INTERVAL = 25000
+MD_STEPS = [MD_INTERVAL * k for k in range(1, 6)]
+SOLVENT = {"HOH", "NA", "CL"}
+MIN_BOX_SIDE = 30.0  # Angstrom: cuPotential needs three 1.0 nm cutoffs per side
+# OpenMM's DCDFile (openmm/app/dcdfile.py, 8.6.1): a 276-byte header (frame count at byte 8,
+# first step at 12, interval at 16, last frame's step at 20, atom count at 268), then per frame
+# a 56-byte box record and three 4N-byte coordinate blocks, each between two 4-byte lengths.
+DCD_HEADER = 276
+
 
 def fail(msg):
     raise SystemExit(f"FAIL: {msg}")
@@ -116,7 +127,65 @@ def main():
         fail("the stem clash wrote a structure")
     if "a.cif" not in (T / "clash.err").read_text():
         fail("the stem clash's error does not name the files")
+    check_md(T)
     print(f"openmm test: relax passed ({len(names)} residues in the complex, GLYCAM names on both paths)")
+
+
+def check_md(T):
+    import hashlib
+    import shutil
+    import struct
+
+    from openmm.app import DCDFile, PDBFile
+
+    md = T / "md"
+    if (T / "md-0.3.sha256").read_text() != (T / "md-0.4.sha256").read_text():
+        fail("md with a smaller --ns changed its output directory")
+    if not (T / "md-smaller.err").read_text().strip():
+        fail("md with a smaller --ns said nothing on stderr")
+    if (T / "md-other.sha256").read_text() != (T / "md-0.5.sha256").read_text():
+        fail("md with a different input changed the output directory")
+    if "input.sha256" not in (T / "md-other.err").read_text():
+        fail(f"md with a different input does not say why: {(T / 'md-other.err').read_text()!r}")
+    if (md / "input.sha256").read_text().split()[0] != hashlib.sha256((T / "relax" / "complex.cif").read_bytes()).hexdigest():
+        fail("input.sha256 is not the input's sha256")
+    for name in ("system.pdb", "equilibrated.pdb", "final.pdb", "state.xml"):
+        if not (md / name).stat().st_size:
+            fail(f"md wrote no {name}")
+
+    sides = [float(x) for x in (md / "system.pdb").read_text().split("CRYST1", 1)[1].split()[:3]]
+    if min(sides) < MIN_BOX_SIDE:
+        fail(f"system.pdb's box {sides} A has a side under {MIN_BOX_SIDE} A")
+
+    topology = PDBFile(str(md / "topology.pdb")).topology
+    found = {r.name for r in topology.residues()} & SOLVENT
+    if found:
+        fail(f"topology.pdb holds solvent: {sorted(found)}")
+    if topology.getNumAtoms() != COMPLEX_ATOMS:
+        fail(f"topology.pdb has {topology.getNumAtoms()} atoms, expected the complex's {COMPLEX_ATOMS}")
+
+    data = (md / "trajectory.dcd").read_bytes()
+    frames, first, interval, last = struct.unpack("<4i", data[8:24])
+    natoms = struct.unpack("<i", data[268:272])[0]
+    frame = 56 + 3 * (8 + 4 * natoms)
+    if natoms != topology.getNumAtoms():
+        fail(f"trajectory.dcd has {natoms} atoms per frame, topology.pdb {topology.getNumAtoms()}")
+    if (frames, first, interval, last) != (len(MD_STEPS), MD_INTERVAL, MD_INTERVAL, MD_STEPS[-1]):
+        fail(f"trajectory.dcd's header: {frames} frames, steps {first}+{interval}k, last {last}")
+    if len(data) != DCD_HEADER + len(MD_STEPS) * frame:
+        fail(f"trajectory.dcd is {len(data)} bytes, expected {DCD_HEADER} + {len(MD_STEPS)} x {frame}")
+    copy = T / "check.dcd"
+    shutil.copy(md / "trajectory.dcd", copy)
+    with open(copy, "r+b") as f:  # OpenMM's own reader of the header: magic and atom count
+        DCDFile(f, topology, 0.004, append=True)
+
+    lines = (md / "log.csv").read_text().splitlines()
+    if not lines[0].startswith("#"):
+        fail(f"log.csv's first line is not a header: {lines[0]!r}")
+    steps = [int(line.split(",")[0]) for line in lines[1:]]
+    if steps != MD_STEPS:
+        fail(f"log.csv's steps {steps}, expected {MD_STEPS}")
+    print(f"openmm test: md passed ({natoms} atoms in {len(MD_STEPS)} frames, box {sides} A)")
 
 
 if __name__ == "__main__":

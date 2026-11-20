@@ -1,7 +1,8 @@
 #!/usr/bin/env -S python3 -I
-"""openmm: prepare and relax protein structures, N-glycans included, with OpenMM.
+"""openmm: prepare, relax, and simulate protein structures, N-glycans included, with OpenMM.
 
     openmm relax <in> <out>
+    openmm md <structure> <out> --ns FLOAT [--seed INT]
 
 <in> is one structure file (PDB or mmCIF) or a flat directory of them. Every
 structure is prepared the same way (``prepare``): PDBFixer adds missing heavy
@@ -9,12 +10,18 @@ atoms to standard residues; N-glycans named by their PDB chemical components
 (NAG, BMA, MAN, ...) are renamed to GLYCAM_06j, residue and atom, with their
 links read from the file's bonds or, where it has none, found by distance;
 Modeller adds hydrogens at pH 7. Any residue the force field cannot place
-stops the run, naming it. Outputs keep the GLYCAM names. Everything past these
-defaults is the library way, ``python3 -I script.py`` (see the tool's skill).
+stops the run, naming it. Outputs keep the GLYCAM names. ``md`` solvates,
+equilibrates, and runs NPT production that a rerun of the same command resumes
+from out/state.xml. Everything past these defaults is the library way,
+``python3 -I script.py`` (see the tool's skill).
 """
 
 import argparse
+import hashlib
+import math
+import os
 import re
+import struct
 import sys
 import time
 from collections import Counter, defaultdict
@@ -24,7 +31,8 @@ from pathlib import Path
 import numpy as np
 import openmm
 from openmm import unit
-from openmm.app import ForceField, Modeller, NoCutoff, PDBFile, PDBxFile, element
+from openmm.app import (PME, DCDReporter, ForceField, HBonds, Modeller, NoCutoff, PDBFile, PDBxFile, Simulation,
+                        StateDataReporter, element)
 from pdbfixer import PDBFixer
 
 FORCEFIELD = ("amber14-all.xml", "amber14/tip3pfb.xml", "amber14/GLYCAM_06j-1.xml")
@@ -79,6 +87,14 @@ LINK_CUTOFF = 2.0
 # (checked on the test's glycosylated fixture, 2026-11-20). GBn2 was fit on
 # proteins and nucleic acids, not carbohydrates.
 RESTRAINT_K = 10 * unit.kilocalorie_per_mole / unit.angstrom**2
+# md: the protocol is fixed (the design's section 4); a frame, a log row, and state.xml every
+# FRAME steps (100 ps at 4 fs), production steps counted from 0, so frame k is step FRAME*k.
+STEP = 0.004 * unit.picoseconds
+FRAME = 25000
+NVT_FRAMES, NPT_FRAMES = 1, 10  # 100 ps NVT, then 1 ns NPT releasing the restraints
+SOLVENT = ("HOH", "NA", "CL")  # what addSolvent adds; the trajectory holds everything else
+MD_OUTPUTS = ("input.sha256", "system.pdb", "topology.pdb", "equilibrated.pdb", "trajectory.dcd",
+              "log.csv", "final.pdb", "state.xml", "state.xml.tmp")
 
 
 def note(message):
@@ -311,6 +327,173 @@ def relax(args):
             note(f"{path.name}: minimize {minimized - started:.1f}s, write {time.perf_counter() - minimized:.1f}s")
 
 
+def md_simulation(topology, positions, seed, barostat_frequency=25):
+    """The md Simulation: PME at 1.0 nm, HMR with HBonds at 4 fs, Langevin at 300 K, a 1 bar
+    barostat (frequency 0 is off: NVT), and a heavy-atom restraint to ``positions`` whose
+    global k starts at 0."""
+    system = forcefield().createSystem(
+        topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * unit.nanometer, ewaldErrorTolerance=5e-4,
+        constraints=HBonds, hydrogenMass=1.5 * unit.amu)
+    restraint = openmm.CustomExternalForce("0.5*k*periodicdistance(x, y, z, x0, y0, z0)^2")
+    restraint.addGlobalParameter("k", 0)
+    for p in ("x0", "y0", "z0"):
+        restraint.addPerParticleParameter(p)
+    for atom in topology.atoms():
+        if atom.element is not element.hydrogen and atom.residue.name not in SOLVENT:
+            restraint.addParticle(atom.index, positions[atom.index].value_in_unit(unit.nanometer))
+    system.addForce(restraint)
+    barostat = openmm.MonteCarloBarostat(1 * unit.bar, 300 * unit.kelvin, barostat_frequency)
+    system.addForce(barostat)
+    integrator = openmm.LangevinMiddleIntegrator(300 * unit.kelvin, 1 / unit.picosecond, STEP)
+    if seed is not None:
+        integrator.setRandomNumberSeed(seed)
+        barostat.setRandomNumberSeed(seed)
+    return Simulation(topology, system, integrator, *select_platform()), barostat
+
+
+def write_pdb(path, simulation, solute_only=False):
+    """The context's positions, molecules wrapped into its current box; the solute keeps its input's ids."""
+    state = simulation.context.getState(getPositions=True, enforcePeriodicBox=True)
+    modeller = Modeller(simulation.topology, state.getPositions())
+    # delete always builds a new Topology, so the box below is not set on the Simulation's
+    modeller.delete([r for r in modeller.topology.residues() if solute_only and r.name in SOLVENT])
+    modeller.topology.setPeriodicBoxVectors(state.getPeriodicBoxVectors())
+    with open(path, "w") as handle:
+        PDBFile.writeFile(modeller.topology, modeller.positions, handle, keepIds=solute_only)
+
+
+def save_state(simulation, out):
+    """state.xml, atomically: a crash leaves the old one or the new one, never half of either."""
+    tmp = out / "state.xml.tmp"
+    with open(tmp, "w") as handle:
+        simulation.saveState(handle)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, out / "state.xml")
+
+
+def truncate_dcd(path, frames):
+    """Cut OpenMM's DCD (openmm/app/dcdfile.py) to its first ``frames`` frames, header kept true.
+
+    Header: the frame count at byte 8, the last frame's step at 20, the box flag at 48, the
+    title block's length at 92, and the atom count after the titles. A frame is a 56-byte box
+    record (when flagged) and three 4N-byte coordinate blocks, each between 4-byte lengths.
+    """
+    with open(path, "r+b") as f:
+        f.seek(48)
+        box = struct.unpack("<i", f.read(4))[0]
+        f.seek(92)
+        titles = struct.unpack("<i", f.read(4))[0]
+        f.seek(104 + titles)
+        natoms = struct.unpack("<i", f.read(4))[0]
+        size = 104 + titles + 8 + frames * ((56 if box else 0) + 3 * (8 + 4 * natoms))
+        if os.fstat(f.fileno()).st_size < size:
+            raise SystemExit(f"openmm: {path} holds fewer than the {frames} frames state.xml records; not resuming over a gap")
+        f.truncate(size)
+        f.seek(8)
+        f.write(struct.pack("<i", frames))
+        f.seek(20)
+        f.write(struct.pack("<i", frames * FRAME))
+
+
+def truncate_log(path, step):
+    """log.csv's header and its whole rows up to ``step``, rewritten atomically."""
+    lines = path.read_text().splitlines(keepends=True)
+    kept = [l for l in lines if l.endswith("\n") and (l.startswith("#") or int(l.split(",")[0]) <= step)]
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text("".join(kept))
+    os.replace(tmp, path)
+
+
+def md(args):
+    path, out = Path(args.input), Path(args.output)
+    if not (path.is_file() and path.suffix.lower() in WRITERS):
+        raise SystemExit(f"openmm: not a .pdb or .cif file: {path}")
+    frames = round(args.ns * 1000 / (FRAME * STEP.value_in_unit(unit.picoseconds)))
+    if frames < 1 or not math.isclose(frames * 0.1, args.ns, abs_tol=1e-9):
+        raise SystemExit(f"openmm: --ns {args.ns} is not a positive multiple of 0.1 (a frame every 100 ps)")
+    target = frames * FRAME
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    recorded = out / "input.sha256"
+    if recorded.exists():
+        if recorded.read_text().split()[0] != digest:
+            raise SystemExit(f"openmm: {recorded} does not match {path}: {out} holds another input's run; use another directory")
+    elif any((out / name).exists() for name in MD_OUTPUTS):
+        raise SystemExit(f"openmm: {out} holds md outputs but no input.sha256; use another directory")
+    started = time.perf_counter()
+
+    if (out / "state.xml").exists():
+        state = openmm.XmlSerializer.deserialize((out / "state.xml").read_text())
+        step = state.getStepCount()
+        if step >= target:
+            note(f"md: {out / 'state.xml'} is at {step // FRAME * 0.1:.1f} ns, at or past --ns {args.ns}; nothing to do")
+            return
+        truncate_dcd(out / "trajectory.dcd", step // FRAME)
+        truncate_log(out / "log.csv", step)
+        system_pdb = PDBFile(str(out / "system.pdb"))
+        # a fresh Langevin seed per restart: replaying one random stream from a new state
+        # correlates the noise across segments
+        seed = None if args.seed is None else args.seed + step // FRAME
+        simulation, _ = md_simulation(system_pdb.topology, system_pdb.positions, seed)
+        simulation.context.setState(state)
+        note(f"md: resuming {out} at {step // FRAME * 0.1:.1f} ns on {simulation.context.getPlatform().getName()}")
+        resume = True
+    else:
+        out.mkdir(parents=True, exist_ok=True)
+        for name in MD_OUTPUTS:  # equilibration is not resumable: start over
+            (out / name).unlink(missing_ok=True)
+        recorded.write_text(digest + "\n")
+        modeller = prepare(path)
+        modeller.addSolvent(forcefield(), model="tip3p", padding=1.0 * unit.nanometer,
+                            ionicStrength=0.15 * unit.molar, neutralize=True)
+        with open(out / "system.pdb", "w") as handle:
+            PDBFile.writeFile(modeller.topology, modeller.positions, handle)
+        simulation, barostat = md_simulation(modeller.topology, modeller.positions, args.seed, barostat_frequency=0)
+        context = simulation.context
+        note(f"md: {modeller.topology.getNumAtoms()} atoms, box {modeller.topology.getUnitCellDimensions()}, "
+             f"on {context.getPlatform().getName()}")
+        context.setPositions(modeller.positions)
+        write_pdb(out / "topology.pdb", simulation, solute_only=True)
+        k = RESTRAINT_K.value_in_unit(unit.kilojoule_per_mole / unit.nanometer**2)
+        context.setParameter("k", k)
+        simulation.minimizeEnergy()
+        if args.seed is None:
+            context.setVelocitiesToTemperature(300 * unit.kelvin)
+        else:
+            context.setVelocitiesToTemperature(300 * unit.kelvin, args.seed)
+        note(f"md: equilibrating, {NVT_FRAMES * 0.1:.1f} ns NVT then {NPT_FRAMES * 0.1:.1f} ns NPT releasing the restraints")
+        simulation.reporters.append(StateDataReporter(sys.stderr, FRAME, step=True, time=True, potentialEnergy=True,
+                                                      temperature=True, volume=True, speed=True))
+        simulation.step(NVT_FRAMES * FRAME)
+        barostat.setFrequency(25)
+        context.reinitialize(preserveState=True)
+        for i in range(NPT_FRAMES):
+            context.setParameter("k", k * (NPT_FRAMES - 1 - i) / (NPT_FRAMES - 1))
+            simulation.step(FRAME)
+        write_pdb(out / "equilibrated.pdb", simulation)
+        simulation.reporters.clear()
+        simulation.currentStep = 0
+        context.setTime(0)
+        note(f"md: equilibrated in {time.perf_counter() - started:.0f}s")
+        resume = False
+
+    subset = [a.index for a in simulation.topology.atoms() if a.residue.name not in SOLVENT]
+    simulation.reporters = [
+        DCDReporter(str(out / "trajectory.dcd"), FRAME, append=resume, atomSubset=subset),
+        StateDataReporter(str(out / "log.csv"), FRAME, step=True, time=True, potentialEnergy=True,
+                          temperature=True, volume=True, speed=True, append=resume),
+    ]
+    first, produced = simulation.currentStep, time.perf_counter()
+    while simulation.currentStep < target:
+        simulation.step(FRAME)
+        save_state(simulation, out)
+    write_pdb(out / "final.pdb", simulation)
+    seconds = time.perf_counter() - produced
+    ns = (target - first) * STEP.value_in_unit(unit.nanoseconds)
+    note(f"md: production {ns:.1f} ns in {seconds:.0f}s ({ns / seconds * 86400:.1f} ns/day); "
+         f"{time.perf_counter() - started:.0f}s in all")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="openmm", description=__doc__.split("\n")[0])
     verbs = parser.add_subparsers(dest="verb", required=True)
@@ -318,6 +501,12 @@ def main(argv=None):
     p.add_argument("input", help="a .pdb or .cif file, or a directory of them")
     p.add_argument("output", help="output directory: <stem>.<pdb|cif> per input, and relax.tsv")
     p.set_defaults(run=relax)
+    p = verbs.add_parser("md", help="solvate, equilibrate, and run NPT production; rerun to resume or extend")
+    p.add_argument("input", help="one .pdb or .cif file")
+    p.add_argument("output", help="output directory; a rerun with the same input resumes from its state.xml")
+    p.add_argument("--ns", type=float, required=True, help="production length in ns, a multiple of 0.1")
+    p.add_argument("--seed", type=int, help="random seed for velocities, Langevin noise, and the barostat")
+    p.set_defaults(run=md)
     args = parser.parse_args(argv)
     args.run(args)
 
