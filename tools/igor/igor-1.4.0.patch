@@ -1,0 +1,74 @@
+diff -ru a/igor_src/Aligner.cpp b/igor_src/Aligner.cpp
+--- a/igor_src/Aligner.cpp
++++ b/igor_src/Aligner.cpp
+@@ -85,7 +85,7 @@
+ 	vector<pair<const int, const std::string>> sequence_vect;
+ 
+ 	while (getline(infile,temp_str)){
+-		if(temp_str[temp_str.size()-1] == '\r'){
++		if(!temp_str.empty() and temp_str.back() == '\r'){
+ 			temp_str.erase(temp_str.size()-1);
+ 		}
+ 		if(temp_str[0] == '>'){
+@@ -128,7 +128,7 @@
+ 		vector<pair<string,std::string>> sequence_vect;
+ 
+ 		while (getline(infile,temp_str)){
+-			if(temp_str[temp_str.size()-1] == '\r'){
++			if(!temp_str.empty() and temp_str.back() == '\r'){
+ 				temp_str.erase(temp_str.size()-1);
+ 			}
+ 			if(temp_str[0] == '>'){
+@@ -198,7 +198,7 @@
+ 	string seq_str;
+ 
+ 	while(getline(infile,seq_str)){
+-		if(seq_str[seq_str.size()-1] == '\r'){
++		if(!seq_str.empty() and seq_str.back() == '\r'){
+ 			seq_str.erase(seq_str.size()-1);
+ 		}
+ 		if(!seq_str.empty()){
+@@ -895,7 +895,7 @@
+ /**
+  * This function compares nucleotides and output a boolean if they do not necessarily imply an error (ambiguous nucleotides are thus treated in a loose sense).
+  */
+-bool inline comp_nt_int(const int& nt_1 , const int& nt_2){
++bool comp_nt_int(const int& nt_1 , const int& nt_2){
+ 	if(nt_1 != nt_2){
+ 		if( (nt_1<4) & (nt_2<4)){
+ 			return false;
+diff -ru a/igor_src/CDR3SeqData.h b/igor_src/CDR3SeqData.h
+--- a/igor_src/CDR3SeqData.h
++++ b/igor_src/CDR3SeqData.h
+@@ -9,6 +9,8 @@
+ #ifndef CDR3SEQDATA_H
+ #define CDR3SEQDATA_H
+ 
++#include <string>
++
+ class CDR3SeqData {
+ public:
+     CDR3SeqData();
+diff -ru a/igor_src/Deletion.cpp b/igor_src/Deletion.cpp
+--- a/igor_src/Deletion.cpp
++++ b/igor_src/Deletion.cpp
+@@ -1701,7 +1701,7 @@
+ 		 return false;
+ 		 break;
+ 	 }
+-
++	 return false;
+  }
+ 
+  void Deletion::iterate_initialize_Len_proba(Seq_type considered_junction ,  std::map<int,double>& length_best_proba_map ,  std::queue<std::shared_ptr<Rec_Event>>& model_queue , double& scenario_proba , const Marginal_array_p& model_parameters_point , Index_map& base_index_map , Seq_type_str_p_map& constructed_sequences , int& seq_len/*=0*/ ) const{
+diff -ru a/igor_src/Utils.h b/igor_src/Utils.h
+--- a/igor_src/Utils.h
++++ b/igor_src/Utils.h
+@@ -139,6 +139,7 @@
+ 		for(int i = 0 ; i != rows*cols ; i++){
+ 			this->array_p[i] = other.array_p[i];
+ 		}
++		return *this;
+ 	}
+ 
+ 	T& operator()(const int& i ,const int& j ){

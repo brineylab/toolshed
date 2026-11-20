@@ -1,0 +1,20 @@
+# IGoR 1.4.0, the last release (2020), built from its release archive with igor-1.4.0.patch: Matrix::operator= gains its
+# missing `return *this` (upstream issue #62, PR #67), whose absence crashes every optimized build from GCC 8 on during
+# generation and inference; three FASTA readers stop indexing past an empty line; and two fixes let it compile at all.
+FROM docker.io/library/debian:bookworm-20261104-slim@sha256:c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018 AS build
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates curl unzip patch
+COPY igor-1.4.0.patch /src/
+RUN curl -fsSL -o /src/igor_1-4-0.zip https://github.com/qmarcou/IGoR/releases/download/1.4.0/igor_1-4-0.zip \
+  && echo "63f0620fc853abb937c51a2d55c368bde2feb9c8ac3b8ca8c1ba839baf7e8733  /src/igor_1-4-0.zip" | sha256sum -c - \
+  && cd /src && unzip -q igor_1-4-0.zip && cd igor_1-4-0 && patch -p1 < ../igor-1.4.0.patch \
+  && ./configure --prefix=/usr/local CXXFLAGS="-O2 -Werror=return-type" \
+  && make -j"$(nproc)" && make install
+
+FROM docker.io/library/debian:bookworm-20261104-slim@sha256:c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
+COPY --from=build /usr/local/bin/igor /usr/local/bin/igor
+# the models (human TRA, TRB, IGH naive; mouse TRB) are IGoR's weights, at the path the binary was compiled to read
+COPY --from=build /usr/local/share/igor /usr/local/share/igor
+# GPLv3: the license, and the exact source and patch the binary was built from
+COPY --from=build /src/igor_1-4-0/COPYING /src/igor_1-4-0.zip /src/igor-1.4.0.patch /usr/local/share/igor/source/
+COPY test /toolshed/test

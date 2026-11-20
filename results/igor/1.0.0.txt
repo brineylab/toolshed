@@ -1,0 +1,26 @@
+---
+tool: igor
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/igor@sha256:002fd2a650a21b0f81544d637826aa80b1049bc97fe60743743205fbde01370a
+digest: sha256:002fd2a650a21b0f81544d637826aa80b1049bc97fe60743743205fbde01370a
+runner: podman
+host: strix
+started: 2026-11-20T18:34:22Z
+exit: 0
+---
+Trying to pull ghcr.io/brineylab/toolshed/igor@sha256:002fd2a650a21b0f81544d637826aa80b1049bc97fe60743743205fbde01370a...
+Getting image source signatures
+Copying blob sha256:c6dd1fd28f55813d9978b46322694c2a901a8001d56698abb7d1f9829c851077
+Copying blob sha256:5c333010138ab1f80002e8f66a0d080fc5a6222033539a01b4c7e81d831ab123
+Copying blob sha256:830ad448e08faf93c7b4ff58048c36ba66d0f061c4aac1007553d8e836ee50db
+Copying blob sha256:265e9b98029e3a77ce7d17f188a3cc85eb57001997d21fb88e51de516f05122a
+Copying blob sha256:f2814148962027a25a1de7a9247db7ca2f84bc81f72aaf1a141070a19cfe9d6d
+Copying blob sha256:c5b0731ec9e1098b8956baff14655a3d919d82583bd2bc98ce8cba2e36dc1846
+Copying config sha256:9a5b7cf65eb08ab0866ff96fdcd25d7991028dae8b805c855277f00dc025e4d3
+Writing manifest to image destination
+node: 67d8fa6a3fa5
+gpu: none
+trb: 200 of 200 with Pgen > 0, 200 of 200 with the generating V gene as best scenario
+igh: 40 of 40 with Pgen > 0, 40 of 40 with the generating V gene as best scenario
+inferred a TRB model, scored the 200 reads under it, and generated 10 sequences from it
+ok
