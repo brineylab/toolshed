@@ -8,10 +8,10 @@ ADD --checksum=sha256:366cd9cd8be14df1ab8ed50352a82111082a36686b2d389fdb79a92c3f
 # One conda-forge environment, every top-level package exact. cuda-version
 # 12.9 selects the CUDA 12 builds; CONDA_OVERRIDE_CUDA lets the solver
 # accept them with no driver on the build host. pytorch is conda's (CUDA 12.9
-# MKL build) so the pip step below sees it already installed. feflow (1.1.0)
+# MKL build) so the pip step below sees it already installed. feflow 0.2.1 (for the tool's 1.1.0)
 # does not resolve beside openmm 8.6.1 today: see the design's section 6.
 RUN CONDA_OVERRIDE_CUDA=12.9 micromamba create -y -p /opt/env -c conda-forge --override-channels \
-      python=3.12 openmm=8.6.1 pdbfixer=1.12 openmm-ml=1.8 \
+      python=3.12.16 openmm=8.6.1 pdbfixer=1.12 openmm-ml=1.8 \
       cuda-version=12.9 "pytorch=2.14.1=cuda129_mkl*" \
  && micromamba clean -a -y
 ENV PATH=/opt/env/bin:$PATH
@@ -27,4 +27,22 @@ RUN pip install --no-cache-dir aimnet==0.2.6 nvalchemi-toolkit-ops==0.5.0 warp-l
 # at least one libcuda.so.1 entry. The GPU test is what proves the platform
 # registers. CUDA 12.9 needs NVIDIA driver R575 or newer at run time.
 RUN python3 -I -c "import os, openmm, pdbfixer, openmmml, aimnet; from openmm import Platform; from openmm.app import ForceField; print('openmm', openmm.__version__); f = Platform.getPluginLoadFailures(); print(f); assert os.path.exists('/opt/env/lib/plugins/libOpenMMCUDA.so'); assert any('libcuda.so.1' in e for e in f); assert all('libcuda.so.1' in e or 'libhiprtc.so.6' in e for e in f); ForceField('amber14-all.xml', 'amber14/tip3pfb.xml', 'amber14/GLYCAM_06j-1.xml')"
+# Licenses beside the code they cover. OpenMM's three files ship in the conda
+# environment; PDBFixer, openmm-ml and aimnet carry theirs in dist-info.
+RUN mkdir -p /opt/openmm/licenses \
+ && S=/opt/env/lib/python3.12/site-packages \
+ && cp /opt/env/licenses/GPL.txt /opt/env/licenses/LGPL.txt /opt/env/licenses/Licenses.txt /opt/openmm/licenses/ \
+ && cp $S/pdbfixer-1.12.0.dist-info/licenses/LICENSE /opt/openmm/licenses/pdbfixer-LICENSE \
+ && cp $S/openmmml-1.8.dist-info/licenses/LICENSE /opt/openmm/licenses/openmm-ml-LICENSE \
+ && cp $S/aimnet-0.2.6.dist-info/licenses/LICENSE /opt/openmm/licenses/aimnet-LICENSE
+# The AIMNet2 weights (wB97M-D3 ensemble member 0), last of the layers that
+# matter: aimnet's own downloader checks the file's sha256 against its registry
+# and writes into AIMNET_CACHE_DIR. The upstream states no license for the
+# weights, only the MIT license of the aimnetcentral repository (copied above as
+# aimnet-LICENSE). The check loads them by explicit path, as the tool does at
+# run time, so no ~/.cache lookup or network is involved. The downloader writes
+# the file mode 0600; callers run as other users, so it is made world-readable.
+RUN python3 -I -c "from aimnet.calculators.model_registry import get_registry_model_path as g; print(g('aimnet2'))" \
+ && chmod a+rX -R /opt/openmm/models \
+ && python3 -I -c "from openmm import app, unit; from openmmml import MLPotential; t = app.Topology(); c = t.addChain(); r = t.addResidue('HOH', c); o = t.addAtom('O', app.Element.getBySymbol('O'), r); [t.addBond(o, t.addAtom(n, app.Element.getBySymbol('H'), r)) for n in ('H1', 'H2')]; print(MLPotential('aimnet', modelPath='/opt/openmm/models/aimnet2/aimnet2_wb97m_d3_0.pt').createSystem(t).getNumParticles())"
 COPY test /toolshed/test
