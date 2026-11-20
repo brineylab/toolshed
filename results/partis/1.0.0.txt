@@ -1,0 +1,19 @@
+---
+tool: partis
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/partis@sha256:4bb6c0be2d10fb0fd25d978fe213ae4f2c399fabefcaaf162fff3a143c53dea4
+digest: sha256:4bb6c0be2d10fb0fd25d978fe213ae4f2c399fabefcaaf162fff3a143c53dea4
+runner: podman
+host: strix
+started: 2026-11-20T19:59:32Z
+exit: 0
+---
+node: c0f8586adb03
+gpu: none
+annotate: 86 sequences, 82 with the true V gene, 82 mutated in V
+partition: 86 IGH sequences, purity 1.000, completeness 0.965
+paired partition igh: 486 of 494 sequences, purity 1.000 (alone 1.000), completeness 0.981
+paired partition igk: 390 of 390 sequences, purity 0.987 (alone 0.787), completeness 0.982
+paired partition igl: 101 of 104 sequences, purity 1.000 (alone 0.808), completeness 0.980
+selection metrics for 17 families; parse-output wrote 486 FASTA and 486 AIRR rows of 486 IGH sequences
+ok
