@@ -1,0 +1,19 @@
+---
+tool: hello
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/hello@sha256:93cb67da9a65fd671893e188c377bc86a7d7f42a3d7a763a0c1c17c7a3533b0a
+digest: sha256:93cb67da9a65fd671893e188c377bc86a7d7f42a3d7a763a0c1c17c7a3533b0a
+runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-20T23:42:30Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/hello@sha256:93cb67da9a65fd671893e188c377bc86a7d7f42a3d7a763a0c1c17c7a3533b0a
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/hello@sha256:93cb67da9a65fd671893e188c377bc86a7d7f42a3d7a763a0c1c17c7a3533b0a
+node: gpu-swann-0
+GPU 0: NVIDIA L40S (UUID: GPU-ab31b94e-1404-7858-604e-4f2a6b62d33e)
+os=debian
+user=0
+gpu=NVIDIA L40S
+hostname=gpu-swann-0
+cpus=48
