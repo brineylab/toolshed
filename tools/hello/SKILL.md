@@ -1,21 +1,23 @@
 ---
 name: hello
-description: "Checks that this machine or cluster runs toolshed images: prints the OS, the user, and the GPU it sees. Reach for it first on a new cluster, before any real tool."
+description: "Checks that this machine or cluster runs toolshed images: prints the OS, the user, the GPU, the hostname, and the CPU count it sees. Reach for it first on a new cluster, before any real tool."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # hello
 
-Image: `ghcr.io/brineylab/toolshed/hello:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/hello:1.0.1`
 
 ## Commands
 
-`hello` prints three lines and exits 0:
+`hello` prints five lines and exits 0:
 
 ```
 os=<the image's OS id, debian>
 user=<the uid the container runs as>
 gpu=<the first GPU's name from nvidia-smi, or none>
+hostname=<the container's hostname: the node's name under pyxis, the container's own under podman>
+cpus=<the number of CPUs the container can use, from nproc>
 ```
 
 ## Inputs and outputs
@@ -31,16 +33,17 @@ No GPU needed; with one, it names it. Seconds.
 On a laptop:
 
 ```bash
-podman run --rm ghcr.io/brineylab/toolshed/hello:1.0.0 hello
+podman run --rm ghcr.io/brineylab/toolshed/hello:1.0.1 hello
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/hello:1.0.0 hello
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/hello:1.0.1 hello
 ```
 
 ## Gotchas
 
 - `user=` is 0 under podman and under pyxis on a cluster that maps you to root in the container (slinky does); files written to a mount are still yours.
 - `gpu=none` on a GPU node means the job did not request one (`--gres=gpu:1`) or the node's driver is not visible in the container. Enroot mounts the driver only into an image that sets `NVIDIA_VISIBLE_DEVICES`, and its `nvidia-smi` needs glibc, so hello is built on debian, not alpine.
+- `hostname=` is the node's name under pyxis (enroot shares the host's UTS namespace) and the container's own under podman; `cpus=` follows the container's CPU set — the Slurm job's allocation under pyxis, the whole machine under an unrestricted podman — not necessarily the node's total.

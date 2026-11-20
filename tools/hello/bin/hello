@@ -1,7 +1,9 @@
 #!/bin/sh
-# hello: the OS, the user, and the GPU this container sees.
+# hello: the OS, the user, the GPU, the hostname, and the CPUs this container sees.
 . /etc/os-release
 echo "os=$ID"
 echo "user=$(id -u)"
 gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n 1)
 echo "gpu=${gpu:-none}"
+echo "hostname=$(hostname)"
+echo "cpus=$(nproc)"
