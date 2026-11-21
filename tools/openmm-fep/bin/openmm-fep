@@ -1,0 +1,353 @@
+#!/usr/bin/env -S python3 -I
+"""openmm-fep: the binding ddG of one antibody point mutation, by feflow's nonequilibrium cycling on OpenMM.
+
+    openmm-fep run <complex> <out> --mutation C:XnY --leg bound|unbound [--partner CHAINS]
+                   --replicate N [--cycles K]
+
+<complex> is `openmm relax` output (.cif or .pdb, glycans kept). One run is one replicate of one
+leg: it builds the leg's wild-type and mutant end states, then runs feflow's setup and K cycles on
+one GPU and writes out/<leg>/replicate-<N>/{run.json, result.json, wildtype.cif, mutant.cif,
+log.txt}. A replicate with a result.json is done (exit 0); one without is redone. A request that
+cannot be run is refused with one line on stderr and exit 2, before anything is written.
+"""
+
+import argparse
+import hashlib
+import io
+import json
+import logging
+import os
+import re
+import shutil
+import sys
+import tempfile
+from collections import defaultdict
+from importlib import metadata
+from pathlib import Path
+
+from openmm.app import ForceField, Modeller, PDBFile, PDBxFile
+from openmm.app.internal.pdbx.reader.PdbxReader import PdbxReader
+from openmm.app.internal.pdbx.writer.PdbxWriter import PdbxWriter
+
+FORCEFIELD = ["amber14-all.xml", "amber14/tip3pfb.xml", "amber14/GLYCAM_06j-1.xml"]
+AA = {"ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": "Q", "GLU": "E", "GLY": "G",
+      "HIS": "H", "ILE": "I", "LEU": "L", "LYS": "K", "MET": "M", "PHE": "F", "PRO": "P", "SER": "S",
+      "THR": "T", "TRP": "W", "TYR": "Y", "VAL": "V"}
+THREE = {one: three for three, one in AA.items()}
+# protonation and glycosylation variants of the standard residues
+VARIANTS = {"HID": "H", "HIE": "H", "HIP": "H", "CYX": "C", "CYM": "C", "ASH": "D", "GLH": "E", "LYN": "K",
+            "NLN": "N", "OLS": "S", "OLT": "T"}
+GLYCOSYLATED = ("NLN", "OLS", "OLT")
+WATERS = ("HOH", "WAT", "H2O")
+BACKBONE = ("N", "CA", "C", "O")
+DEFAULT_CYCLES = 25
+
+
+def note(message):
+    print(f"openmm-fep: {message}", file=sys.stderr, flush=True)
+
+
+def refuse(message):
+    note(message)
+    raise SystemExit(2)
+
+
+def letter(residue):
+    return AA.get(residue.name) or VARIANTS.get(residue.name)
+
+
+def parse_mutation(text):
+    """(chain, wt, resnum, icode, new) from C:XnY (n an optional lowercase insertion code), refusing unknown letters."""
+    found = re.fullmatch(r"([^:\s]+):([A-Z])(-?\d+)([a-z]?)([A-Z])", text)
+    if not found:
+        refuse(f"mutation {text!r} is not CHAIN:XnY, e.g. H:Y33A or H:S100aG")
+    chain, wt, resnum, icode, new = found.groups()
+    for one in (wt, new):
+        if one not in THREE:
+            refuse(f"mutation {text}: {one} is not a standard one-letter amino acid code")
+    return chain, wt, resnum, icode, new
+
+
+def _pdbx_by_auth(path):
+    """The mmCIF file, with label_seq_id "." (every non-polymer residue) replaced by auth_seq_id
+    in atom_site and struct_conn, as text; None when no struct_conn partner has a "." one.
+
+    PDBxFile keys atoms and struct_conn partners by (label_seq_id, chain, atom), so where one
+    chain holds several sugars, as AlphaFold 3 and wwPDB write them, every link lands on the last.
+    """
+    with open(path) as handle:
+        blocks = []
+        PdbxReader(handle).read(blocks)
+
+    def dots_to_auth(obj, label, auth):
+        i, j = obj.getAttributeIndex(label), obj.getAttributeIndex(auth)
+        rows = [row for row in obj.getRowList() if min(i, j) >= 0 and row[i] == "."]
+        for row in rows:
+            row[i] = row[j]
+        return len(rows)
+
+    conn = blocks[0].getObj("struct_conn")
+    if conn is None or not sum([dots_to_auth(conn, f"ptnr{p}_label_seq_id", f"ptnr{p}_auth_seq_id") for p in (1, 2)]):
+        return None
+    dots_to_auth(blocks[0].getObj("atom_site"), "label_seq_id", "auth_seq_id")
+    text = io.StringIO()
+    PdbxWriter(text).write(blocks)
+    text.seek(0)
+    return text
+
+
+def load(path):
+    """(topology, positions) of a .cif or .pdb, without its waters and monatomic ions (counted on stderr)."""
+    path = Path(path)
+    if path.suffix.lower() == ".cif":
+        structure = PDBxFile(_pdbx_by_auth(path) or str(path))
+    elif path.suffix.lower() == ".pdb":
+        structure = PDBFile(str(path))
+    else:
+        refuse(f"{path}: not a .pdb or .cif file")
+    modeller = Modeller(structure.topology, structure.positions)
+    waters = [r for r in modeller.topology.residues() if r.name in WATERS]
+    ions = [r for r in modeller.topology.residues() if r.name not in WATERS and r.name not in AA
+            and r.name not in VARIANTS and len(list(r.atoms())) == 1]
+    if waters or ions:
+        note(f"dropped {len(waters)} water(s) and {len(ions)} monatomic ion(s) from {path.name}")
+        modeller.delete(waters + ions)
+    return modeller.topology, modeller.positions
+
+
+def _glycan_chains(topology):
+    """Chains with no amino-acid residue: glycans (and any other heterogen) written as chains of their own."""
+    return {c.id for c in topology.chains() if not any(letter(r) for r in c.residues())}
+
+
+def leg_structure(topology, positions, leg, partner):
+    """The leg's structure: all of it for bound; for unbound the partner chains plus the glycan chains
+    bonded to them, transitively through sugar-sugar bonds."""
+    if leg == "bound":
+        return topology, positions
+    chains = {c.id for c in topology.chains()}
+    glycans = _glycan_chains(topology)
+    for c in partner:
+        if c not in chains or c in glycans:
+            refuse(f"--partner chain {c} is not a protein chain of the structure")
+    linked = defaultdict(set)
+    for a, b in topology.bonds():
+        if a.residue.chain.id != b.residue.chain.id:
+            linked[a.residue.chain.id].add(b.residue.chain.id)
+            linked[b.residue.chain.id].add(a.residue.chain.id)
+    keep, todo = set(partner), list(partner)
+    while todo:
+        for c in linked[todo.pop()]:
+            if c in glycans and c not in keep:
+                keep.add(c)
+                todo.append(c)
+    modeller = Modeller(topology, positions)
+    modeller.delete([c for c in modeller.topology.chains() if c.id not in keep])
+    return modeller.topology, modeller.positions
+
+
+def find_target(topology, chain, resnum, icode):
+    return next((r for r in topology.residues()
+                 if r.chain.id == chain and r.id == resnum and r.insertionCode.strip() == icode), None)
+
+
+def check_target(topology, chain, wt, resnum, icode):
+    """The residue the mutation names, or a refusal (spec section 5). Returns the residue."""
+    where = f"{chain}:{resnum}{icode}"
+    if chain not in {c.id for c in topology.chains()}:
+        refuse(f"chain {chain} is not in the structure")
+    target = find_target(topology, chain, resnum, icode)
+    if target is None:
+        refuse(f"residue {where} is not in the structure")
+    if letter(target) != wt:
+        refuse(f"{where} is {target.name}, not {THREE[wt]}: wrong wild-type letter")
+    residues = list(target.chain.residues())
+    if target in (residues[0], residues[-1]):
+        refuse(f"{where} is the first or last residue of chain {chain}: its terminal atoms do not map")
+    atoms = {a.index for a in target.atoms()}
+    outside = [(a, b) for a, b in topology.bonds() if (a.index in atoms) != (b.index in atoms)]
+    # bonds off the side chain (anything but the peptide bonds at N and C)
+    side = [(a, b) if a.index in atoms else (b, a) for a, b in outside]
+    side = [(a, b) for a, b in side if a.name not in ("N", "C")]
+    if target.name in GLYCOSYLATED or (side and wt in "NST"):
+        refuse(f"{where} carries a glycan; mutating it would orphan the glycan")
+    if target.name == "CYS" or wt == "C":
+        if any(a.name == "SG" and b.name == "SG" for a, b in side):
+            refuse(f"{where} is a cysteine in a disulfide")
+    elif side:
+        refuse(f"{where} has a covalent link off its side chain")
+    return target
+
+
+def mutate(topology, positions, target, new3):
+    """The topology with the target renamed to new3: its side chain deleted beyond N, CA, C, O and CB (CB too for
+    Gly), the new side chain's heavy atoms added by PDBFixer, and hydrogens added at pH 7 (all others already have them)."""
+    from pdbfixer import PDBFixer
+
+    key = (target.chain.id, target.id, target.insertionCode)
+    keep = set(BACKBONE) | (set() if new3 == "GLY" else {"CB"})
+    modeller = Modeller(topology, positions)
+    residue = next(r for r in modeller.topology.residues() if (r.chain.id, r.id, r.insertionCode) == key)
+    modeller.delete([a for a in residue.atoms() if a.name not in keep])
+    next(r for r in modeller.topology.residues() if (r.chain.id, r.id, r.insertionCode) == key).name = new3
+    # PDBFixer takes only a file; this one atom is replaced by the Modeller's structure at once.
+    fixer = PDBFixer(pdbfile=io.StringIO("ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\n"))
+    fixer.topology, fixer.positions = modeller.topology, modeller.positions
+    fixer.missingResidues = {}
+    fixer.findMissingAtoms()
+    here = next(r for r in fixer.topology.residues() if (r.chain.id, r.id, r.insertionCode) == key)
+    fixer.missingTerminals = {}
+    fixer.missingAtoms = {r: a for r, a in fixer.missingAtoms.items() if r is here}
+    fixer.addMissingAtoms(seed=0)
+    modeller = Modeller(fixer.topology, fixer.positions)
+    modeller.addHydrogens(ForceField(*FORCEFIELD), pH=7.0)
+    return modeller.topology, modeller.positions
+
+
+def atom_mapping(wt_rdkit, mut_rdkit, target_key):
+    """wild-type atom index -> mutant atom index, matched by (chain, resnum+icode, name). In the target only N, CA, C, O
+    and H, HA, CB (where both sides have them) map; target_key is (chain, resnum+icode)."""
+    def key(atom):
+        i = atom.GetPDBResidueInfo()
+        return (i.GetChainId(), f"{i.GetResidueNumber()}{i.GetInsertionCode().strip()}", i.GetName().strip())
+
+    mutant = {key(a): a.GetIdx() for a in mut_rdkit.GetAtoms()}
+    shared = set(BACKBONE) | {"H", "HA", "CB"}
+    mapping = {}
+    for atom in wt_rdkit.GetAtoms():
+        k = key(atom)
+        if k[:2] == tuple(target_key) and k[2] not in shared:
+            continue
+        if k in mutant:
+            mapping[atom.GetIdx()] = mutant[k]
+    return mapping
+
+
+def write_cif(path, topology, positions):
+    with open(path, "w") as handle:
+        PDBxFile.writeFile(topology, positions, handle, keepIds=True)
+
+
+def compute_platform():
+    import openmm
+    names = [openmm.Platform.getPlatform(i).getName() for i in range(openmm.Platform.getNumPlatforms())]
+    if "CUDA" in names:
+        return "CUDA"
+    note("no CUDA platform: running on CPU, which is impractical beyond tests")
+    return "CPU"
+
+
+def versions():
+    return {name: metadata.version(name) for name in ("openmm", "openfe", "feflow", "gufe")}
+
+
+def run(args):
+    chain, wt, resnum, icode, new = parse_mutation(args.mutation)
+    if new == wt:
+        refuse(f"mutation {args.mutation} is to itself")
+    partner = sorted(set(args.partner.split(","))) if args.partner else None
+    if args.leg == "bound" and partner:
+        refuse("--partner is for the unbound leg; the bound leg is the whole complex")
+    if args.leg == "unbound" and not partner:
+        refuse("the unbound leg needs --partner CHAINS")
+    if partner and chain not in partner:
+        refuse(f"--partner {args.partner} does not include the mutated chain {chain}")
+    if args.cycles < 1:
+        refuse("--cycles must be at least 1")
+    complex_path = Path(args.complex)
+    if not complex_path.is_file():
+        refuse(f"{complex_path} is not a file")
+    request = {"mutation": f"{chain}:{wt}{resnum}{icode}{new}", "leg": args.leg, "partner": partner,
+               "cycles": args.cycles, "replicate": args.replicate,
+               "input_sha256": hashlib.sha256(complex_path.read_bytes()).hexdigest()}
+
+    topology, positions = load(complex_path)
+    check_target(topology, chain, wt, resnum, icode)
+    topology, positions = leg_structure(topology, positions, args.leg, partner)
+
+    out = Path(args.out) / args.leg / f"replicate-{args.replicate}"
+    if (out / "run.json").is_file():
+        before = json.loads((out / "run.json").read_text())
+        for field, value in request.items():
+            if before.get(field) != value:
+                refuse(f"{out} was run with {field} {before.get(field)!r}, not {value!r}: use another output directory")
+    if (out / "result.json").is_file():
+        note(f"{out} is already done")
+        return 0
+    if out.exists():
+        note(f"{out} has no result.json (a crashed run): starting it again")
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+
+    handlers = [logging.FileHandler(out / "log.txt"), logging.StreamHandler(sys.stderr)]
+    logging.basicConfig(level=logging.INFO, handlers=handlers, format="%(asctime)s %(name)s %(message)s", force=True)
+
+    from gufe import ChemicalSystem, LigandAtomMapping, ProteinComponent, SolventComponent
+    from gufe.protocols.protocoldag import execute_DAG
+    from gufe.tokenization import JSON_HANDLER
+    from feflow.protocols import NonEquilibriumCyclingProtocol
+
+    wt_top, wt_pos = topology, positions
+    mut_top, mut_pos = mutate(wt_top, wt_pos, find_target(wt_top, chain, resnum, icode), THREE[new])
+    write_cif(out / "wildtype.cif", wt_top, wt_pos)
+    write_cif(out / "mutant.cif", mut_top, mut_pos)
+    protein_a = ProteinComponent.from_pdbx_file(str(out / "wildtype.cif"), name="wildtype")
+    protein_b = ProteinComponent.from_pdbx_file(str(out / "mutant.cif"), name="mutant")
+    mapping = LigandAtomMapping(
+        componentA=protein_a, componentB=protein_b,
+        componentA_to_componentB=atom_mapping(protein_a.to_rdkit(), protein_b.to_rdkit(), (chain, f"{resnum}{icode}")))
+    # feflow logs nothing about its alchemical water, so the wrapper says what to expect: feflow's charge
+    # difference is wild type minus mutant, and the positive ion is needed when it is positive.
+    charge = round(protein_a.total_charge) - round(protein_b.total_charge)
+    if charge:
+        logging.getLogger("openmm-fep").info(
+            "alchemical water: the mutation changes the net charge by %+d, so one water becomes a %s ion",
+            -charge, "Na+" if charge > 0 else "Cl-")
+    solvent = SolventComponent()
+    state_a = ChemicalSystem({"protein": protein_a, "solvent": solvent})
+    state_b = ChemicalSystem({"protein": protein_b, "solvent": solvent})
+
+    settings = NonEquilibriumCyclingProtocol.default_settings()
+    settings.forcefield_settings.forcefields = FORCEFIELD
+    settings.num_cycles = args.cycles
+    settings.alchemical_settings.explicit_charge_correction = True
+    settings.engine_settings.compute_platform = compute_platform()
+    (out / "run.json").write_text(json.dumps(
+        {**request, "versions": versions(), "settings": json.loads(settings.model_dump_json())}, indent=2) + "\n")
+
+    protocol = NonEquilibriumCyclingProtocol(settings=settings)
+    dag = protocol.create(stateA=state_a, stateB=state_b, name=request["mutation"], mapping=mapping)
+    # gufe's own cleanup of its directories failed on NFS, so they live in local temp and are removed here.
+    work = Path(tempfile.mkdtemp(prefix="openmm-fep.", dir=os.environ.get("TMPDIR") or "/tmp"))
+    try:
+        (work / "shared").mkdir()
+        (work / "scratch").mkdir()
+        result = execute_DAG(dag, shared_basedir=work / "shared", scratch_basedir=work / "scratch",
+                             raise_error=True, keep_shared=True, keep_scratch=True)
+        with open(out / "result.json.tmp", "w") as handle:
+            json.dump(result.to_dict(), handle, cls=JSON_HANDLER.encoder)
+        os.replace(out / "result.json.tmp", out / "result.json")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    note(f"{out} done")
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="openmm-fep", description=__doc__.split("\n\n")[0])
+    verbs = parser.add_subparsers(dest="verb", required=True)
+    p = verbs.add_parser("run", help="one replicate of one leg")
+    p.add_argument("complex")
+    p.add_argument("out")
+    p.add_argument("--mutation", required=True, metavar="C:XnY")
+    p.add_argument("--leg", required=True, choices=["bound", "unbound"])
+    p.add_argument("--partner", metavar="CHAINS", help="comma-separated chains the unbound leg keeps")
+    p.add_argument("--replicate", required=True, type=int)
+    p.add_argument("--cycles", type=int, default=DEFAULT_CYCLES)
+    # analyze OUT TABLE is added by a later task, beside run.
+    args = parser.parse_args()
+    sys.exit(run(args))
+
+
+if __name__ == "__main__":
+    main()

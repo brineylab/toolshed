@@ -63,4 +63,7 @@ RUN mkdir -p /opt/openmm-fep/licenses \
  && cp $S/feflow-*.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/feflow-LICENSE \
  && cp $S/gufe-1.13.1.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/gufe-LICENSE
 COPY feflow-0.2.1.patch /opt/openmm-fep/licenses/
+# The wrapper, and --help as a build check that it starts.
+COPY --chmod=755 bin/openmm-fep /usr/local/bin/openmm-fep
+RUN openmm-fep --help
 COPY test /toolshed/test
