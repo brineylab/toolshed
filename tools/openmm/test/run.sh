@@ -5,9 +5,11 @@
 # `openmm relax` on a directory of both; relax's GLYCAM-named output again,
 # which must come back the same; the complex again with its six links
 # written into a _struct_conn loop, which must give the same GLYCAM names;
-# the complex with its first MAN renamed GLC, which must stop naming GLC; and
-# a directory where a.pdb and a.cif share a stem, which must stop before
-# writing anything. Then `openmm md` on relax's complex: 0.2 ns, extended to
+# the same with the core's sugars in one chain, as AlphaFold 3 writes them,
+# which must too; the complex with its first MAN renamed GLC, which must stop
+# naming GLC; a directory where a.pdb and a.cif share a stem, which must stop
+# before writing anything; and the input directory as the output, which must
+# stop before writing anything. Then `openmm md` on relax's complex: 0.2 ns, extended to
 # 0.4; rerun at 0.3, which must touch nothing; a crash simulated between a
 # frame and its state.xml (one extra frame and log row), resumed to 0.5; and
 # 1UBQ into the same directory, which must stop touching nothing. Then the
@@ -48,6 +50,36 @@ open(sys.argv[2], "w").write(text)
 PY
 openmm relax "$T/withbonds/complex.cif" "$T/relax-withbonds" 2>&1 | tee "$T/withbonds.err" >&2
 
+# AlphaFold 3's and wwPDB's layout: the core's five sugars in one chain, D, numbered 1-5 by
+# auth_seq_id with label_seq_id ".", and _struct_conn naming each partner by both
+mkdir -p "$T/af3"
+python3 -I - complex.cif "$T/af3/complex.cif" <<'PY'
+import sys
+
+number = {"D": "1", "E": "2", "F": "3", "G": "4", "H": "5"}
+out = []
+for line in open(sys.argv[1]):
+    f = line.split()
+    if line.startswith("HETATM") and f[9] in number:  # columns 7 auth_seq_id, 9 label_asym_id, 15 auth_asym_id
+        f[7], f[9], f[15] = number[f[9]], "D", "D"
+        line = " ".join(f) + "\n"
+    out.append(line)
+links = [  # (chain, comp, label_seq_id, auth_seq_id, atom) pairs
+    ("A", "ASN", "17", "17", "ND2", "C", "NAG", ".", "1", "C1"),
+    ("B", "ASN", "13", "13", "ND2", "D", "NAG", ".", "1", "C1"),
+    ("D", "NAG", ".", "1", "O4", "D", "NAG", ".", "2", "C1"),
+    ("D", "NAG", ".", "2", "O4", "D", "BMA", ".", "3", "C1"),
+    ("D", "BMA", ".", "3", "O3", "D", "MAN", ".", "4", "C1"),
+    ("D", "BMA", ".", "3", "O6", "D", "MAN", ".", "5", "C1"),
+]
+cols = ["id", "conn_type_id"] + [f"ptnr{p}_{k}" for p in (1, 2) for k in
+                                 ("label_asym_id", "label_comp_id", "label_seq_id", "auth_seq_id", "label_atom_id")]
+text = "".join(out) + "loop_\n" + "".join(f"_struct_conn.{c}\n" for c in cols)
+text += "".join(f"covale{i} covale {' '.join(link)}\n" for i, link in enumerate(links, 1)) + "#\n"
+open(sys.argv[2], "w").write(text)
+PY
+openmm relax "$T/af3/complex.cif" "$T/relax-af3" 2>&1 | tee "$T/af3.err" >&2
+
 # an unsupported sugar: the first MAN (chain G) renamed GLC
 mkdir -p "$T/bad"
 python3 -I - complex.cif "$T/bad/complex.cif" <<'PY'
@@ -71,6 +103,12 @@ cp 1UBQ.pdb "$T/clash/a.pdb"
 cp complex.cif "$T/clash/a.cif"
 if openmm relax "$T/clash" "$T/clash-out" 2> "$T/clash.err"; then
     echo "FAIL: relax accepted two inputs sharing a stem" >&2
+    exit 1
+fi
+
+# the input directory as the output, which would overwrite the inputs
+if openmm relax "$T/in" "$T/in/." 2> "$T/inplace.err"; then
+    echo "FAIL: relax accepted its input directory as the output" >&2
     exit 1
 fi
 

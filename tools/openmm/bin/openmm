@@ -18,6 +18,7 @@ from out/state.xml. Everything past these defaults is the library way,
 
 import argparse
 import hashlib
+import io
 import math
 import os
 import re
@@ -33,6 +34,8 @@ import openmm
 from openmm import unit
 from openmm.app import (PME, DCDReporter, ForceField, HBonds, Modeller, NoCutoff, PDBFile, PDBxFile, Simulation,
                         StateDataReporter, element)
+from openmm.app.internal.pdbx.reader.PdbxReader import PdbxReader
+from openmm.app.internal.pdbx.writer.PdbxWriter import PdbxWriter
 from pdbfixer import PDBFixer
 
 FORCEFIELD = ("amber14-all.xml", "amber14/tip3pfb.xml", "amber14/GLYCAM_06j-1.xml")
@@ -218,11 +221,41 @@ def glycam_rename(topology, positions):
                 bonded[b].add(a)
 
 
+def _pdbx_by_auth(path):
+    """The mmCIF file, with label_seq_id "." (every non-polymer residue) replaced by auth_seq_id
+    in atom_site and struct_conn, as text; None when no struct_conn partner has a "." one.
+
+    PDBxFile keys atoms and struct_conn partners by (label_seq_id, chain, atom), so where one
+    chain holds several sugars, as AlphaFold 3 and wwPDB write them, every link lands on the last.
+    """
+    with open(path) as handle:
+        blocks = []
+        PdbxReader(handle).read(blocks)
+
+    def dots_to_auth(obj, label, auth):
+        i, j = obj.getAttributeIndex(label), obj.getAttributeIndex(auth)
+        rows = [row for row in obj.getRowList() if min(i, j) >= 0 and row[i] == "."]
+        for row in rows:
+            row[i] = row[j]
+        return len(rows)
+
+    conn = blocks[0].getObj("struct_conn")
+    if conn is None or not sum([dots_to_auth(conn, f"ptnr{p}_label_seq_id", f"ptnr{p}_auth_seq_id") for p in (1, 2)]):
+        return None
+    dots_to_auth(blocks[0].getObj("atom_site"), "label_seq_id", "auth_seq_id")
+    text = io.StringIO()
+    PdbxWriter(text).write(blocks)
+    text.seek(0)
+    return text
+
+
 def prepare(path):
     """Load a PDB or mmCIF file and return a Modeller ready for ForceField: GLYCAM-named, with hydrogens."""
     path = Path(path)
     started = time.perf_counter()
-    fixer = PDBFixer(filename=str(path))  # PDBFile/PDBxFile; mmCIF struct_conn bonds kept
+    # PDBFile/PDBxFile; mmCIF struct_conn bonds kept, their non-polymer partners found by auth_seq_id
+    by_auth = _pdbx_by_auth(path) if path.suffix.lower() == ".cif" else None
+    fixer = PDBFixer(pdbxfile=by_auth) if by_auth else PDBFixer(filename=str(path))
     loaded = time.perf_counter()
     # Missing heavy atoms in standard residues only: no missing-residue modelling, no
     # heterogen removal, never PDBFixer's hydrogen step (it downloads from RCSB). Its
@@ -287,6 +320,10 @@ def collect_inputs(source):
 def relax(args):
     files = collect_inputs(args.input)
     out = Path(args.output)
+    source = Path(args.input).resolve()
+    if out.resolve() == (source if source.is_dir() else source.parent):
+        raise SystemExit(f"openmm: {out} is the input's directory, so relax would overwrite its inputs; "
+                         "use another output directory")
     out.mkdir(parents=True, exist_ok=True)
     platform, properties = select_platform()
     gbn2 = ForceField(*FORCEFIELD, "implicit/gbn2.xml")

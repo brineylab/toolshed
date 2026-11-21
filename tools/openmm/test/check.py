@@ -3,7 +3,7 @@
 complex.cif is Boltz-2's model_0 for complex.yaml, unmodified (CPU, seed 0, single-sequence).
 It has no _struct_conn loop, so no glycosidic or Asn-NAG bond is recorded: the test must find
 them by distance; run.sh writes a copy with the six links in a _struct_conn loop for the bonded
-path. Boltz writes each sugar as its own chain (C-H), HETATM, residue number 1.
+path, and another with the core's sugars in one chain as AlphaFold 3 writes them. Boltz writes each sugar as its own chain (C-H), HETATM, residue number 1.
 
 Asn sites, as (chain, residue number): the lone NAG (chain C) on A:17, the core on B:13.
 Core, from the Asn: D NAG, E NAG, F BMA, G MAN (alpha1-3), H MAN (alpha1-6).
@@ -48,9 +48,10 @@ COMPLEX_ATOMS = 1478
 
 # Glycan links found by distance, one count per structure in input order: the directory run
 # is 1UBQ.pdb (no glycans, 0) then complex.cif (no _struct_conn, all 6); the _struct_conn
-# variant records all 6, so none is inferred and the bonded path is the one exercised.
+# variants record all 6, so none is inferred and the bonded path is the one exercised.
 INFERRED_PLAIN = [0, 6]
 INFERRED_WITHBONDS = [0]
+INFERRED_AF3 = [0]
 
 # md: frames every 25,000 steps (100 ps at 4 fs), counted from production's step 0. The test
 # ends at 0.5 ns, so 5 frames and log rows at 25,000 ... 125,000, each step once.
@@ -122,9 +123,12 @@ def main():
     names = check_complex(T / "relax" / "complex.cif")
     if check_complex(T / "relax-withbonds" / "complex.cif") != names:
         fail("the _struct_conn variant's residue names differ from the distance-inferred ones")
+    if check_complex(T / "relax-af3" / "complex.cif") != names:
+        fail("the AlphaFold 3 layout's residue names differ from the distance-inferred ones")
     if check_complex(T / "rerelax" / "complex.cif") != names:
         fail("relaxing relax's own output changed its residue names")
-    for err, expected in (("relax.err", INFERRED_PLAIN), ("withbonds.err", INFERRED_WITHBONDS)):
+    for err, expected in (("relax.err", INFERRED_PLAIN), ("withbonds.err", INFERRED_WITHBONDS),
+                          ("af3.err", INFERRED_AF3)):
         found = [int(n) for n in re.findall(r"inferred (\d+) glycan link", (T / err).read_text())]
         if found != expected:
             fail(f"{err}: links inferred by distance {found}, expected {expected}")
@@ -136,6 +140,11 @@ def main():
         fail("the stem clash wrote a structure")
     if "a.cif" not in (T / "clash.err").read_text():
         fail("the stem clash's error does not name the files")
+    if sorted(p.name for p in (T / "in").iterdir()) != ["1UBQ.pdb", "complex.cif"] \
+            or any((T / "in" / n).read_bytes() != Path(n).read_bytes() for n in ("1UBQ.pdb", "complex.cif")):
+        fail("relax into its input directory changed the directory")
+    if "input" not in (T / "inplace.err").read_text():
+        fail(f"relax into its input directory does not say why: {(T / 'inplace.err').read_text()!r}")
     check_md(T)
     check_continue(T)
     check_mlmm(T)
