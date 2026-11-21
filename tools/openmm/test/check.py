@@ -194,8 +194,7 @@ def check_md(T):
 def check_mlmm(T):
     import math
 
-    # warp prints its banner on stdout too: take only the two result lines
-    out = dict(l.split() for l in (T / "mlmm.txt").read_text().splitlines() if l.startswith("region_"))
+    out = dict(line.split() for line in (T / "mlmm.txt").read_text().splitlines())
     if int(out["region_atoms"]) != ML_REGION_ATOMS or ML_REGION_ATOMS <= AIMNET_NB_THRESHOLD:
         fail(f"region_atoms {out['region_atoms']}, expected {ML_REGION_ATOMS} (> {AIMNET_NB_THRESHOLD})")
     if int(out["region_charge"]) != ML_REGION_CHARGE:

@@ -122,12 +122,14 @@ import sys
 from pathlib import Path
 
 import openmm
+import warp
 from openmm import unit
 from openmm.app import PME, ForceField, HBonds, PDBFile, Simulation
 from openmmml import MLPotential
 
 N_STEPS = 1000  # 1 ps at 1 fs; raise it for a real run
 MODEL = "/opt/openmm/models/aimnet2/aimnet2_wb97m_d3_0.pt"
+warp.config.log_level = warp.LOG_WARNING  # no startup banner on stdout (warp has no env var for it)
 
 md, out, region = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
 out.mkdir(parents=True, exist_ok=True)
