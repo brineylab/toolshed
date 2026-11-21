@@ -193,19 +193,19 @@ sim.step(steps)
 
 One GPU. The image is 11.1 GB.
 
-<!-- GPU: fill from the measurement run -->
-**GPU: pending.** The measurement run on the test's GPU fills this line: `md` ns/day on the fixture's ~23,600-atom box and on a ~100k-atom antibody–antigen complex, `relax` seconds per structure, and the ML/MM script's steps/s.
+Measured on one NVIDIA B200 (driver 580) under pyxis, and on OpenMM's CPU platform on a 32-core laptop. Two systems: the test's ~23,600-atom box (the 1,478-atom glycosylated two-chain complex in a 6.29 nm cube), and a Boltz-2 prediction of HyHEL-10 Fab with hen lysozyme (PDB 3HFM's sequences, 558 residues), which solvates to 137,927 atoms in an 11.28 nm cube.
 
-Measured so far on CPU only, OpenMM's CPU platform on a 32-core laptop:
+| job | system | B200 | CPU |
+| --- | --- | --- | --- |
+| `md` production | ~23,600 atoms | 1,280 ns/day | 36–40 ns/day |
+| `md` production | 137,927 atoms | 472 ns/day | not measured |
+| `md` equilibration (1.1 ns, every fresh run) | ~23,600 atoms | 78 s | 2,571 s |
+| `md` equilibration | 137,927 atoms | 213 s | not measured |
+| `relax`, per structure | the 1,478-atom complex | 4 s | ~3 s |
+| `relax`, per structure | the 558-residue Fab–lysozyme | 13 s | not measured |
+| ML/MM, 1,000 steps (1 ps) | a 400-atom AIMNet2 region in the ~23,600-atom box | 30 s, startup and Triton's first-use compile included | 1 min 46 s, startup included |
 
-| job | system | CPU |
-| --- | --- | --- |
-| `md` production | the test's ~23,600-atom box: the 1,478-atom glycosylated two-chain complex in a 6.29 nm cube | 36–40 ns/day |
-| `md` equilibration (1.1 ns, every fresh run) | same | 2,571 s |
-| `relax` | 1UBQ and the 1,478-atom complex | ~0.4 s to prepare and 1.4–2.8 s to minimize per structure; the test's four relax runs ~11 s |
-| ML/MM, 1,000 steps | a 400-atom AIMNet2 region in that box | 1 min 46 s, startup included |
-
-The whole test took 62–68 minutes on CPU.
+So 100 ns of a ~140k-atom antibody–antigen complex is about 5 hours on a B200; of the test's small complex, about 2 hours. The whole test took 62–68 minutes on CPU; its GPU time is in its record, `results/openmm/1.0.0.txt`.
 
 ## Running it
 
@@ -254,6 +254,6 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/openmm:1.0.0 \
 - The image is CUDA 12.9: it needs an NVIDIA driver R575 or newer.
 - **No cuPotential.** NVIDIA's runtime may be redistributed only inside "your application" (its license §1.1(d)), and §2.12 bars publishing benchmark results without NVIDIA's written permission, which collides with every skill's Compute section. The reason is the license, not speed.
 - **No small molecules or ligands** (parameterization, OpenFF, GAFF): deferred, board card #50. A ligand stops preparation, naming it.
-- `fep`, antibody point-mutation binding ΔΔG through feflow, is planned for 1.1.0. feflow 0.2.1 does not install beside OpenMM 8.6.1 today, so it may come as a separate tool.
+- `fep`, antibody point-mutation binding ΔΔG through feflow, is planned as a separate tool, `openmm-fep` (brineylab/toolshed#54): feflow 0.2.1 needs an OpenMM older than 8.5, so it cannot install beside this image's 8.6.1.
 - Licenses: OpenMM's are in the image at `/opt/openmm/licenses/` (MIT for the API and CPU platform, LGPL for the CUDA and OpenCL platforms, `Licenses.txt` for the rest), with PDBFixer's, openmm-ml's, and aimnet's (MIT each). AIMNet2's weights state no license of their own; their source, aimnetcentral, is MIT, so the image publishes them under the shed's rule for that case. AIMNet2 is Anstine, Zubatyuk & Isayev, "AIMNet2: a neural network potential to meet your neutral, charged, organic, and elemental-organic needs", *Chem. Sci.* 16, 10228–10244 (2025), doi:10.1039/D4SC08572H.
 - The wrapper and both scripts run under `python3 -I`: a caller's `PYTHONPATH` or user site-packages never replace what the image tested.

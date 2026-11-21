@@ -62,7 +62,7 @@ INFERRED_AF3 = [0]
 MD_INTERVAL = 25000
 MD_STEPS = [MD_INTERVAL * k for k in range(1, 6)]
 SOLVENT = {"HOH", "NA", "CL"}
-MIN_BOX_SIDE = 30.0  # Angstrom: cuPotential needs three 1.0 nm cutoffs per side
+MIN_BOX_SIDE = 30.0  # Angstrom: three 1.0 nm cutoffs per side, so no atom meets its own image
 # OpenMM's DCDFile (openmm/app/dcdfile.py, 8.6.1): a 276-byte header (frame count at byte 8,
 # first step at 12, interval at 16, last frame's step at 20, atom count at 268), then per frame
 # a 56-byte box record and three 4N-byte coordinate blocks, each between two 4-byte lengths.
