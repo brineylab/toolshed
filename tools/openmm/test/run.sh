@@ -10,8 +10,8 @@
 # writing anything. Then `openmm md` on relax's complex: 0.2 ns, extended to
 # 0.4; rerun at 0.3, which must touch nothing; a crash simulated between a
 # frame and its state.xml (one extra frame and log row), resumed to 0.5; and
-# 1UBQ into the same directory, which must stop touching nothing. check.py
-# verifies the answers. Writes only under /tmp.
+# 1UBQ into the same directory, which must stop touching nothing. Then mlmm.py on the md output over
+# check.py's ML_REGION. check.py verifies the answers. Writes only under /tmp.
 set -euo pipefail
 cd "$(dirname "$0")"
 T=$(mktemp -d /tmp/openmm.XXXXXX)
@@ -112,5 +112,81 @@ if openmm md "$T/in/1UBQ.pdb" "$T/md" --ns 0.5 2> "$T/md-other.err"; then
     exit 1
 fi
 hashes "$T/md-other.sha256"
+
+# ML/MM: AIMNet2 on the interface region of md's last output, the rest in the force field.
+# This script is the skill's too (the skill's text is copied from here).
+cat > "$T/mlmm.py" <<'PY'
+"""AIMNet2 on an interface region inside an `openmm md` system: python3 -I mlmm.py <md-out> <out> "A:20-21,B:4-5"."""
+import csv
+import sys
+from pathlib import Path
+
+import openmm
+from openmm import unit
+from openmm.app import PME, ForceField, HBonds, PDBFile, Simulation
+from openmmml import MLPotential
+
+N_STEPS = 1000  # 1 ps at 1 fs; raise it for a real run
+MODEL = "/opt/openmm/models/aimnet2/aimnet2_wb97m_d3_0.pt"
+
+md, out, region = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+out.mkdir(parents=True, exist_ok=True)
+pdb = PDBFile(str(md / "system.pdb"))
+state = openmm.XmlSerializer.deserialize((md / "state.xml").read_text())
+
+# whole residues from "chain:first-last" (residue numbers as in system.pdb)
+spans = [(c, *map(int, r.split("-"))) for c, r in (item.split(":") for item in region.split(","))]
+atoms = [a.index for a in pdb.topology.atoms()
+         if any(a.residue.chain.id == c and lo <= int(a.residue.id) <= hi for c, lo, hi in spans)]
+
+# the force field and nonbonded settings of `openmm md`, without hydrogen mass repartitioning
+ff = ForceField("amber14-all.xml", "amber14/tip3pfb.xml", "amber14/GLYCAM_06j-1.xml")
+system = ff.createSystem(pdb.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * unit.nanometer,
+                         ewaldErrorTolerance=5e-4, constraints=HBonds)
+
+# the region's net charge goes to AIMNet2, which needs an integer
+nb = next(f for f in system.getForces() if isinstance(f, openmm.NonbondedForce))
+total = sum(nb.getParticleParameters(i)[0].value_in_unit(unit.elementary_charge) for i in atoms)
+charge = round(total)
+if abs(total - charge) > 0.1:
+    sys.exit(f"region charge {total:.3f} is not near an integer: cut the region at residue boundaries")
+
+# bonds cut at the region's edge are capped with link-atom virtual sites appended after the real
+# atoms (openmm-ml's default distances); the returned topology includes them
+mixed = MLPotential("aimnet", modelPath=MODEL).createMixedSystem(pdb.topology, system, atoms, charge=charge,
+                                                                 returnInfo=True)
+system, topology = mixed["system"], mixed["topology"]
+natoms = pdb.topology.getNumAtoms()
+system.addForce(openmm.MonteCarloBarostat(1 * unit.bar, 300 * unit.kelvin))
+integrator = openmm.LangevinMiddleIntegrator(300 * unit.kelvin, 1 / unit.picosecond, 1 * unit.femtosecond)
+
+# CUDA at mixed precision when a GPU is present, else CPU
+names = [openmm.Platform.getPlatform(i).getName() for i in range(openmm.Platform.getNumPlatforms())]
+platform, props = (openmm.Platform.getPlatformByName("CUDA"), {"Precision": "mixed"}) if "CUDA" in names \
+    else (openmm.Platform.getPlatformByName("CPU"), {})
+sim = Simulation(topology, system, integrator, platform, props)
+sim.context.setPeriodicBoxVectors(*state.getPeriodicBoxVectors())
+extra = [openmm.Vec3(0, 0, 0)] * (system.getNumParticles() - natoms)  # the link atoms
+sim.context.setPositions(state.getPositions().value_in_unit(unit.nanometer) + extra)
+sim.context.computeVirtualSites()
+sim.context.setVelocities(state.getVelocities().value_in_unit(unit.nanometer / unit.picosecond) + extra)
+
+with open(out / "log.csv", "w", newline="") as f:
+    log = csv.writer(f)
+    log.writerow(["step", "potential_kJ_mol", "temperature_K"])
+    for _ in range(10):
+        sim.step(N_STEPS // 10)
+        s = sim.context.getState(getEnergy=True)
+        kinetic = s.getKineticEnergy().value_in_unit(unit.kilojoule_per_mole)
+        dof = 3 * natoms - system.getNumConstraints() - 3
+        log.writerow([sim.currentStep, s.getPotentialEnergy().value_in_unit(unit.kilojoule_per_mole),
+                      2 * kinetic / (dof * unit.MOLAR_GAS_CONSTANT_R.value_in_unit(unit.kilojoule_per_mole / unit.kelvin))])
+final = sim.context.getState(getPositions=True, enforcePeriodicBox=True)
+with open(out / "final.pdb", "w") as f:
+    PDBFile.writeFile(pdb.topology, final.getPositions()[:natoms], f)
+print(f"region_atoms {len(atoms)}")
+print(f"region_charge {charge}")
+PY
+python3 -I "$T/mlmm.py" "$T/md" "$T/mlmm" "A:20-21,A:24-24,A:28-28,A:31-31,A:40-40,A:44-44,A:46-47,A:50-51,B:4-5,B:8-8,B:11-12,B:15-16,B:19-20,B:22-23,B:26-26" > "$T/mlmm.txt"
 
 python3 -I check.py "$T"

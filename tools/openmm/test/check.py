@@ -25,6 +25,8 @@ ML_REGION_CHARGE = -1
 # `or self.nb_threshold < N`: more than 120 atoms switches from dense to neighbor list.
 # The region (23 residues, about 17 atoms each with hydrogens, about 400 atoms) is above it.
 AIMNET_NB_THRESHOLD = 120
+# the region's atom count, pinned from the first passing run
+ML_REGION_ATOMS = 400
 
 # relax: GLYCAM residue names the fixture must come out with. Asn carrying a sugar is NLN; the
 # sugars, in chain order C-H: the lone GlcNAc is terminal beta-GlcNAc (0YB); the core's two
@@ -128,6 +130,7 @@ def main():
     if "a.cif" not in (T / "clash.err").read_text():
         fail("the stem clash's error does not name the files")
     check_md(T)
+    check_mlmm(T)
     print(f"openmm test: relax passed ({len(names)} residues in the complex, GLYCAM names on both paths)")
 
 
@@ -186,6 +189,23 @@ def check_md(T):
     if steps != MD_STEPS:
         fail(f"log.csv's steps {steps}, expected {MD_STEPS}")
     print(f"openmm test: md passed ({natoms} atoms in {len(MD_STEPS)} frames, box {sides} A)")
+
+
+def check_mlmm(T):
+    import math
+
+    # warp prints its banner on stdout too: take only the two result lines
+    out = dict(l.split() for l in (T / "mlmm.txt").read_text().splitlines() if l.startswith("region_"))
+    if int(out["region_atoms"]) != ML_REGION_ATOMS or ML_REGION_ATOMS <= AIMNET_NB_THRESHOLD:
+        fail(f"region_atoms {out['region_atoms']}, expected {ML_REGION_ATOMS} (> {AIMNET_NB_THRESHOLD})")
+    if int(out["region_charge"]) != ML_REGION_CHARGE:
+        fail(f"region_charge {out['region_charge']}, expected {ML_REGION_CHARGE}")
+    rows = (T / "mlmm" / "log.csv").read_text().splitlines()[1:]
+    if not rows or not all(math.isfinite(float(r.split(",")[2])) for r in rows):
+        fail("mlmm log.csv has no rows or a non-finite energy")
+    if not (T / "mlmm" / "final.pdb").stat().st_size:
+        fail("mlmm wrote no final.pdb")
+    print(f"openmm test: mlmm passed ({out['region_atoms']} ML atoms, charge {out['region_charge']})")
 
 
 if __name__ == "__main__":

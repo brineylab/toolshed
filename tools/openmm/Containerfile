@@ -2,7 +2,7 @@
 # 12.9 rather than 12.6: conda-forge's CUDA 12 builds of openmm 8.6.1 and
 # pytorch 2.14.1 exist only for cuda-version 12.9 (12.6 builds are gone).
 FROM docker.io/nvidia/cuda:12.9.1-base-ubuntu24.04
-ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility HF_HUB_OFFLINE=1 AIMNET_CACHE_DIR=/opt/openmm/models/aimnet2
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility HF_HUB_OFFLINE=1 AIMNET_CACHE_DIR=/opt/openmm/models/aimnet2 WARP_CACHE_PATH=/tmp/warp-cache
 # micromamba 2.9.0's static binary, pinned by version and sha256.
 ADD --checksum=sha256:366cd9cd8be14df1ab8ed50352a82111082a36686b2d389fdb79a92c3fafb3e3 --chmod=755 https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-linux-64 /usr/local/bin/micromamba
 # One conda-forge environment, every top-level package exact. cuda-version
@@ -40,11 +40,14 @@ RUN mkdir -p /opt/openmm/licenses \
 # and writes into AIMNET_CACHE_DIR. The upstream states no license for the
 # weights, only the MIT license of the aimnetcentral repository (copied above as
 # aimnet-LICENSE). The check loads them by explicit path, as the tool does at
-# run time, so no ~/.cache lookup or network is involved. The downloader writes
+# run time, so no ~/.cache lookup or network is involved. The check's warp kernel cache
+# (WARP_CACHE_PATH, set above because the caller's home may be unwritable) is removed, so
+# the first caller, whoever they are, creates it. The downloader writes
 # the file mode 0600; callers run as other users, so it is made world-readable.
 RUN python3 -I -c "from aimnet.calculators.model_registry import get_registry_model_path as g; print(g('aimnet2'))" \
  && chmod a+rX -R /opt/openmm/models \
- && python3 -I -c "from openmm import app, unit; from openmmml import MLPotential; t = app.Topology(); c = t.addChain(); r = t.addResidue('HOH', c); o = t.addAtom('O', app.Element.getBySymbol('O'), r); [t.addBond(o, t.addAtom(n, app.Element.getBySymbol('H'), r)) for n in ('H1', 'H2')]; print(MLPotential('aimnet', modelPath='/opt/openmm/models/aimnet2/aimnet2_wb97m_d3_0.pt').createSystem(t).getNumParticles())"
+ && python3 -I -c "from openmm import app, unit; from openmmml import MLPotential; t = app.Topology(); c = t.addChain(); r = t.addResidue('HOH', c); o = t.addAtom('O', app.Element.getBySymbol('O'), r); [t.addBond(o, t.addAtom(n, app.Element.getBySymbol('H'), r)) for n in ('H1', 'H2')]; print(MLPotential('aimnet', modelPath='/opt/openmm/models/aimnet2/aimnet2_wb97m_d3_0.pt').createSystem(t).getNumParticles())" \
+ && rm -rf /tmp/warp-cache
 # The wrapper, the only code the shed writes for this tool; its --help proves
 # it imports against the environment.
 COPY --chmod=755 bin/openmm /usr/local/bin/openmm
