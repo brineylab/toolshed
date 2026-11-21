@@ -400,7 +400,17 @@ def write_pdb(path, simulation, solute_only=False):
 
 
 def save_state(simulation, out):
-    """state.xml, atomically: a crash leaves the old one or the new one, never half of either."""
+    """state.xml, atomically: a crash leaves the old one or the new one, never half of either.
+
+    The reporters flush the trajectory and log; they are fsynced first, so after a node crash
+    state.xml is never ahead of them.
+    """
+    for name in ("trajectory.dcd", "log.csv"):
+        fd = os.open(out / name, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
     tmp = out / "state.xml.tmp"
     with open(tmp, "w") as handle:
         simulation.saveState(handle)
@@ -479,8 +489,8 @@ def md(args):
         out.mkdir(parents=True, exist_ok=True)
         for name in MD_OUTPUTS:  # equilibration is not resumable: start over
             (out / name).unlink(missing_ok=True)
-        recorded.write_text(digest + "\n")
         modeller = prepare(path)
+        recorded.write_text(digest + "\n")  # after prepare, so a failed one leaves out/ open to a corrected input
         modeller.addSolvent(forcefield(), model="tip3p", padding=1.0 * unit.nanometer,
                             ionicStrength=0.15 * unit.molar, neutralize=True)
         with open(out / "system.pdb", "w") as handle:

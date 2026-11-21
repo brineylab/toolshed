@@ -3,7 +3,8 @@
 complex.cif is Boltz-2's model_0 for complex.yaml, unmodified (CPU, seed 0, single-sequence).
 It has no _struct_conn loop, so no glycosidic or Asn-NAG bond is recorded: the test must find
 them by distance; run.sh writes a copy with the six links in a _struct_conn loop for the bonded
-path, and another with the core's sugars in one chain as AlphaFold 3 writes them. Boltz writes each sugar as its own chain (C-H), HETATM, residue number 1.
+path, and another with the core's sugars in one chain as AlphaFold 3 writes them. Boltz writes
+each sugar as its own chain (C-H), HETATM, residue number 1.
 
 Asn sites, as (chain, residue number): the lone NAG (chain C) on A:17, the core on B:13.
 Core, from the Asn: D NAG, E NAG, F BMA, G MAN (alpha1-3), H MAN (alpha1-6).
@@ -28,6 +29,9 @@ AIMNET_NB_THRESHOLD = 120
 # the region's atom count, pinned from the first passing run
 ML_REGION_ATOMS = 400
 ML_LOG_ROWS = 10  # N_STEPS 1000 logged every 100 steps
+# the ML force is present: AIMNet2's absolute energy of the region is about -2.4e7 kJ/mol, the
+# classical box alone about -3.5e5, so every logged potential must be below this
+ML_POTENTIAL_MAX = -1e6
 
 # relax: GLYCAM residue names the fixture must come out with. Asn carrying a sugar is NLN; the
 # sugars, in chain order C-H: the lone GlcNAc is terminal beta-GlcNAc (0YB); the core's two
@@ -238,13 +242,16 @@ def check_mlmm(T):
     import math
 
     out = dict(line.split() for line in (T / "mlmm.txt").read_text().splitlines())
-    if int(out["region_atoms"]) != ML_REGION_ATOMS or ML_REGION_ATOMS <= AIMNET_NB_THRESHOLD:
+    if int(out["region_atoms"]) != ML_REGION_ATOMS or int(out["region_atoms"]) <= AIMNET_NB_THRESHOLD:
         fail(f"region_atoms {out['region_atoms']}, expected {ML_REGION_ATOMS} (> {AIMNET_NB_THRESHOLD})")
     if int(out["region_charge"]) != ML_REGION_CHARGE:
         fail(f"region_charge {out['region_charge']}, expected {ML_REGION_CHARGE}")
     rows = (T / "mlmm" / "log.csv").read_text().splitlines()[1:]
     if len(rows) != ML_LOG_ROWS or not all(math.isfinite(float(r.split(",")[1])) for r in rows):
         fail(f"mlmm log.csv has {len(rows)} rows (expected {ML_LOG_ROWS}) or a non-finite energy")
+    high = [float(r.split(",")[1]) for r in rows if not float(r.split(",")[1]) < ML_POTENTIAL_MAX]
+    if high:
+        fail(f"mlmm log.csv's potentials {high} are not below {ML_POTENTIAL_MAX:g} kJ/mol: no ML force")
     if "A:900-901" not in (T / "mlmm-bad.err").read_text():
         fail("mlmm.py's error for a span matching no residue does not name the span")
     if not (T / "mlmm" / "final.pdb").stat().st_size:
