@@ -1,0 +1,51 @@
+{
+  "source": {
+    "pdb": "7YPD_B.pdb",
+    "sha256": "77034053136ddd53c58ab55bda43668bb8c2f5546549129264384f59eba4e537",
+    "residues": 243,
+    "sequence": "SATVYVISGATRGIGFALTSLLAQRDNVLIFAGARDPAKALPLQALAAATGKVIPVKLESANEEDAAALAKLVKEKAGKVDFLLANAGVCELNKPVLSTPSATFVDHFTVNTLGPLTLFQQFYSLLTESSSPRFFVTSSAGGSTTYVSMAPDMDLAPYGISKAAVNHLVAHIARKFGAKDGLVAAVVHPGLVATDTRPFLEAAGLEHISPDESAAALVKIFDEAKRETHGGKFLSYDGTEIPW",
+    "author_numbering": "4..256 (renumbered 1..243)",
+    "drop_residue": 100,
+    "drop_atom": [
+      150,
+      "O"
+    ],
+    "short_keep": 20
+  },
+  "rows": [
+    {
+      "sequence_id": "AF-A0A0FXCOMPLETE-F1",
+      "mean_plddt": 91.3,
+      "uniprot_accession": "A0A0FXCOMPLETE",
+      "tokens": 243,
+      "null_token_positions": [],
+      "coordinate_null_positions": []
+    },
+    {
+      "sequence_id": "AF-A0A0FXGAPPED-F1",
+      "mean_plddt": 85.7,
+      "uniprot_accession": "A0A0FXGAPPED",
+      "tokens": 243,
+      "null_token_positions": [
+        96,
+        146
+      ],
+      "coordinate_null_positions": [
+        96
+      ]
+    }
+  ],
+  "rejected": [
+    {
+      "sequence_id": "AF-A0A0FXSHORT-F1",
+      "reason": "chains_too_short"
+    }
+  ],
+  "tokenizer": {
+    "preset": "large",
+    "checkpoint_sha256": "7d1d43950a29834e7f702409bf957e9ffb75eb3cb3952074ba4c545bb4130eaf",
+    "codebook_size": 4096,
+    "stok_version": "0.1.4",
+    "codebook_sha256": "29d21936c951fc1421ce9bc0bcb4ebb3d6dc2391ede165d03db0be05cb958141"
+  }
+}
