@@ -1,0 +1,66 @@
+# NVIDIA's CUDA 12.9.1 base on Ubuntu 24.04 (glibc, so pyxis gives it a GPU).
+FROM docker.io/nvidia/cuda:12.9.1-base-ubuntu24.04
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility HF_HUB_OFFLINE=1
+# patch applies the feflow fix below.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends patch=2.7.6-7build3 \
+ && rm -rf /var/lib/apt/lists/*
+# micromamba 2.9.0's static binary, pinned by version and sha256.
+ADD --checksum=sha256:366cd9cd8be14df1ab8ed50352a82111082a36686b2d389fdb79a92c3fafb3e3 --chmod=755 https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-linux-64 /usr/local/bin/micromamba
+# One conda-forge environment, every top-level package exact. cuda-version
+# 12.9 selects the CUDA 12 builds; CONDA_OVERRIDE_CUDA lets the solver accept
+# them with no driver on the build host. pytorch is the build the solve picks.
+RUN CONDA_OVERRIDE_CUDA=12.9 micromamba create -y -p /opt/env -c conda-forge --override-channels \
+      python=3.12.16 openmm=8.4.0 openfe=1.13.0 feflow=0.2.1 gufe=1.13.1 \
+      cuda-version=12.9 "pytorch=2.14.1=cuda129_mkl_py312_h0509a7e_300" \
+ && micromamba clean -a -y
+ENV PATH=/opt/env/bin:$PATH
+# feflow 0.2.1 fixed twice (see the patch's header): the hybrid build's
+# quadratic _find_exception, and the alchemical-water call that passed the
+# solvent component instead of the force field.
+COPY feflow-0.2.1.patch /tmp/
+RUN patch -p1 -d /opt/env/lib/python3.12/site-packages < /tmp/feflow-0.2.1.patch && rm /tmp/feflow-0.2.1.patch
+# Proven at build time: the packages import, OpenMM is 8.4.0, both patch hunks
+# are in the installed files, and a vacuum HybridTopologyFactory build (ALA-ALA-ALA
+# to ALA-GLY-ALA, from RDKit and Modeller) finishes. feflow's conda package ships
+# no test data, so the peptides are built here.
+RUN python3 -I - <<'PY'
+import inspect, io, re
+import feflow, openfe, gufe, openmm
+from openmm import app
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from feflow.protocols import nonequilibrium_cycling
+from feflow.utils.hybrid_topology import HybridTopologyFactory
+
+# __version__ is "8.4"; short_version is the full 8.4.0.
+print(openmm.version.short_version)
+assert openmm.version.short_version == "8.4.0"
+call = re.search(r"handle_alchemical_waters\((.*?)\n\s*\)", inspect.getsource(nonequilibrium_cycling), re.S).group(1)
+assert call.split(",")[-2].strip() == "system_generator.forcefield", call
+assert "_EXCEPTIONS" in inspect.getsource(HybridTopologyFactory._find_exception)
+
+ff = app.ForceField("amber14-all.xml")
+def peptide(seq):
+    mol = Chem.AddHs(Chem.MolFromSequence(seq))
+    AllChem.EmbedMolecule(mol, randomSeed=1)
+    pdb = app.PDBFile(io.StringIO(Chem.MolToPDBBlock(Chem.RemoveHs(mol))))
+    m = app.Modeller(pdb.topology, pdb.positions)
+    m.addHydrogens(ff)
+    return m.positions, m.topology, ff.createSystem(m.topology, nonbondedMethod=app.NoCutoff)
+(pa, ta, sa), (pb, tb, sb) = peptide("AAA"), peptide("AGA")
+names = lambda t: {(a.residue.index, a.name): a.index for a in t.atoms()}
+na, nb = names(ta), names(tb)
+core = {i: nb[k] for k, i in na.items() if k in nb and (k[0] != 1 or k[1] in ("N", "H", "CA", "C", "O"))}
+h = HybridTopologyFactory(sa, pa, ta, sb, pb, tb, core, core)
+print(h.hybrid_system.getNumParticles())
+PY
+# Licenses beside the code they cover. OpenMM's three files ship in the conda
+# environment; openfe, feflow and gufe carry theirs in dist-info.
+RUN mkdir -p /opt/openmm-fep/licenses \
+ && S=/opt/env/lib/python3.12/site-packages \
+ && cp /opt/env/licenses/GPL.txt /opt/env/licenses/LGPL.txt /opt/env/licenses/Licenses.txt /opt/openmm-fep/licenses/ \
+ && cp $S/openfe-1.13.0.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/openfe-LICENSE \
+ && cp $S/feflow-*.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/feflow-LICENSE \
+ && cp $S/gufe-1.13.1.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/gufe-LICENSE
+COPY feflow-0.2.1.patch /opt/openmm-fep/licenses/
+COPY test /toolshed/test
