@@ -27,6 +27,7 @@ ML_REGION_CHARGE = -1
 AIMNET_NB_THRESHOLD = 120
 # the region's atom count, pinned from the first passing run
 ML_REGION_ATOMS = 400
+ML_LOG_ROWS = 10  # N_STEPS 1000 logged every 100 steps
 
 # relax: GLYCAM residue names the fixture must come out with. Asn carrying a sugar is NLN; the
 # sugars, in chain order C-H: the lone GlcNAc is terminal beta-GlcNAc (0YB); the core's two
@@ -200,8 +201,10 @@ def check_mlmm(T):
     if int(out["region_charge"]) != ML_REGION_CHARGE:
         fail(f"region_charge {out['region_charge']}, expected {ML_REGION_CHARGE}")
     rows = (T / "mlmm" / "log.csv").read_text().splitlines()[1:]
-    if not rows or not all(math.isfinite(float(r.split(",")[2])) for r in rows):
-        fail("mlmm log.csv has no rows or a non-finite energy")
+    if len(rows) != ML_LOG_ROWS or not all(math.isfinite(float(r.split(",")[1])) for r in rows):
+        fail(f"mlmm log.csv has {len(rows)} rows (expected {ML_LOG_ROWS}) or a non-finite energy")
+    if "A:900-901" not in (T / "mlmm-bad.err").read_text():
+        fail("mlmm.py's error for a span matching no residue does not name the span")
     if not (T / "mlmm" / "final.pdb").stat().st_size:
         fail("mlmm wrote no final.pdb")
     print(f"openmm test: mlmm passed ({out['region_atoms']} ML atoms, charge {out['region_charge']})")

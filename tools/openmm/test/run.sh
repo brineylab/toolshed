@@ -136,10 +136,21 @@ out.mkdir(parents=True, exist_ok=True)
 pdb = PDBFile(str(md / "system.pdb"))
 state = openmm.XmlSerializer.deserialize((md / "state.xml").read_text())
 
-# whole residues from "chain:first-last" (residue numbers as in system.pdb)
-spans = [(c, *map(int, r.split("-"))) for c, r in (item.split(":") for item in region.split(","))]
-atoms = [a.index for a in pdb.topology.atoms()
-         if any(a.residue.chain.id == c and lo <= int(a.residue.id) <= hi for c, lo, hi in spans)]
+# system.pdb renames chains and renumbers residues; topology.pdb keeps the input's ids and is the
+# solute only, which comes first in system.pdb, so a span is resolved there and shares atom indices
+solute = PDBFile(str(md / "topology.pdb")).topology
+if [(a.element, a.name) for a in solute.atoms()] != [(a.element, a.name) for a in pdb.topology.atoms()][:solute.getNumAtoms()]:
+    sys.exit("topology.pdb's atoms are not the first atoms of system.pdb")
+atoms = []
+for item in region.split(","):  # whole residues from "chain:first-last", numbered as in the input
+    chain, span = item.split(":")
+    lo, hi = map(int, span.split("-"))
+    hit = [r for r in solute.residues() if r.chain.id == chain and lo <= int(r.id) <= hi]
+    if not hit:
+        sys.exit(f"{item} matches no residue")
+    if len({r.chain.index for r in hit}) > 1:
+        sys.exit(f"{item} matches residues in more than one chain")
+    atoms += [a.index for r in hit for a in r.atoms()]
 
 # the force field and nonbonded settings of `openmm md`, without hydrogen mass repartitioning
 ff = ForceField("amber14-all.xml", "amber14/tip3pfb.xml", "amber14/GLYCAM_06j-1.xml")
@@ -190,5 +201,11 @@ print(f"region_atoms {len(atoms)}")
 print(f"region_charge {charge}")
 PY
 python3 -I "$T/mlmm.py" "$T/md" "$T/mlmm" "A:20-21,A:24-24,A:28-28,A:31-31,A:40-40,A:44-44,A:46-47,A:50-51,B:4-5,B:8-8,B:11-12,B:15-16,B:19-20,B:22-23,B:26-26" > "$T/mlmm.txt"
+
+# a span that matches no residue must stop and name the span
+if python3 -I "$T/mlmm.py" "$T/md" "$T/mlmm-bad" "A:900-901" > /dev/null 2> "$T/mlmm-bad.err"; then
+    echo "FAIL: mlmm.py accepted a span matching no residue" >&2
+    exit 1
+fi
 
 python3 -I check.py "$T"
