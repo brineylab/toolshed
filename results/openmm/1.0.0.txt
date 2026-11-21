@@ -1,0 +1,65 @@
+---
+tool: openmm
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/openmm@sha256:24f5bdc68c5fcd04d24e9d21ac4b0cc493e372a697c22ed5f67db0ed2c79e0f5
+digest: sha256:24f5bdc68c5fcd04d24e9d21ac4b0cc493e372a697c22ed5f67db0ed2c79e0f5
+runner: srun --gres=gpu:1 --time=00:30:00 --qos=admin_override
+host: slurm-login-sg-coreweave-slurm-users-0.slurm-login-all-users.tenant-slurm.svc.cluster.local
+started: 2026-11-21T07:24:49Z
+exit: 0
+---
+Job 1537: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=1537
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/openmm@sha256:24f5bdc68c5fcd04d24e9d21ac4b0cc493e372a697c22ed5f67db0ed2c79e0f5
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/openmm@sha256:24f5bdc68c5fcd04d24e9d21ac4b0cc493e372a697c22ed5f67db0ed2c79e0f5
+node: slurm-b200-204-049
+GPU 0: NVIDIA B200 (UUID: GPU-22c10451-2221-66b4-63f0-39a90fd79249)
+openmm: relax: 2 structure(s) on CUDA
+openmm: inferred 0 glycan link(s) by distance
+openmm: 1UBQ.pdb: load 0.0s, prepare 4.0s
+openmm: 1UBQ.pdb: minimize 2.5s, write 0.0s
+openmm: inferred 6 glycan link(s) by distance
+openmm: complex.cif: load 0.0s, prepare 2.6s
+openmm: complex.cif: minimize 1.5s, write 0.0s
+openmm: relax: 1 structure(s) on CUDA
+openmm: inferred 0 glycan link(s) by distance
+openmm: complex.cif: load 0.1s, prepare 1.6s
+openmm: complex.cif: minimize 0.6s, write 0.0s
+openmm: relax: 1 structure(s) on CUDA
+openmm: inferred 0 glycan link(s) by distance
+openmm: complex.cif: load 0.0s, prepare 1.9s
+openmm: complex.cif: minimize 0.7s, write 0.0s
+openmm: relax: 1 structure(s) on CUDA
+openmm: inferred 0 glycan link(s) by distance
+openmm: complex.cif: load 0.0s, prepare 1.9s
+openmm: complex.cif: minimize 0.4s, write 0.0s
+openmm: inferred 0 glycan link(s) by distance
+openmm: complex.cif: load 0.1s, prepare 1.5s
+openmm: md: 23647 atoms, box Vec3(x=6.298711137604607, y=6.298711137604607, z=6.298711137604607) nm, on CUDA
+openmm: md: equilibrating, 0.1 ns NVT then 1.0 ns NPT releasing the restraints
+#"Step","Time (ps)","Potential Energy (kJ/mole)","Temperature (K)","Box Volume (nm^3)","Speed (ns/day)"
+25000,100.00000000003028,-385235.55122860055,298.16168893602065,249.89356654848208,0
+50000,199.9999999998967,-388798.2396794434,300.5071652786278,234.02513289940092,1.22e+03
+75000,299.99999999997624,-389943.9674759635,301.2748086354886,234.67141600969236,1.27e+03
+100000,400.0000000004537,-388836.4854697697,301.5470173720664,233.85255768830973,1.3e+03
+125000,500.0000000009312,-389926.8706469496,301.73513477337804,233.91861232664252,1.31e+03
+150000,600.0000000014087,-390464.99217293574,300.72759080953455,232.99813536745143,1.32e+03
+175000,700.0000000018862,-388982.1941805894,299.5610172523033,233.2811539932337,1.32e+03
+200000,800.0000000023637,-388774.05436083605,302.3268847689709,233.6480223342111,1.32e+03
+225000,900.0000000028411,-389489.6528114723,301.4777846364459,234.63053262876397,1.33e+03
+250000,1000.0000000033186,-389425.3227663578,303.2916529447595,234.73773168916185,1.33e+03
+275000,1100.000000001636,-390258.65311642713,301.4930664119791,234.60135820171868,1.33e+03
+openmm: md: equilibrated in 79s
+openmm: md: production 0.2 ns in 13s (1287.9 ns/day); 92s in all
+openmm: md: resuming /tmp/openmm.cttB5n/md at 0.2 ns on CUDA
+openmm: md: production 0.2 ns in 14s (1265.4 ns/day); 16s in all
+openmm: md: resuming /tmp/openmm.cttB5n/md at 0.4 ns on CUDA
+openmm: md: production 0.1 ns in 7s (1221.5 ns/day); 9s in all
+/opt/env/lib/python3.12/site-packages/aimnet/calculators/calculator.py:1367: UserWarning: Switching to DSF Coulomb for PBC for this evaluation; call set_lrcoulomb_method() to select a periodic method persistently.
+  warnings.warn(
+/opt/env/lib/python3.12/site-packages/aimnet/calculators/calculator.py:1367: UserWarning: Switching to DSF Coulomb for PBC for this evaluation; call set_lrcoulomb_method() to select a periodic method persistently.
+  warnings.warn(
+openmm test: md passed (1478 atoms in 5 frames, box [62.987, 62.987, 62.987] A)
+openmm test: continue passed (2 frames of 23647 atoms, potential -390253 kJ/mol)
+openmm test: mlmm passed (400 ML atoms, charge -1)
+openmm test: relax passed (87 residues in the complex, GLYCAM names on both paths)
+Job 1537: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=1537
