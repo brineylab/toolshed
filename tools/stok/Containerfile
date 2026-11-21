@@ -1,0 +1,67 @@
+# STok (github.com/briney/stok, MIT) at commit 5dcecfed: protein structure
+# tokenization for paired sequence-structure training.  Its GCP-VQVAE
+# "Large" preset (huggingface.co/Mahdip72/gcp-vqvae-large, upstream MIT --
+# LICENSE-gcp-vqvae.md, stok's own MIT in LICENSE-stok.md) encodes a protein
+# backbone as one of 4096 discrete structure tokens per residue under the
+# fixed training-native policy: full chains of 25-1280 residues, native
+# sequence inputs, reference imputation, FP32 singleton inference, so token
+# identity never depends on batching or sharding.  Input is mmCIF text in
+# Parquet shards (afdb-rep's shape) or a directory of structure files; output
+# is plain Parquet shards carrying stok.tokenizer identity metadata and a
+# rejected/ record for every row the fixed policy refuses.  A GPU tool with
+# its weights baked in, so a tokenization run reaches no network.
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# git and ca-certificates: pip installs stok from GitHub at the pinned
+# commit (the PyPI "stok" is an unrelated older package).  gcc and g++: stok
+# requires graphein, whose cpdb-protein 0.2.0 ships only an sdist and
+# compiles a C extension at install time, and the runtime base carries no
+# compiler -- the first build attempt died on exactly that (the shed's
+# lesson: ablm-eval, e1 and boltz-2 all carry gcc g++ for it).  The compile
+# runs once, here, at build time.
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates gcc g++ \
+  && rm -rf /var/lib/apt/lists/*
+# The pinned set this campaign preflighted on CPU (a venv with exactly these
+# versions: stok's own tests for the parser, policy, format, CLI and loaders
+# passed, and the tool test's fixture tokenized end to end).  torch stays at
+# the base's 2.14.1: ==2.14.1 matches the base's 2.14.1+cu13.0 local label,
+# so the base's matching torchaudio and torchvision stay consistent.  stok's
+# caps that bite here: hydra-core needs omegaconf<2.4; graphein pins numpy<2,
+# which holds pyarrow under 26.
+RUN pip install --no-cache-dir --break-system-packages \
+  "stok @ git+https://github.com/briney/stok@5dcecfedd1040f30ca28de54ac6a6b22b9dc184b" \
+  torch==2.14.1 \
+  hydra-core==1.3.8 \
+  omegaconf==2.3.0 \
+  graphein==1.7.8 \
+  torch-geometric==2.8.1 \
+  click==8.5.1 \
+  wandb==0.31.2 \
+  accelerate==1.16.0 \
+  tqdm==4.70.1 \
+  numpy==1.26.4 \
+  pyarrow==25.0.1 \
+  biopython==1.88 \
+  pyyaml==6.0.4 \
+  x-transformers==2.8.0 \
+  vector-quantize-pytorch==1.25.2 \
+  einops==0.8.2 \
+  einx==0.4.3 \
+  loguru==0.8.0
+# The weights, fetched at build time through stok's own resolver: it names
+# the Large checkpoint by its pinned sha256
+# (7d1d43950a29834e7f702409bf957e9ffb75eb3cb3952074ba4c545bb4130eaf),
+# downloads it and verifies the
+# digest, so the image carries exactly the release every shard's metadata
+# names.  The tokenizer and codebook read STOK_GCP_CACHE, the decoder
+# STOK_DECODER_CACHE (stok's two loaders look at different variables) --
+# both point at the baked directory.  The last two loads prove the build:
+# strict state-dict loads of the full tokenizer and decoder from the pinned
+# bytes.  HF_HUB_OFFLINE is set although stok's resolver never reads it: a
+# caller pushing a run's outputs to the Hub opts in explicitly.
+ENV STOK_GCP_CACHE=/opt/stok-gcp STOK_DECODER_CACHE=/opt/stok-gcp HF_HUB_OFFLINE=1
+COPY LICENSE-stok.md LICENSE-gcp-vqvae.md /opt/stok-gcp/
+RUN python3 -I -c "from stok.utils.pretrained import resolve_gcp_artifact; print(resolve_gcp_artifact('large', progress=False))" \
+  && python3 -I -c "from stok.models.gcp_vqvae import load_pretrained_tokenizer; t = load_pretrained_tokenizer('large'); print('tokenizer max_length', t.encoder.max_length, 'codebook', tuple(t.quantizer.codebook.shape))" \
+  && python3 -I -c "from stok.models.decoder import load_pretrained_decoder; d = load_pretrained_decoder('large'); print('decoder codebook identity', d.codebook_sha256)"
+COPY test /toolshed/test
