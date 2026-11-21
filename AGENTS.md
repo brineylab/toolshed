@@ -68,4 +68,4 @@ A tool exists because a question needed it. Do not add tools, commands, or optio
 
 ## Commits and pull requests
 
-A commit message is one sentence stating the behavior. A tool arrives as a pull request whose record is committed with it. Merge with a merge commit (`gh pr merge --merge`): `promote` runs on the merge commit, and flyloft watches that check.
+A commit message is one sentence stating the behavior. A tool arrives as a pull request whose record is committed with it. Squash-merge it (`gh pr merge --squash`): `promote` runs on the commit that lands on `main`, and flyloft watches that check. Merge commits stay allowed for the rare case that needs one.
