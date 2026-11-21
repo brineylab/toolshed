@@ -21,6 +21,9 @@ RUN CONDA_OVERRIDE_CUDA=12.9 micromamba create -y -p /opt/env -c conda-forge --o
       cuda-version=12.9 "pytorch=2.14.1=cuda129_mkl*" cuda-cudart-dev=12.9.79 \
  && micromamba clean -a -y
 ENV PATH=/opt/env/bin:$PATH
+# conda-forge's triton ships no ptxas-blackwell and finds the env's ptxas
+# (CUDA 12.9, sm_100) only when CONDA_PREFIX is set, which nothing sets here.
+ENV TRITON_PTXAS_BLACKWELL_PATH=/opt/env/bin/ptxas
 # aimnet is on PyPI only, with its two compute dependencies; torch (>=2.10)
 # is already satisfied by the conda build.
 RUN pip install --no-cache-dir aimnet==0.2.6 nvalchemi-toolkit-ops==0.5.0 warp-lang==1.19.0
@@ -35,7 +38,8 @@ RUN pip install --no-cache-dir aimnet==0.2.6 nvalchemi-toolkit-ops==0.5.0 warp-l
 RUN python3 -I -c "import os, openmm, pdbfixer, openmmml, aimnet; from openmm import Platform; from openmm.app import ForceField; print('openmm', openmm.__version__); f = Platform.getPluginLoadFailures(); print(f); assert os.path.exists('/opt/env/lib/plugins/libOpenMMCUDA.so'); assert any('libcuda.so.1' in e for e in f); assert all('libcuda.so.1' in e or 'libhiprtc.so.6' in e for e in f); ForceField('amber14-all.xml', 'amber14/tip3pfb.xml', 'amber14/GLYCAM_06j-1.xml')"
 # Triton's C shim compiles (linking it needs the driver's libcuda, so a GPU).
 RUN D=/opt/env/lib/python3.12/site-packages/triton/backends/nvidia \
- && gcc -fsyntax-only -I/opt/env/include/python3.12 -I/opt/env/targets/x86_64-linux/include -x c $D/driver.c
+ && gcc -fsyntax-only -I/opt/env/include/python3.12 -I/opt/env/targets/x86_64-linux/include -x c $D/driver.c \
+ && python3 -I -c "from triton import knobs; t = knobs.nvidia.ptxas_blackwell; assert t.path == '/opt/env/bin/ptxas', t.path; print('ptxas', t.version)"
 # Licenses beside the code they cover. OpenMM's three files ship in the conda
 # environment; PDBFixer, openmm-ml and aimnet carry theirs in dist-info.
 RUN mkdir -p /opt/openmm/licenses \
