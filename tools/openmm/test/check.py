@@ -62,6 +62,12 @@ MIN_BOX_SIDE = 30.0  # Angstrom: cuPotential needs three 1.0 nm cutoffs per side
 # first step at 12, interval at 16, last frame's step at 20, atom count at 268), then per frame
 # a 56-byte box record and three 4N-byte coordinate blocks, each between two 4-byte lengths.
 DCD_HEADER = 276
+# continue.py: 500 steps from md's state.xml, a frame and a stdout row every 250 steps (1 ps).
+# Its potential must stay within 1% of md's last logged one (same force field and system) and
+# its temperature near 300 K (the velocities came from the state; from rest it would be far lower).
+CONTINUE_STEPS = [250, 500]
+CONTINUE_POTENTIAL_TOL = 0.01
+CONTINUE_T = (280.0, 320.0)
 
 
 def fail(msg):
@@ -131,6 +137,7 @@ def main():
     if "a.cif" not in (T / "clash.err").read_text():
         fail("the stem clash's error does not name the files")
     check_md(T)
+    check_continue(T)
     check_mlmm(T)
     print(f"openmm test: relax passed ({len(names)} residues in the complex, GLYCAM names on both paths)")
 
@@ -190,6 +197,32 @@ def check_md(T):
     if steps != MD_STEPS:
         fail(f"log.csv's steps {steps}, expected {MD_STEPS}")
     print(f"openmm test: md passed ({natoms} atoms in {len(MD_STEPS)} frames, box {sides} A)")
+
+
+def check_continue(T):
+    import math
+    import struct
+
+    from openmm.app import PDBFile
+
+    natoms = PDBFile(str(T / "md" / "system.pdb")).topology.getNumAtoms()
+    data = (T / "continue.dcd").read_bytes()
+    frames, size = struct.unpack("<i", data[8:12])[0], struct.unpack("<i", data[268:272])[0]
+    if (frames, size) != (len(CONTINUE_STEPS), natoms):
+        fail(f"continue.dcd: {frames} frames of {size} atoms, expected {len(CONTINUE_STEPS)} of system.pdb's {natoms}")
+    if len(data) != DCD_HEADER + frames * (56 + 3 * (8 + 4 * natoms)):
+        fail(f"continue.dcd is {len(data)} bytes, not {frames} whole frames")
+    lines = (T / "continue.csv").read_text().splitlines()
+    rows = [[float(x) for x in line.split(",")] for line in lines[1:]]
+    if not lines[0].startswith("#") or [int(r[0]) for r in rows] != CONTINUE_STEPS:
+        fail(f"continue.py's stdout: {lines!r}")
+    md_last = float((T / "md" / "log.csv").read_text().splitlines()[-1].split(",")[2])
+    for step, potential, temperature in rows:
+        if not (math.isfinite(potential) and abs(potential - md_last) < CONTINUE_POTENTIAL_TOL * abs(md_last)):
+            fail(f"continue.py at step {step:.0f}: potential {potential}, md's last {md_last}")
+        if not CONTINUE_T[0] < temperature < CONTINUE_T[1]:
+            fail(f"continue.py at step {step:.0f}: temperature {temperature} K")
+    print(f"openmm test: continue passed ({frames} frames of {natoms} atoms, potential {rows[-1][1]:.0f} kJ/mol)")
 
 
 def check_mlmm(T):

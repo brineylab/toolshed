@@ -10,8 +10,9 @@
 # writing anything. Then `openmm md` on relax's complex: 0.2 ns, extended to
 # 0.4; rerun at 0.3, which must touch nothing; a crash simulated between a
 # frame and its state.xml (one extra frame and log row), resumed to 0.5; and
-# 1UBQ into the same directory, which must stop touching nothing. Then mlmm.py on the md output over
-# check.py's ML_REGION. check.py verifies the answers. Writes only under /tmp.
+# 1UBQ into the same directory, which must stop touching nothing. Then the
+# skill's continue.py for 2 ps from md's state, and mlmm.py on the md output
+# over check.py's ML_REGION. check.py verifies the answers. Writes only under /tmp.
 set -euo pipefail
 cd "$(dirname "$0")"
 T=$(mktemp -d /tmp/openmm.XXXXXX)
@@ -112,6 +113,39 @@ if openmm md "$T/in/1UBQ.pdb" "$T/md" --ns 0.5 2> "$T/md-other.err"; then
     exit 1
 fi
 hashes "$T/md-other.sha256"
+
+# the skill's library-way script: md's last state run on for 2 ps in md's force field.
+# This script is the skill's too (the skill's text is copied from here).
+cat > "$T/continue.py" <<'PY'
+"""Continue an `openmm md` run in your own script: python3 -I continue.py <md-out> <out.dcd> <steps>."""
+import sys
+from pathlib import Path
+
+import openmm
+from openmm import unit
+from openmm.app import PME, DCDReporter, ForceField, HBonds, PDBFile, Simulation, StateDataReporter
+
+md, dcd, steps = Path(sys.argv[1]), sys.argv[2], int(sys.argv[3])
+pdb = PDBFile(str(md / "system.pdb"))
+state = openmm.XmlSerializer.deserialize((md / "state.xml").read_text())
+
+# md's force field and settings
+ff = ForceField("amber14-all.xml", "amber14/tip3pfb.xml", "amber14/GLYCAM_06j-1.xml")
+system = ff.createSystem(pdb.topology, nonbondedMethod=PME, nonbondedCutoff=1.0 * unit.nanometer,
+                         ewaldErrorTolerance=5e-4, constraints=HBonds, hydrogenMass=1.5 * unit.amu)
+system.addForce(openmm.MonteCarloBarostat(1 * unit.bar, 300 * unit.kelvin))
+integrator = openmm.LangevinMiddleIntegrator(300 * unit.kelvin, 1 / unit.picosecond, 0.004 * unit.picoseconds)
+sim = Simulation(pdb.topology, system, integrator)
+
+# box, positions and velocities from state.xml (not loadState: see Gotchas)
+sim.context.setPeriodicBoxVectors(*state.getPeriodicBoxVectors())
+sim.context.setPositions(state.getPositions())
+sim.context.setVelocities(state.getVelocities())
+sim.reporters.append(DCDReporter(dcd, 250))  # every ps, solvent included
+sim.reporters.append(StateDataReporter(sys.stdout, 250, step=True, potentialEnergy=True, temperature=True))
+sim.step(steps)
+PY
+python3 -I "$T/continue.py" "$T/md" "$T/continue.dcd" 500 > "$T/continue.csv"
 
 # ML/MM: AIMNet2 on the interface region of md's last output, the rest in the force field.
 # This script is the skill's too (the skill's text is copied from here).

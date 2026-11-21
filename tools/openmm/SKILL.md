@@ -136,7 +136,7 @@ print(f"region_charge {charge}")
 - AIMNet2 is loaded as `MLPotential("aimnet", modelPath=...)` from the image's file. Other model names (`"aimnet2"`, ...) go through aimnet's registry and its download cache, so never use them here.
 - `createMixedSystem` uses openmm-ml's only embedding, mechanical, and caps bonds cut at the region's edge with link atoms at openmm-ml's default distances. `interpolate=True` adds a `lambda_interpolate` parameter for switching between the classical and the ML/MM energy.
 
-**Continuing an `md` run your own way.** `system.pdb` and `state.xml` are all a script needs; this one runs on from `md`'s last state with a solvated trajectory every ps:
+**Continuing an `md` run your own way.** `system.pdb` and `state.xml` are all a script needs; this one runs on from `md`'s last state, writing a solvated trajectory frame and a stdout row (step, potential energy, temperature) every ps:
 
 ```bash
 python3 -I continue.py md/ more.dcd 250000
@@ -151,7 +151,7 @@ from pathlib import Path
 
 import openmm
 from openmm import unit
-from openmm.app import PME, DCDReporter, ForceField, HBonds, PDBFile, Simulation
+from openmm.app import PME, DCDReporter, ForceField, HBonds, PDBFile, Simulation, StateDataReporter
 
 md, dcd, steps = Path(sys.argv[1]), sys.argv[2], int(sys.argv[3])
 pdb = PDBFile(str(md / "system.pdb"))
@@ -170,6 +170,7 @@ sim.context.setPeriodicBoxVectors(*state.getPeriodicBoxVectors())
 sim.context.setPositions(state.getPositions())
 sim.context.setVelocities(state.getVelocities())
 sim.reporters.append(DCDReporter(dcd, 250))  # every ps, solvent included
+sim.reporters.append(StateDataReporter(sys.stdout, 250, step=True, potentialEnergy=True, temperature=True))
 sim.step(steps)
 ```
 
@@ -255,5 +256,5 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/openmm:1.0.0 \
 - **No cuPotential.** NVIDIA's runtime may be redistributed only inside "your application" (its license §1.1(d)), and §2.12 bars publishing benchmark results without NVIDIA's written permission, which collides with every skill's Compute section. The reason is the license, not speed. `md`'s settings stay inside its supported set, which also needs a box at least three cutoffs (3 nm) a side: the test checks that on its 6.29 nm box, the wrapper does not. A sibling could swap cuPotential in if its license ever clears.
 - **No small molecules or ligands** (parameterization, OpenFF, GAFF): deferred, board card #50. A ligand stops preparation, naming it.
 - `fep`, antibody point-mutation binding ΔΔG through feflow, is planned for 1.1.0. feflow 0.2.1 does not install beside OpenMM 8.6.1 today, so it may come as a separate tool.
-- Licenses: OpenMM's are in the image at `/opt/openmm/licenses/` (MIT for the API and CPU platform, LGPL for the CUDA and OpenCL platforms, `Licenses.txt` for the rest), with PDBFixer's, openmm-ml's, and aimnet's (MIT each). AIMNet2's weights state no license of their own; their source, aimnetcentral, is MIT, so the image publishes them under the shed's rule for that case. AIMNet2 is Anstine, Zubatyuk & Isayev, *Chem. Sci.* 2025.
+- Licenses: OpenMM's are in the image at `/opt/openmm/licenses/` (MIT for the API and CPU platform, LGPL for the CUDA and OpenCL platforms, `Licenses.txt` for the rest), with PDBFixer's, openmm-ml's, and aimnet's (MIT each). AIMNet2's weights state no license of their own; their source, aimnetcentral, is MIT, so the image publishes them under the shed's rule for that case. AIMNet2 is Anstine, Zubatyuk & Isayev, "AIMNet2: a neural network potential to meet your neutral, charged, organic, and elemental-organic needs", *Chem. Sci.* 16, 10228–10244 (2025), doi:10.1039/D4SC08572H.
 - The wrapper and both scripts run under `python3 -I`: a caller's `PYTHONPATH` or user site-packages never replace what the image tested.
