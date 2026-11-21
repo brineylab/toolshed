@@ -30,7 +30,7 @@ The force field is fixed for the version: `amber14-all.xml`, `amber14/tip3pfb.xm
 
 **`openmm md <structure> <out> --ns N [--seed S]`.** One structure in, one directory out. The protocol is fixed; `--ns` (production length, required) and `--seed` are the only options.
 - Prepare, then solvate with OpenMM's `addSolvent(padding=1.0 nm)`: a cube whose side is the solute's bounding-sphere diameter plus 1 nm. At the start that leaves at least 1 nm between the solute and its own periodic image; it is not 1 nm from the solute to the box edge. TIP3P-FB water, neutralized, 0.15 M NaCl.
-- PME with a 1.0 nm cutoff and Ewald tolerance 5×10⁻⁴; hydrogen mass repartitioning (1.5 amu) with `HBonds` constraints and a 4 fs step; `LangevinMiddleIntegrator` at 300 K, 1 ps⁻¹; `MonteCarloBarostat` at 1 bar every 25 steps. These stay inside cuPotential's supported set (see Gotchas).
+- PME with a 1.0 nm cutoff and Ewald tolerance 5×10⁻⁴; hydrogen mass repartitioning (1.5 amu) with `HBonds` constraints and a 4 fs step; `LangevinMiddleIntegrator` at 300 K, 1 ps⁻¹; `MonteCarloBarostat` at 1 bar every 25 steps.
 - Equilibration: minimize with the solute's heavy atoms restrained at 10 kcal/mol/Å²; velocities at 300 K; 100 ps NVT restrained; 1 ns NPT in ten 100 ps segments whose restraint falls linearly to zero (the last runs unrestrained). Progress goes to stderr every 100 ps.
 - Production: `--ns` nanoseconds of NPT, step and time counted from 0. Every 25,000 steps (100 ps) it writes a trajectory frame and a log row and saves `state.xml` atomically (write, then rename). `--ns` must be a positive multiple of 0.1.
 - **Resuming.** Run the same command again. With `out/state.xml` present, `md` loads it, cuts `trajectory.dcd` and `log.csv` back to the step it records, and runs on to `--ns`: no frame duplicated or dropped, and an interruption loses at most the current 100 ps. A larger `--ns` extends a finished run; one at or below what is done exits 0, saying so on stderr, touching nothing. The XML state carries positions, velocities, and box, and resumes on any GPU model or on CPU. Equilibration is not resumable: a run stopped before production starts over on the rerun.
@@ -92,7 +92,7 @@ nb = next(f for f in system.getForces() if isinstance(f, openmm.NonbondedForce))
 total = sum(nb.getParticleParameters(i)[0].value_in_unit(unit.elementary_charge) for i in atoms)
 charge = round(total)
 if abs(total - charge) > 0.1:
-    sys.exit(f"region charge {total:.3f} is not near an integer: cut the region at residue boundaries")
+    sys.exit(f"region charge {total:.3f} is not near an integer: include each glycan whole, with its NLN/OLS/OLT")
 
 # bonds cut at the region's edge are capped with link-atom virtual sites appended after the real
 # atoms (openmm-ml's default distances); the returned topology includes them
@@ -194,13 +194,13 @@ sim.step(steps)
 One GPU. The image is 11.1 GB.
 
 <!-- GPU: fill from the measurement run -->
-**GPU: pending.** The measurement run on the test's GPU fills this line: `md` ns/day on the fixture's 23,584-atom box and on a ~100k-atom antibody–antigen complex, `relax` seconds per structure, and the ML/MM script's steps/s.
+**GPU: pending.** The measurement run on the test's GPU fills this line: `md` ns/day on the fixture's ~23,600-atom box and on a ~100k-atom antibody–antigen complex, `relax` seconds per structure, and the ML/MM script's steps/s.
 
 Measured so far on CPU only, OpenMM's CPU platform on a 32-core laptop:
 
 | job | system | CPU |
 | --- | --- | --- |
-| `md` production | the test's 23,584-atom box: the 1,478-atom glycosylated two-chain complex in a 6.29 nm cube | 36–40 ns/day |
+| `md` production | the test's ~23,600-atom box: the 1,478-atom glycosylated two-chain complex in a 6.29 nm cube | 36–40 ns/day |
 | `md` equilibration (1.1 ns, every fresh run) | same | 2,571 s |
 | `relax` | 1UBQ and the 1,478-atom complex | ~0.4 s to prepare and 1.4–2.8 s to minimize per structure; the test's four relax runs ~11 s |
 | ML/MM, 1,000 steps | a 400-atom AIMNet2 region in that box | 1 min 46 s, startup included |
@@ -243,17 +243,16 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/openmm:1.0.0 \
 - The force field and water model are fixed per version (Amber14 ff14SB, TIP3P-FB, GLYCAM_06j). ff19SB with OPC would be a new version, not a flag.
 - The trajectory is wrapped into the box molecule by molecule, so a complex's chains can sit in different periodic images. Re-image before computing distances, contacts, or RMSD.
 - `system.pdb`, `equilibrated.pdb`, and `final.pdb` use OpenMM's chain ids and residue numbers; only `topology.pdb` keeps the input's.
+- `topology.pdb` is PDB, so a chain id longer than one character (mmCIF allows them, and a glycoprotein prediction with more than 26 chains has them) is written as a letter from the chain's index, and two chains can then share one; the ML/MM script stops on a span that then matches residues in both.
 - Equilibration is not resumable: a run stopped before production starts over, deleting the partial outputs.
-- A failed `md` preparation leaves `input.sha256` in `out/`, so a corrected input (different bytes) needs a fresh `out/`.
-- `Simulation.loadState("md/state.xml")` fails (`invalid parameter name: k`): the state carries `md`'s restraint parameter. Set box, positions, and velocities from it, as both scripts above do.
-- The restraint's reference positions do not scale with the barostat during the restrained NPT stage. Harmless: its strength is zero by production.
+- `Simulation.loadState("md/state.xml")` fails (`invalid parameter name: k`): the state carries `md`'s global parameters (the restraint's `k`, the barostat's), so set box, positions, and velocities from it, as both scripts above do.
 - **CUDA is not deterministic**: the same `--seed` on a GPU gives the same run statistically, not bitwise, and so does a resume.
 - **ML/MM is mechanical embedding only**: ML–MM electrostatics come from the classical force field; openmm-ml 1.8 has no electrostatic embedding. Under periodic boundaries AIMNet2 switches its ML–ML Coulomb to DSF (aimnet warns so on stderr). Link atoms use openmm-ml's default distances.
 - ML/MM spans use the input's chain ids and residue numbers (`topology.pdb`'s), not `system.pdb`'s. A span matching no residue, or residues in more than one chain, stops the run.
 - GLYCAM's residue charges are not integers (±0.194 at linked positions), so a glycan goes into the ML region whole, with its `NLN`/`OLS`/`OLT`, or the script stops on the region's charge.
-- The test's ML region is 400 atoms, past aimnet 0.2.6's 120-atom switch from a dense pair list to a neighbor list, so it exercises the path real interface regions take. Its complex has no `_struct_conn`, so its glycan links are found by distance; a copy with the six links in `_struct_conn` tests the bonded path.
+- The test's ML region is 400 atoms, past aimnet 0.2.6's 120-atom switch from a dense pair list to a neighbor list, so it exercises the path real interface regions take. Its complex has no `_struct_conn`, so its glycan links are found by distance; a copy with the six links in `_struct_conn` tests the bonded path, and another with the core's sugars in one chain, as AlphaFold 3 writes them, tests links named by `auth_seq_id`.
 - The image is CUDA 12.9: it needs an NVIDIA driver R575 or newer.
-- **No cuPotential.** NVIDIA's runtime may be redistributed only inside "your application" (its license §1.1(d)), and §2.12 bars publishing benchmark results without NVIDIA's written permission, which collides with every skill's Compute section. The reason is the license, not speed. `md`'s settings stay inside its supported set, which also needs a box at least three cutoffs (3 nm) a side: the test checks that on its 6.29 nm box, the wrapper does not. A sibling could swap cuPotential in if its license ever clears.
+- **No cuPotential.** NVIDIA's runtime may be redistributed only inside "your application" (its license §1.1(d)), and §2.12 bars publishing benchmark results without NVIDIA's written permission, which collides with every skill's Compute section. The reason is the license, not speed.
 - **No small molecules or ligands** (parameterization, OpenFF, GAFF): deferred, board card #50. A ligand stops preparation, naming it.
 - `fep`, antibody point-mutation binding ΔΔG through feflow, is planned for 1.1.0. feflow 0.2.1 does not install beside OpenMM 8.6.1 today, so it may come as a separate tool.
 - Licenses: OpenMM's are in the image at `/opt/openmm/licenses/` (MIT for the API and CPU platform, LGPL for the CUDA and OpenCL platforms, `Licenses.txt` for the rest), with PDBFixer's, openmm-ml's, and aimnet's (MIT each). AIMNet2's weights state no license of their own; their source, aimnetcentral, is MIT, so the image publishes them under the shed's rule for that case. AIMNet2 is Anstine, Zubatyuk & Isayev, "AIMNet2: a neural network potential to meet your neutral, charged, organic, and elemental-organic needs", *Chem. Sci.* 16, 10228–10244 (2025), doi:10.1039/D4SC08572H.

@@ -234,7 +234,7 @@ nb = next(f for f in system.getForces() if isinstance(f, openmm.NonbondedForce))
 total = sum(nb.getParticleParameters(i)[0].value_in_unit(unit.elementary_charge) for i in atoms)
 charge = round(total)
 if abs(total - charge) > 0.1:
-    sys.exit(f"region charge {total:.3f} is not near an integer: cut the region at residue boundaries")
+    sys.exit(f"region charge {total:.3f} is not near an integer: include each glycan whole, with its NLN/OLS/OLT")
 
 # bonds cut at the region's edge are capped with link-atom virtual sites appended after the real
 # atoms (openmm-ml's default distances); the returned topology includes them

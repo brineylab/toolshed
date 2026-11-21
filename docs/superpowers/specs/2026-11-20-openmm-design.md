@@ -54,7 +54,7 @@ openmmforcefields is **not** needed at 1.0.0: OpenMM 8.6.1 itself ships GLYCAM_0
 
 ## 4. The wrapper and its verbs (1.0.0)
 
-`tools/openmm/bin/openmm`, one Python program, stdlib plus what the environment holds. Every verb picks the CUDA platform at mixed precision when a GPU is visible and CPU otherwise, prints a short timing breakdown to stderr, and takes `--seed N` (default 0) where randomness enters.
+`tools/openmm/bin/openmm`, one Python program, stdlib plus what the environment holds. Every verb picks the CUDA platform at mixed precision when a GPU is visible and CPU otherwise, and prints a short timing breakdown to stderr. `md` takes `--seed N`, with no default: without it OpenMM picks the seeds; with it, the initial velocities, the Langevin integrator and the barostat take N, and each resume reseeds the integrator and barostat with N plus the frame index it resumes at.
 
 ### Input preparation (shared by both verbs)
 
