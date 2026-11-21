@@ -1,0 +1,47 @@
+version: 1
+sequences:
+  - protein:
+      id: A
+      sequence: MSPEELLKKAEELIKRNGTFEEALKLAKEAAELAKKSGDPELVKRVLELLERL
+      msa: empty
+  - protein:
+      id: B
+      sequence: SPEELKRLAEEFNATVKELLERAKKLGG
+      msa: empty
+  - ligand:
+      id: C
+      ccd: NAG
+  - ligand:
+      id: D
+      ccd: NAG
+  - ligand:
+      id: E
+      ccd: NAG
+  - ligand:
+      id: F
+      ccd: BMA
+  - ligand:
+      id: G
+      ccd: MAN
+  - ligand:
+      id: H
+      ccd: MAN
+constraints:
+  - bond:
+      atom1: [A, 17, ND2]
+      atom2: [C, 1, C1]
+  - bond:
+      atom1: [B, 13, ND2]
+      atom2: [D, 1, C1]
+  - bond:
+      atom1: [D, 1, O4]
+      atom2: [E, 1, C1]
+  - bond:
+      atom1: [E, 1, O4]
+      atom2: [F, 1, C1]
+  - bond:
+      atom1: [F, 1, O3]
+      atom2: [G, 1, C1]
+  - bond:
+      atom1: [F, 1, O6]
+      atom2: [H, 1, C1]
