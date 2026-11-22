@@ -180,28 +180,91 @@ def check_target(topology, chain, wt, resnum, icode):
 
 
 def mutate(topology, positions, target, new3):
-    """The topology with the target renamed to new3: its side chain deleted beyond N, CA, C, O and CB (CB too for
-    Gly), the new side chain's heavy atoms added by PDBFixer, and hydrogens added at pH 7 (all others already have them)."""
+    """The wild-type structure with only the target residue replaced by new3, every other atom (heavy and hydrogen,
+    name and position) copied from the wild type, so the pair differs only at the target.
+
+    The target's side chain is deleted beyond N, CA, C, O and CB (CB too for Gly), the new side chain's heavy atoms
+    are added by PDBFixer, and Modeller.addHydrogens(pH 7) places hydrogens. That runs on a scratch copy of the whole
+    complex (PDBFixer drops every hydrogen and addHydrogens regenerates them all); only its target residue is kept,
+    and spliced into the wild type's atoms and bonds. A His therefore gets the variant addHydrogens chooses.
+    """
+    from openmm import unit
+    from openmm.app import Topology
     from pdbfixer import PDBFixer
 
-    key = (target.chain.id, target.id, target.insertionCode)
+    def ident(r):
+        return (r.chain.id, r.id, r.insertionCode)
+
+    key = ident(target)
     keep = set(BACKBONE) | (set() if new3 == "GLY" else {"CB"})
     modeller = Modeller(topology, positions)
-    residue = next(r for r in modeller.topology.residues() if (r.chain.id, r.id, r.insertionCode) == key)
+    residue = next(r for r in modeller.topology.residues() if ident(r) == key)
     modeller.delete([a for a in residue.atoms() if a.name not in keep])
-    next(r for r in modeller.topology.residues() if (r.chain.id, r.id, r.insertionCode) == key).name = new3
+    next(r for r in modeller.topology.residues() if ident(r) == key).name = new3
     # PDBFixer takes only a file; this one atom is replaced by the Modeller's structure at once.
     fixer = PDBFixer(pdbfile=io.StringIO("ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\n"))
     fixer.topology, fixer.positions = modeller.topology, modeller.positions
     fixer.missingResidues = {}
     fixer.findMissingAtoms()
-    here = next(r for r in fixer.topology.residues() if (r.chain.id, r.id, r.insertionCode) == key)
+    here = next(r for r in fixer.topology.residues() if ident(r) == key)
     fixer.missingTerminals = {}
     fixer.missingAtoms = {r: a for r, a in fixer.missingAtoms.items() if r is here}
     fixer.addMissingAtoms(seed=0)
-    modeller = Modeller(fixer.topology, fixer.positions)
-    modeller.addHydrogens(ForceField(*FORCEFIELD), pH=7.0)
-    return modeller.topology, modeller.positions
+    scratch = Modeller(fixer.topology, fixer.positions)
+    scratch.addHydrogens(ForceField(*FORCEFIELD), pH=7.0)
+
+    # splice: the wild type's residues, with the target's atoms from the scratch copy
+    scratch_pos = scratch.positions.value_in_unit(unit.nanometer)
+    wt_pos = positions.value_in_unit(unit.nanometer)
+    new, new_pos, atom_of = Topology(), [], {}
+    new.setPeriodicBoxVectors(topology.getPeriodicBoxVectors())
+    for chain in topology.chains():
+        new_chain = new.addChain(chain.id)
+        for res in chain.residues():
+            if ident(res) == key:
+                source = next(r for r in scratch.topology.residues() if ident(r) == key)
+                name, atoms, coords = new3, list(source.atoms()), scratch_pos
+            else:
+                name, atoms, coords = res.name, list(res.atoms()), wt_pos
+            new_res = new.addResidue(name, new_chain, res.id, res.insertionCode)
+            for atom in atoms:
+                atom_of[(ident(res), atom.name)] = new.addAtom(atom.name, atom.element, new_res)
+                new_pos.append(coords[atom.index])
+    for a, b in topology.bonds():
+        if key not in (ident(a.residue), ident(b.residue)):
+            new.addBond(atom_of[(ident(a.residue), a.name)], atom_of[(ident(b.residue), b.name)])
+    for a, b in scratch.topology.bonds():  # the target's own bonds and its peptide bonds to its neighbours
+        if key in (ident(a.residue), ident(b.residue)):
+            new.addBond(atom_of[(ident(a.residue), a.name)], atom_of[(ident(b.residue), b.name)])
+    mutant_positions = unit.Quantity(new_pos, unit.nanometer)
+    verify_pair(topology, positions, new, mutant_positions, key)
+    return new, mutant_positions
+
+
+def verify_pair(wt_top, wt_pos, mut_top, mut_pos, key, tolerance=1e-3):
+    """Refuse (exit 2) a pair that differs outside the target residue in any atom name or position (nm)."""
+    from openmm import unit
+
+    def atoms(top, pos):
+        xyz = pos.value_in_unit(unit.nanometer)
+        return {((a.residue.chain.id, a.residue.id, a.residue.insertionCode), a.name): xyz[a.index]
+                for a in top.atoms() if (a.residue.chain.id, a.residue.id, a.residue.insertionCode) != key}
+
+    wt, mut = atoms(wt_top, wt_pos), atoms(mut_top, mut_pos)
+    for (res, name), xyz in wt.items():
+        other = mut.get((res, name))
+        if other is None or max(abs(x - y) for x, y in zip(xyz, other)) > tolerance:
+            refuse(f"the mutant's atom {name} of residue {res[0]}:{res[1]}{res[2].strip()} differs from the wild type's")
+    if len(mut) != len(wt):
+        extra = sorted(set(mut) - set(wt))[0]
+        refuse(f"the mutant has an extra atom {extra[1]} in residue {extra[0][0]}:{extra[0][1]}")
+    # the target's backbone N, CA, C, O stays where it was
+    xyz_wt = {a.name: wt_pos.value_in_unit(unit.nanometer)[a.index] for a in wt_top.atoms()
+              if (a.residue.chain.id, a.residue.id, a.residue.insertionCode) == key and a.name in BACKBONE}
+    for a in mut_top.atoms():
+        if (a.residue.chain.id, a.residue.id, a.residue.insertionCode) == key and a.name in xyz_wt:
+            if max(abs(x - y) for x, y in zip(xyz_wt[a.name], mut_pos.value_in_unit(unit.nanometer)[a.index])) > tolerance:
+                refuse(f"the mutant's backbone atom {a.name} of the target moved")
 
 
 def atom_mapping(wt_rdkit, mut_rdkit, target_key):

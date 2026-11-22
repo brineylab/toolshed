@@ -29,6 +29,13 @@ def residues(path):
     return {(r.chain.id, r.id): (r.name, [a.name for a in r.atoms()]) for r in top.residues()}
 
 
+def coordinates(path):
+    """{(chain, id, atom name): (x, y, z)} of an end-state mmCIF."""
+    cif = PDBxFile(str(path))
+    xyz = cif.positions.value_in_unit(cif.positions.unit)
+    return {(a.residue.chain.id, a.residue.id, a.name): tuple(xyz[a.index]) for a in cif.topology.atoms()}
+
+
 def check_alanine(leg_dir, chain, resid, wt_name, extra=0):
     """Mutant residue is ALA with exactly ALA's atoms; every other residue has identical atom names; the count drops by the side chain's difference (returned)."""
     wt, mut = residues(leg_dir / "wildtype.cif"), residues(leg_dir / "mutant.cif")
@@ -40,6 +47,11 @@ def check_alanine(leg_dir, chain, resid, wt_name, extra=0):
     for key in wt:
         if key != (chain, resid):
             assert wt[key] == mut[key], (leg_dir, key)
+    # every atom outside the target is the wild type's, name and position (the writer rounds to 1e-3 A)
+    cwt, cmut = coordinates(leg_dir / "wildtype.cif"), coordinates(leg_dir / "mutant.cif")
+    outside = {k for k in cwt if k[:2] != (chain, resid)}
+    assert outside == {k for k in cmut if k[:2] != (chain, resid)}, leg_dir
+    assert all(cwt[k] == cmut[k] for k in outside), leg_dir
     sizes = [sum(len(v[1]) for v in end.values()) for end in (wt, mut)]
     assert sizes[0] - sizes[1] == len(wt[(chain, resid)][1]) - len(ALA), (leg_dir, sizes)
     return sizes[0] - sizes[1]
