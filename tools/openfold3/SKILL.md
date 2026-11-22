@@ -30,7 +30,7 @@ run_openfold predict --query-json query.json --use-msa-server=False --use-templa
 
 ## Compute
 
-One GPU with at least 32 GB (upstream's minimum; most of its testing was on 40 GB A100s). On an L40S (48 GB), the test's 198-residue dimer at one sample takes about 12 s of prediction and 29 s for the whole `run_openfold predict` (the checkpoint's load included), at a peak of 2.3 GB of GPU memory; five samples take 14 s of prediction. The whole test job, the image's import on the node included, finished in under 5 minutes. Larger complexes were not measured.
+One GPU with at least 32 GB (upstream's minimum; most of its testing was on 40 GB A100s) and NVIDIA driver 580 or newer (the image is CUDA 13). On an L40S (48 GB), the test's 198-residue dimer at one sample takes about 12 s of prediction and 29 s for the whole `run_openfold predict` (the checkpoint's load included), at a peak of 2.3 GB of GPU memory; five samples take 14 s of prediction. The whole test job, the image's import on the node included, finished in under 5 minutes. Larger complexes were not measured. The record is from an L40S; the CUDA 13 build carries Blackwell's kernels, so a B200 is expected to work but is untested (see Gotchas for the kernel compile).
 
 ## Running it
 
@@ -55,5 +55,5 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/openfold3:1.0.0 \
 - Single-sequence mode on the test's HIV-1 protease dimer gives a well-formed, compact dimer with low confidence (avg pLDDT 33–43, ipTM under 0.1 over five samples), so read its confidences before its interface. A warning that the Triton evoformer kernel runs "untuned" on a non-HIP backend is about speed on NVIDIA GPUs, not correctness.
 - The parameters are OpenBind-0 (`openbind-2025-06-30-174k`), 0.5.1's default; older docs that name `openfold3_p2_v1` or the preview2 weights describe releases before 0.5.
 - DeepSpeed's evoformer attention kernel is not installed (it needs CUTLASS); cuEquivariance is the kernel path.
-- The test folds HIV-1 protease as a homodimer (2 × 99 = 198 residues), past cuEquivariance's 100-residue crossover (`CUEQ_TRIATTN_FALLBACK_THRESHOLD`), so it exercises the kernel path. Inputs larger than that were not measured.
+- The test folds HIV-1 protease as a homodimer (2 × 99 = 198 residues), past cuEquivariance's 100-residue crossover (`CUEQ_TRIATTN_FALLBACK_THRESHOLD`), so it exercises the kernel path. Inputs larger than that were not measured. On boltz-2, the same Triton kernels' first compile on a Blackwell B200 did not finish in 29 minutes; if a B200 run stalls there, raising `CUEQ_TRIATTN_FALLBACK_THRESHOLD` and `CUEQ_TRIMUL_FALLBACK_THRESHOLD` past the input's size (e.g. `export CUEQ_TRIATTN_FALLBACK_THRESHOLD=1000000 CUEQ_TRIMUL_FALLBACK_THRESHOLD=1000000`) runs plain PyTorch and compiles nothing.
 - Code and weights are Apache-2.0 (the license is in the image at `/opt/openfold3/LICENSE`).
