@@ -1,0 +1,34 @@
+---
+tool: stok
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/stok@sha256:6c232e05d3cd12205ea21298824aa229dacf8e769aa5dd5426096171f516b4e4
+digest: sha256:6c232e05d3cd12205ea21298824aa229dacf8e769aa5dd5426096171f516b4e4
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-22T22:46:17Z
+exit: 0
+---
+node: slurm-b200-204-207
+Job 4557: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=4557
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/stok@sha256:6c232e05d3cd12205ea21298824aa229dacf8e769aa5dd5426096171f516b4e4
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/stok@sha256:6c232e05d3cd12205ea21298824aa229dacf8e769aa5dd5426096171f516b4e4
+[2026-11-22T22:48:47Z] slurm-b200-204-207: GPU 0: NVIDIA B200 (UUID: GPU-bca34128-d4e0-323c-92b9-6d1d7ded54c3)
+[2026-11-22T22:48:47Z] tokenizing the fixture on cuda
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/graphein/protein/tensor/angles.py:475: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/native/Cross.cpp:63.)
+  n1 = torch.cross(F.normalize(a - b, dim=-1), bc)
+Wrote 2 shards (skipped 0), 2 rows, 1 rejected, 2 null labels. Output: /tmp/tmp.ij5bKQakPr/tokens
+[2026-11-22T22:48:56Z] tokenization finished in 9s; checking the answer
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+ok: AF-A0A0FXCOMPLETE-F1: 243 tokens, 0 null, 0 coordinate-null, decode RMSD 0.673 A
+ok: AF-A0A0FXGAPPED-F1: 243 tokens, 2 null, 1 coordinate-null, decode RMSD 0.721 A
+ok: identity preset large, codebook 4096, stok 0.1.4, checkpoint 7d1d43950a29..., codebook 29d21936c951...
+ok: rejected AF-A0A0FXSHORT-F1 (chains_too_short)
+[2026-11-22T22:49:03Z] all checks passed, 16s from tokenize start
+Job 4557: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=4557
