@@ -1,0 +1,134 @@
+# ESMFold2-Fast through the esm package 3.5.0 (torch >= 2.11, Python >= 3.12), on PyTorch 2.14.1's CUDA 13.0
+# build, the base esmc-6b stands on; CUDA 13 wheels carry Blackwell's kernels as well as Ampere's to Hopper's.
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# Triton compiles a small C driver shim on first use; the runtime base has no C compiler.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+# The base ships spin, NumPy's build frontend, whose click<8.4 conflicts with the hf CLI's click>=8.4.2 (as
+# esmc-6b found); nothing at runtime imports it, so it goes first and pip skips the installed-conflict report.
+RUN (pip uninstall -y --break-system-packages spin || true) \
+ && pip install --no-cache-dir --break-system-packages --no-warn-conflicts "esm==3.5.0"
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ESMFOLD2_MODEL=/opt/model ESMCFOLD_CCD_PATH=/opt/model/ccd.pkl \
+    ESMFOLD2_LOOPS=3 ESMFOLD2_STEPS=50
+COPY build_shards.py /usr/local/bin/build-shards
+COPY shard_plan.json /usr/local/share/esmfold2-shard-plan.json
+COPY --chmod=755 bin/esmfold2 /usr/local/bin/esmfold2
+COPY LICENSE.md THIRD_PARTY_NOTICE.md /opt/model/
+# The model's small files from the pinned Fast revision, and the CCD pickle from the full model's revision
+# (the Fast repository carries none), through the hf CLI esm installs.
+RUN HF_HUB_OFFLINE=0 hf download biohub/ESMFold2-Fast config.json tokenizer.json tokenizer_config.json \
+      --revision 45fe8656f5b3ef493c17fcf9abe9a2968902e712 --local-dir /opt/model \
+ && HF_HUB_OFFLINE=0 hf download biohub/ESMFold2 ccd.pkl --revision 69869f737beffec5294845ede23db5fc0b4f509e --local-dir /opt/model \
+ && rm -rf /opt/model/.cache
+# The weights as 105 bounded shards, one RUN each, from shard_plan.json (made by make_shard_plan.py from the
+# pinned revision's six fp32 safetensors, each checked against the Hub's LFS sha256): each RUN fetches its
+# span in parallel ranges, checks the span's sha256, writes it as a shard, casts the ESM C backbone's esmc.*
+# tensors to bf16 and leaves the folding layers fp32, and verifies the result. A build that dies resumes at
+# its first missing shard from the layer cache.
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 0
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 1
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 2
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 3
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 4
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 5
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 6
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 7
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 8
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 9
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 10
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 11
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 12
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 13
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 14
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 15
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 16
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 17
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 18
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 19
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 20
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 21
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 22
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 23
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 24
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 25
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 26
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 27
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 28
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 29
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 30
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 31
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 32
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 33
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 34
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 35
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 36
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 37
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 38
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 39
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 40
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 41
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 42
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 43
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 44
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 45
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 46
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 47
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 48
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 49
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 50
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 51
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 52
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 53
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 54
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 55
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 56
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 57
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 58
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 59
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 60
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 61
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 62
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 63
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 64
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 65
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 66
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 67
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 68
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 69
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 70
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 71
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 72
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 73
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 74
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 75
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 76
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 77
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 78
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 79
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 80
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 81
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 82
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 83
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 84
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 85
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 86
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 87
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 88
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 89
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 90
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 91
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 92
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 93
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 94
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 95
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 96
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 97
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 98
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 99
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 100
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 101
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 102
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 103
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --shard 104
+RUN python3 -I -u /usr/local/bin/build-shards --plan /usr/local/share/esmfold2-shard-plan.json --index
+COPY test /toolshed/test
