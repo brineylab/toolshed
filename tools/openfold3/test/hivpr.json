@@ -1,0 +1,1 @@
+{"queries": {"hivpr": {"use_msas": false, "chains": [{"molecule_type": "protein", "chain_ids": ["A", "B"], "sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF"}]}}}
