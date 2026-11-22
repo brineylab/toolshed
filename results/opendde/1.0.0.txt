@@ -1,42 +1,69 @@
 ---
 tool: opendde
 version: 1.0.0
-image: ghcr.io/brineylab/toolshed/opendde@sha256:7310ce94adf0ffaa74f1773baf87f69026dce09b9903302487b581941c86deea
-digest: sha256:7310ce94adf0ffaa74f1773baf87f69026dce09b9903302487b581941c86deea
+image: ghcr.io/brineylab/toolshed/opendde@sha256:7f1468e62f49c3d4a352ce6ac374e08b5bc2e7f931bc80b5428a66abe6b6cc9a
+digest: sha256:7f1468e62f49c3d4a352ce6ac374e08b5bc2e7f931bc80b5428a66abe6b6cc9a
 runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
 host: bcr.scripps.edu
-started: 2026-11-22T17:13:22Z
+started: 2026-11-22T21:04:40Z
 exit: 0
 ---
-pyxis: importing docker image: ghcr.io#brineylab/toolshed/opendde@sha256:7310ce94adf0ffaa74f1773baf87f69026dce09b9903302487b581941c86deea
-pyxis: imported docker image: ghcr.io#brineylab/toolshed/opendde@sha256:7310ce94adf0ffaa74f1773baf87f69026dce09b9903302487b581941c86deea
-[2026-11-22T17:19:47Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-ab31b94e-1404-7858-604e-4f2a6b62d33e)
-[2026-11-22T17:19:47Z] folding the 198-residue HIV-1 protease dimer, single-sequence, 1 sample
-2026-11-22 17:19:50,229 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:1001] INFO runner.batch_inference: Run infer with input=hivpr.json, out_dir=/tmp/tmp.4lOvOoieYr, sample=1
-2026-11-22 17:19:50,229 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:1010] INFO runner.batch_inference: Using inference params for model opendde_v1: cycle=10, step=200, use_msa=False
-2026-11-22 17:19:50,238 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Distributed environment: world size: 1, global rank: 0, local rank: 0
-2026-11-22 17:19:50,345 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1097] INFO root: LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
-2026-11-22 17:19:51,826 [/opt/conda/lib/python3.11/site-packages/opendde/config/inference.py:177] INFO opendde.config.inference: Resolved triangle kernels from auto to multiplicative=cuequivariance, attention=cuequivariance.
-2026-11-22 17:19:51,826 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1180] INFO root: Selected inference device: cuda:0
-2026-11-22 17:19:51,826 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1181] INFO root: Finished environment initialization.
-2026-11-22 17:19:52,938 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Loading from /opt/opendde/checkpoint/opendde.pt, strict: True
-2026-11-22 17:19:54,329 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Sampled key: module.input_embedder.atom_attention_encoder.linear_no_bias_ref_pos.weight
-2026-11-22 17:19:54,412 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Finish loading checkpoint.
-2026-11-22 17:19:54,418 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Model parameters: 655.79M
-2026-11-22 17:19:54,423 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:501] INFO runner.batch_inference: Inference by OpenDDE: model_name: opendde_v1, dtype: bf16
-2026-11-22 17:19:54,423 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:504] INFO runner.batch_inference: Triangle_multiplicative kernel: cuequivariance, Triangle_attention kernel: cuequivariance
-2026-11-22 17:19:54,423 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:508] INFO runner.batch_inference: enable_diffusion_shared_vars_cache: True, enable_efficient_fusion: True, enable_tf32: False
-2026-11-22 17:19:54,423 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:513] INFO runner.batch_inference: Fold-CP mode: single, size_dp=1, size_cp=1, mesh=(1, 1), metrics_jsonl=<disabled>
-2026-11-22 17:19:54,424 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:654] INFO runner.batch_inference: Will infer with 1 jsons
-  0%|          | 0/1 [00:00<?, ?it/s]2026-11-22 17:19:54,424 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1599] INFO runner.inference: Loading data from hivpr.json
-2026-11-22 17:19:54,425 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1617] INFO runner.inference: Using seeds from command line: [0]
-2026-11-22 17:19:54,683 [/opt/conda/lib/python3.11/site-packages/opendde/data/inference/infer_dataloader.py:343] INFO opendde.data.inference.infer_dataloader: Featurizing hivpr...
-2026-11-22 17:19:59,985 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1757] INFO runner.inference: [Rank 0 (1/1)] hivpr [seed:0]: N_asym 2, N_token 198, N_atom 1516, N_msa 1
-2026-11-22 17:20:13,409 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1821] INFO runner.inference: [Rank 0] hivpr [seed:0] succeeded. Model forward time: 13.42s. Results saved to /tmp/tmp.4lOvOoieYr
-2026-11-22 17:20:13,754 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1876] INFO runner.inference: [Rank 0] Seed 0 completed in 19.07s.
-2026-11-22 17:20:13,756 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1890] INFO runner.inference: [Rank 0] Job completed in 19.33s.
-100%|██████████| 1/1 [00:19<00:00, 19.33s/it]100%|██████████| 1/1 [00:19<00:00, 19.33s/it]
-[2026-11-22T17:20:16Z] prediction finished; checking outputs
-ok: hivpr: 2 chains x 99 residues, plddt 42.6, ptm 0.319, iptm 0.181, ranking_score 0.209
-[2026-11-22T17:20:16Z] all checks passed
-[2026-11-22T17:20:16Z] peak GPU memory: 5893 MiB
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/opendde@sha256:7f1468e62f49c3d4a352ce6ac374e08b5bc2e7f931bc80b5428a66abe6b6cc9a
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/opendde@sha256:7f1468e62f49c3d4a352ce6ac374e08b5bc2e7f931bc80b5428a66abe6b6cc9a
+[2026-11-22T21:10:55Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-ab31b94e-1404-7858-604e-4f2a6b62d33e)
+[2026-11-22T21:10:55Z] folding the 198-residue HIV-1 protease dimer, single-sequence, 1 sample
+2026-11-22 21:10:58,389 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:1001] INFO runner.batch_inference: Run infer with input=hivpr.json, out_dir=/tmp/tmp.0W9B7qEevi, sample=1
+2026-11-22 21:10:58,389 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:1010] INFO runner.batch_inference: Using inference params for model opendde_v1: cycle=10, step=200, use_msa=False
+2026-11-22 21:10:58,398 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Distributed environment: world size: 1, global rank: 0, local rank: 0
+2026-11-22 21:10:58,521 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1097] INFO root: LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+2026-11-22 21:11:00,004 [/opt/conda/lib/python3.11/site-packages/opendde/config/inference.py:177] INFO opendde.config.inference: Resolved triangle kernels from auto to multiplicative=cuequivariance, attention=cuequivariance.
+2026-11-22 21:11:00,004 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1180] INFO root: Selected inference device: cuda:0
+2026-11-22 21:11:00,004 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1181] INFO root: Finished environment initialization.
+2026-11-22 21:11:01,149 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Loading from /opt/opendde/checkpoint/opendde.pt, strict: True
+2026-11-22 21:11:02,421 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Sampled key: module.input_embedder.atom_attention_encoder.linear_no_bias_ref_pos.weight
+2026-11-22 21:11:02,504 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Finish loading checkpoint.
+2026-11-22 21:11:02,510 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Model parameters: 655.79M
+2026-11-22 21:11:02,516 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:501] INFO runner.batch_inference: Inference by OpenDDE: model_name: opendde_v1, dtype: bf16
+2026-11-22 21:11:02,516 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:504] INFO runner.batch_inference: Triangle_multiplicative kernel: cuequivariance, Triangle_attention kernel: cuequivariance
+2026-11-22 21:11:02,516 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:508] INFO runner.batch_inference: enable_diffusion_shared_vars_cache: True, enable_efficient_fusion: True, enable_tf32: False
+2026-11-22 21:11:02,516 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:513] INFO runner.batch_inference: Fold-CP mode: single, size_dp=1, size_cp=1, mesh=(1, 1), metrics_jsonl=<disabled>
+2026-11-22 21:11:02,516 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:654] INFO runner.batch_inference: Will infer with 1 jsons
+  0%|          | 0/1 [00:00<?, ?it/s]2026-11-22 21:11:02,517 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1599] INFO runner.inference: Loading data from hivpr.json
+2026-11-22 21:11:02,517 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1617] INFO runner.inference: Using seeds from command line: [0]
+2026-11-22 21:11:02,786 [/opt/conda/lib/python3.11/site-packages/opendde/data/inference/infer_dataloader.py:343] INFO opendde.data.inference.infer_dataloader: Featurizing hivpr...
+2026-11-22 21:11:08,171 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1757] INFO runner.inference: [Rank 0 (1/1)] hivpr [seed:0]: N_asym 2, N_token 198, N_atom 1516, N_msa 1
+2026-11-22 21:11:24,021 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1821] INFO runner.inference: [Rank 0] hivpr [seed:0] succeeded. Model forward time: 15.85s. Results saved to /tmp/tmp.0W9B7qEevi
+2026-11-22 21:11:24,306 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1876] INFO runner.inference: [Rank 0] Seed 0 completed in 21.52s.
+2026-11-22 21:11:24,308 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1890] INFO runner.inference: [Rank 0] Job completed in 21.79s.
+100%|██████████| 1/1 [00:21<00:00, 21.79s/it]100%|██████████| 1/1 [00:21<00:00, 21.79s/it]
+[2026-11-22T21:11:27Z] again with the fixture's 128-row MSA (an A3M named in the JSON), the MSA server made unreachable
+2026-11-22 21:11:29,625 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:1001] INFO runner.batch_inference: Run infer with input=hivpr_msa.json, out_dir=/tmp/tmp.0W9B7qEevi, sample=1
+2026-11-22 21:11:29,625 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:1010] INFO runner.batch_inference: Using inference params for model opendde_v1: cycle=10, step=200, use_msa=True
+2026-11-22 21:11:29,634 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Distributed environment: world size: 1, global rank: 0, local rank: 0
+2026-11-22 21:11:29,757 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1097] INFO root: LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+2026-11-22 21:11:31,874 [/opt/conda/lib/python3.11/site-packages/opendde/config/inference.py:177] INFO opendde.config.inference: Resolved triangle kernels from auto to multiplicative=cuequivariance, attention=cuequivariance.
+2026-11-22 21:11:31,874 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1180] INFO root: Selected inference device: cuda:0
+2026-11-22 21:11:31,874 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1181] INFO root: Finished environment initialization.
+2026-11-22 21:11:32,988 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Loading from /opt/opendde/checkpoint/opendde.pt, strict: True
+2026-11-22 21:11:34,437 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Sampled key: module.input_embedder.atom_attention_encoder.linear_no_bias_ref_pos.weight
+2026-11-22 21:11:34,521 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Finish loading checkpoint.
+2026-11-22 21:11:34,528 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1468] INFO runner.inference: Model parameters: 655.79M
+2026-11-22 21:11:34,533 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:501] INFO runner.batch_inference: Inference by OpenDDE: model_name: opendde_v1, dtype: bf16
+2026-11-22 21:11:34,533 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:504] INFO runner.batch_inference: Triangle_multiplicative kernel: cuequivariance, Triangle_attention kernel: cuequivariance
+2026-11-22 21:11:34,533 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:508] INFO runner.batch_inference: enable_diffusion_shared_vars_cache: True, enable_efficient_fusion: True, enable_tf32: False
+2026-11-22 21:11:34,533 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:513] INFO runner.batch_inference: Fold-CP mode: single, size_dp=1, size_cp=1, mesh=(1, 1), metrics_jsonl=<disabled>
+2026-11-22 21:11:34,533 [/opt/conda/lib/python3.11/site-packages/runner/batch_inference.py:654] INFO runner.batch_inference: Will infer with 1 jsons
+  0%|          | 0/1 [00:00<?, ?it/s]2026-11-22 21:11:34,534 [/opt/conda/lib/python3.11/site-packages/runner/msa_search.py:250] INFO runner.msa_search: do not need to update msa result, so return itself hivpr_msa.json
+2026-11-22 21:11:34,534 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1599] INFO runner.inference: Loading data from hivpr_msa.json
+2026-11-22 21:11:34,534 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1617] INFO runner.inference: Using seeds from command line: [0]
+2026-11-22 21:11:34,811 [/opt/conda/lib/python3.11/site-packages/opendde/data/inference/infer_dataloader.py:343] INFO opendde.data.inference.infer_dataloader: Featurizing hivpr_msa...
+2026-11-22 21:11:40,365 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1757] INFO runner.inference: [Rank 0 (1/1)] hivpr_msa [seed:0]: N_asym 2, N_token 198, N_atom 1516, N_msa 129
+2026-11-22 21:11:50,589 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1821] INFO runner.inference: [Rank 0] hivpr_msa [seed:0] succeeded. Model forward time: 10.22s. Results saved to /tmp/tmp.0W9B7qEevi
+2026-11-22 21:11:50,973 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1876] INFO runner.inference: [Rank 0] Seed 0 completed in 16.16s.
+2026-11-22 21:11:50,974 [/opt/conda/lib/python3.11/site-packages/runner/inference.py:1890] INFO runner.inference: [Rank 0] Job completed in 16.44s.
+100%|██████████| 1/1 [00:16<00:00, 16.44s/it]100%|██████████| 1/1 [00:16<00:00, 16.44s/it]
+[2026-11-22T21:11:53Z] predictions finished; checking outputs
+ok: hivpr: 2 chains x 99 residues, plddt 43.1, ptm 0.329, iptm 0.201, ranking_score 0.227
+ok: hivpr_msa: 2 chains x 99 residues, plddt 94.4, ptm 0.933, iptm 0.909, ranking_score 0.914, CA RMSD 0.51 A to the crystal
+[2026-11-22T21:11:54Z] all checks passed
+[2026-11-22T21:11:54Z] peak GPU memory: 5893 MiB
