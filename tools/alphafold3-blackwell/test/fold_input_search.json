@@ -1,0 +1,22 @@
+{
+  "name": "fixture_two_chains_search",
+  "dialect": "alphafold3",
+  "version": 4,
+  "modelSeeds": [0],
+  "sequences": [
+    {
+      "protein": {
+        "id": "A",
+        "sequence": "EVQLVESGGGLVQPGGSLRLSCAASGFTFSSYAMSWVRQAPGKGLEWVSAISGSGGSTYYADSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCAK",
+        "unpairedMsaPath": "/toolshed/test/A.a3m"
+      }
+    },
+    {
+      "protein": {
+        "id": "B",
+        "sequence": "DVVMTQTPLTLSVTIGGPASATCKSCQASSTTVSSANNLHWYQQKPGSSPKPWIYATSNASGVPDRFSGSGSGTSFTLTISSVEAEDAAAYYCHQY",
+        "unpairedMsaPath": "/toolshed/test/B.a3m"
+      }
+    }
+  ]
+}

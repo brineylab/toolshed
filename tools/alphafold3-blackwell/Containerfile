@@ -1,0 +1,16 @@
+# The stock AlphaFold 3 v3.0.2 environment: tmessmer's Blackwell build of
+# google-deepmind/alphafold3's own docker/Dockerfile (Ubuntu 24.04, CUDA
+# 12.6.3, python 3.12, the AF3 venv, run_alphafold.py at /app/alphafold,
+# HMMER at /hmmer). Nothing is added: no packages, no code, no weights.
+#
+# The AlphaFold 3 model parameters are NOT in this image and never will be:
+# Google DeepMind's WEIGHTS_TERMS_OF_USE.md forbids redistributing them.
+# The caller mounts a directory holding af3.bin.zst (flyloft mounts the
+# campaign directory into tool runs) and passes it as --model_dir.
+#
+# GPU: the base sets NVIDIA_VISIBLE_DEVICES / NVIDIA_DRIVER_CAPABILITIES
+# (nvidia/cuda base image), so the device is visible under pyxis.
+
+FROM docker.io/tmessser/alphafold3-blackwell:v3.0.2
+
+COPY test /toolshed/test
