@@ -9,7 +9,7 @@ metadata:
 Image: `ghcr.io/brineylab/toolshed/alphafold3-blackwell:1.0.0`
 
 A thin wrapper over the public stock AlphaFold 3 container
-`docker.io/tmessser/alphafold3-blackwell:v3.0.2` (the v3.0.2 build of
+`docker.io/tmessmer/alphafold3-blackwell:v3.0.2` (the v3.0.2 build of
 `github.com/google-deepmind/alphafold3`'s own `docker/Dockerfile`: Ubuntu
 24.04, CUDA 12.6.3, python 3.12, the AF3 venv at `/alphafold3_venv` on `PATH`,
 the source at `/app/alphafold`, HMMER 3.4 at `/hmmer/bin`, and the image-level

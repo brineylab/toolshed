@@ -11,6 +11,6 @@
 # GPU: the base sets NVIDIA_VISIBLE_DEVICES / NVIDIA_DRIVER_CAPABILITIES
 # (nvidia/cuda base image), so the device is visible under pyxis.
 
-FROM docker.io/tmessser/alphafold3-blackwell:v3.0.2
+FROM docker.io/tmessmer/alphafold3-blackwell:v3.0.2
 
 COPY test /toolshed/test
