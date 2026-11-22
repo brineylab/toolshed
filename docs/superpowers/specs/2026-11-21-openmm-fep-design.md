@@ -134,6 +134,8 @@ On one GPU, within 30 minutes, writing only under `/tmp`. The fixture is openmm'
 
 **Early, before the defaults are final:** the skill's Compute section also gives HyHEL-10 Fab + HEL (H:Y33A, both legs, a few cycles): per-cycle time and setup time on a B200. It is run through flyloft as a direct job on the candidate image (`--tool openmm-fep@sha256:…`), which flyloft now allows for unpublished tools. The GPU test can run the same way, with its record written by `scripts/record`. If a 25-cycle HyHEL-10 replicate would not fit well inside flyloft's 24-hour job limit, `--cycles`' default comes down to fit, and the skill says how many replicates make up feflow's 100.
 
+**Measured (2026-11-22, B200, job 48d8bc21):** HyHEL-10 H:Y33A solvates to 109,704 particles bound (62,915 unbound); setup 7.7 min bound (4.5 unbound), 3.2 min per cycle bound (1.9 unbound), so a 25-cycle bound replicate is about 1.5 h and 100 cycles about 5.8 h (bound) + 3.5 h (unbound); the charge-changing H:K64A setup is 7.6 min, no slower than neutral. `--cycles` stays 25.
+
 ## 9. Left to the builder
 
 - Whether `analyze` reports feflow's own uncertainty or a bootstrap over cycles, and how feflow's `gather` pools several DAG results. Check that results from two replicates pool their cycles rather than averaging their estimates, and say in the skill which it is.

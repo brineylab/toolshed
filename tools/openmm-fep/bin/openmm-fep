@@ -13,6 +13,7 @@ that differs from the wild type outside the target, which is refused after the r
 """
 
 import argparse
+import bz2
 import hashlib
 import io
 import json
@@ -388,6 +389,10 @@ def run(args):
         (work / "scratch").mkdir()
         result = execute_DAG(dag, shared_basedir=work / "shared", scratch_basedir=work / "scratch",
                              raise_error=True, keep_shared=True, keep_scratch=True)
+        system = next(work.glob("shared/*/system.xml.bz2"), None)  # feflow's hybrid system, solvated
+        if system:
+            logging.getLogger("openmm-fep").info(
+                "hybrid system: %d particles", bz2.open(system, "rb").read().count(b"<Particle mass="))
         with open(out / "result.json.tmp", "w") as handle:
             json.dump(result.to_dict(), handle, cls=JSON_HANDLER.encoder)
         os.replace(out / "result.json.tmp", out / "result.json")
