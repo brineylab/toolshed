@@ -85,7 +85,7 @@ Any change under `tools/<name>/` bumps `metadata.version`, prose included. A pub
 
 1. Push your branch and open the pull request.
 2. `check` runs: the tool's rules, an unpublished version, a public amd64 candidate for the branch's source, and a record of that candidate's passing test.
-3. A member other than you reviews it: does the skill describe what the Containerfile builds, does the test exercise every documented command, are the weights in the image, is every example a full command line, and does the record show the test ran on the hardware the tool needs (its node and GPU lines) and gave the known answers. They squash-merge it.
+3. A member other than the tool's writer reviews it — when your agent wrote it, that is you; when you wrote it yourself, it is another member. The reviewer asks: does the skill describe what the Containerfile builds, does the test exercise every documented command, are the weights in the image, is every example a full command line, and does the record show the test ran on the hardware the tool needs (its node and GPU lines) and gave the known answers. They squash-merge it.
 4. `promote` copies the candidate to `<name>:<version>`.
 
 ## Weights behind a login

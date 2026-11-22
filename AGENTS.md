@@ -60,7 +60,7 @@ scripts/test <name> podman                    # on any machine with the tool's h
 - Nothing in `scripts/` or `.github/` names the lab. The registry is `ghcr.io/${GITHUB_REPOSITORY,,}/<name>`, so a fork is its own shed with no edits.
 - CI runs on hosted runners and never builds, pulls, or runs a tool image; `seed.yml` pushes only a `FROM scratch` placeholder. Whoever builds a tool tests its candidate on the hardware it needs, on any machine that has it, and commits the record; an agent cannot claim a tool works without one.
 - No cluster ever builds an image. The contributor builds with `scripts/build`, from committed source.
-- Every tool is reviewed by someone other than its builder before it merges.
+- Every tool is reviewed by someone other than its builder before it merges. The builder is whoever wrote the tool: an agent's work is reviewed by the person who directed it, and a tool a member wrote themselves is reviewed by another member.
 
 ## What not to build
 
