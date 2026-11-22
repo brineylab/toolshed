@@ -8,7 +8,7 @@
 # Runs, each at --cycles 1: A:L47A bound and unbound (--partner A); the bound one again, which must be a no-op;
 # the unbound one's result.json deleted, which must be redone; A:K44A bound (charge-changing, so the alchemical
 # water); A:G38A bound (Gly to Ala, whose CB is built); complex.pdb unbound; then the refusals, each checked
-# for exit 2 and its stderr word, writing nothing. check.py verifies the answers. Writes only under /tmp.
+# for exit 2 and its stderr word, writing nothing; then analyze over the L47A pair and its refusals. check.py verifies the answers. Writes only under /tmp.
 # With FLYLOFT_OUT set, every case's output tree is copied there at the end.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -69,6 +69,22 @@ test ! -e "$T/refused"
 before=$(tree "$T/bound")
 refused "mutation" openmm-fep run complex.cif "$T/bound" --mutation A:L47G --leg bound --replicate 0 --cycles 1
 [ "$before" = "$(tree "$T/bound")" ]
+
+# 9: analyze pools each leg: three rows, ddg = bound - unbound; then its refusals
+mkdir -p "$T/pool" "$T/mix/bound" "$T/nores/unbound"
+cp -r "$T/bound/bound" "$T/unbound/unbound" "$T/pool"
+openmm-fep analyze "$T/pool" "$T/ddg.tsv"
+python3 -I check.py analyze "$T/ddg.tsv"
+cp -r "$T/unbound/unbound" "$T/mix"
+cp -r "$T/bound/bound/replicate-0" "$T/mix/bound/replicate-0"
+cp -r "$T/g38a/bound/replicate-0" "$T/mix/bound/replicate-1"
+refused "mutation" openmm-fep analyze "$T/mix" "$T/mix.tsv"
+refused "unbound" openmm-fep analyze "$T/k44a" "$T/k44a.tsv"
+cp -r "$T/bound/bound" "$T/nores"
+cp -r "$T/unbound/unbound/replicate-0" "$T/nores/unbound/replicate-0"
+rm "$T/nores/unbound/replicate-0/result.json"
+refused "unbound" openmm-fep analyze "$T/nores" "$T/nores.tsv"
+test ! -e "$T/mix.tsv" -a ! -e "$T/k44a.tsv" -a ! -e "$T/nores.tsv"
 
 if [ -n "${FLYLOFT_OUT:-}" ]; then
     mkdir -p "$FLYLOFT_OUT"

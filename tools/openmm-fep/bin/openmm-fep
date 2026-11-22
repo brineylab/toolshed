@@ -396,6 +396,57 @@ def run(args):
     return 0
 
 
+def analyze(args):
+    out = Path(args.out)
+    found = defaultdict(list)  # leg -> [(dir, run.json)] of finished replicates
+    for run_json in sorted(out.glob("*/replicate-*/run.json")):
+        if run_json.with_name("result.json").is_file():
+            found[run_json.parent.parent.name].append((run_json.parent, json.loads(run_json.read_text())))
+
+    def same(info):  # what replicates must agree on; cycles may differ
+        return {**info, "settings": {k: v for k, v in info["settings"].items() if k != "num_cycles"}}
+
+    # the partner differs between the legs by design (bound has none), so it is compared within a leg
+    every = [(d, i) for leg in found.values() for d, i in leg]
+    for d, info in every[1:]:
+        first = every[0]
+        for key in ("input_sha256", "mutation", "settings", "versions"):
+            if same(info)[key] != same(first[1])[key]:
+                refuse(f"{d} disagrees with {first[0]} on {key}")
+        mate = next(m for m in found[info["leg"]])
+        if info["partner"] != mate[1]["partner"]:
+            refuse(f"{d} disagrees with {mate[0]} on partner")
+    for leg in ("bound", "unbound"):
+        if not found[leg]:
+            refuse(f"{out} has no finished replicate (one with a result.json) of the {leg} leg")
+
+    from gufe.protocols import ProtocolDAGResult
+    from gufe.tokenization import JSON_HANDLER
+    from feflow.protocols import NonEquilibriumCyclingProtocol
+
+    settings = type(NonEquilibriumCyclingProtocol.default_settings()).model_validate(every[0][1]["settings"])
+    protocol = NonEquilibriumCyclingProtocol(settings=settings)
+    rows, dg = [], {}
+    for leg in ("bound", "unbound"):
+        results = []
+        for d, _ in found[leg]:
+            with open(d / "result.json") as handle:
+                results.append(ProtocolDAGResult.from_dict(json.load(handle, cls=JSON_HANDLER.decoder)))
+        gathered = protocol.gather(results)
+        dg[leg] = (gathered.get_estimate().to("kilocalorie_per_mole").magnitude,
+                   gathered.get_uncertainty().to("kilocalorie_per_mole").magnitude)
+        cycles = len(gathered.data["forward_work"])
+        rows.append([leg, *map(repr, map(float, dg[leg])), str(len(results)), str(cycles)])
+    (b, eb), (u, eu) = dg["bound"], dg["unbound"]
+    rows.append(["ddg", repr(float(b - u)), repr(float((eb ** 2 + eu ** 2) ** 0.5)), "", ""])
+    table = Path(args.table)
+    tmp = table.with_name(table.name + ".tmp")
+    tmp.write_text("\n".join("\t".join(r) for r in [["leg", "dg_kcal_mol", "err_kcal_mol", "replicates", "cycles"], *rows]) + "\n")
+    os.replace(tmp, table)
+    note(f"{table} written: ddg {rows[-1][1]} +/- {rows[-1][2]} kcal/mol")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(prog="openmm-fep", description=__doc__.split("\n\n")[0])
     verbs = parser.add_subparsers(dest="verb", required=True)
@@ -407,9 +458,11 @@ def main():
     p.add_argument("--partner", metavar="CHAINS", help="comma-separated chains the unbound leg keeps")
     p.add_argument("--replicate", required=True, type=int)
     p.add_argument("--cycles", type=int, default=DEFAULT_CYCLES)
-    # analyze OUT TABLE is added by a later task, beside run.
+    p = verbs.add_parser("analyze", help="pool each leg's finished replicates into dG per leg and ddG")
+    p.add_argument("out")
+    p.add_argument("table")
     args = parser.parse_args()
-    sys.exit(run(args))
+    sys.exit(run(args) if args.verb == "run" else analyze(args))
 
 
 if __name__ == "__main__":
