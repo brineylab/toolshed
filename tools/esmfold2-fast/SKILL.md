@@ -31,7 +31,7 @@ esmfold2 predict --in jobs.json --out out --seed 0
 
 ## Compute
 
-One GPU. Compute numbers come from this tool's test record (filled in below when measured).
+One GPU. On an L40S (48 GB), one `esmfold2 predict` of the test's file (the 198-residue HIV-1 protease dimer and the 33-residue GCN4-p1, one sample each at the default 3 loops and 50 steps) takes about 30 s, the 13 GB model's load most of it, at a peak of 8.5 GB of GPU memory. The image is 21 GB: the test job spent about 10 minutes before its first line, most of it the node importing the image. The fp8 backbone needs compute capability 8.9 or newer (L40S, H100, H200, B200) for its speed; an A100 upcasts each matrix multiply. Larger inputs were not measured.
 
 ## Running it
 
@@ -53,5 +53,6 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/esmfold2-fast:1.0
 
 - This is the single-sequence model: it has no MSA encoder, so an `msa` in the input does nothing. For MSA conditioning use the `esmfold2` tool, the same program on the full model.
 - The ESM C backbone is stored in bf16, halving the image: `esm` 3.5.0 casts the published fp32 backbone to bf16 at load before converting its projections to fp8 (`set_esmc_precision`; fp8 matrix multiplies on compute capability 8.9 and newer, upcast on older GPUs), so the loaded model is the one `esm` builds from the fp32 originals. The folding layers are fp32 as Biohub published them.
+- Two warnings print at every load and are expected: `flash-attn` is not installed, so ESM C's attention runs in plain PyTorch (Biohub's wheel is built for torch 2.11 and compute capability 8.0–9.0; this image is torch 2.14.1), and "fp8 ESMC on cpu: no fp8 GEMM here" comes from converting the backbone on the CPU before it moves to the GPU, where compute capability 8.9 and newer runs the fp8 GEMMs.
 - The test folds HIV-1 protease as a homodimer (2 × 99 = 198 residues) and GCN4-p1 (33 residues) from one file. Ligands, nucleic acids, modifications, covalent bonds, and pockets are upstream's schema, documented here but not exercised by the test. Inputs larger than the fixture were not measured.
 - Code and weights are MIT (Biohub's `LICENSE.md` and `THIRD_PARTY_NOTICE.md` are in the image beside the weights). Biohub's acceptable use policy (biohub.org/acceptable-use-policy) applies to the model.
