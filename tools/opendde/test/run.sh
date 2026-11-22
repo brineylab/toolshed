@@ -13,7 +13,10 @@ nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 500 > "$ou
 sampler=$!
 echo "[$(stamp)] folding the 198-residue HIV-1 protease dimer, single-sequence, 1 sample"
 opendde pred -i hivpr.json -o "$out" -n opendde_v1 --use_msa false --use_template false --use_rna_msa false --seeds 0 --sample 1
-echo "[$(stamp)] prediction finished; checking outputs"
+echo "[$(stamp)] again with the fixture's 128-row MSA (an A3M named in the JSON), the MSA server made unreachable"
+MMSEQS_SERVICE_HOST_URL=http://127.0.0.1:9 \
+  opendde pred -i hivpr_msa.json -o "$out" -n opendde_v1 --use_msa true --use_template false --use_rna_msa false --seeds 0 --sample 1
+echo "[$(stamp)] predictions finished; checking outputs"
 python3 -I check.py "$out"
 echo "[$(stamp)] all checks passed"
 kill "$sampler" 2>/dev/null || true
