@@ -16,7 +16,7 @@ ESMFold2 (Hugging Face `biohub/ESMFold2` at revision `69869f737beffec5294845ede2
 esmfold2 predict --in jobs.json --out out --seed 0
 ```
 
-`--in` is a JSON file of one job or a list of them; `--out` is created if missing, and a rerun into it overwrites the same files. `--samples` is diffusion samples per job (default 1); `--seed` (default 0) seeds input preparation and sampling; `--loops` (trunk recycling, default 20) and `--steps` (diffusion steps, default 200) trade speed for quality, defaults from `esm`'s own `fold()` (`$ESMFOLD2_LOOPS`, `$ESMFOLD2_STEPS`); the model card's quick example uses 3 and 50. The model loads once per invocation, so put a batch in one file. Every job is checked before the model loads; a malformed one stops the run with exit 2 and a line naming it.
+`--in` is a JSON file of one job or a list of them; `--out` is created if missing, and a rerun into it overwrites the same files. `--samples` is diffusion samples per job (default 1); `--seed` (default 0) seeds input preparation and sampling; `--loops` (trunk recycling, default 20) and `--steps` (diffusion steps, default 200) trade speed for quality, defaults from `esm`'s own `fold()` (`$ESMFOLD2_LOOPS`, `$ESMFOLD2_STEPS`); the model card's quick example uses 3 and 50. The model loads once per invocation, so put a batch in one file. Every job is checked before the model loads; a malformed one stops the run with exit 1 and a line naming it.
 
 ## Inputs and outputs
 
