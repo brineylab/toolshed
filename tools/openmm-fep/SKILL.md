@@ -25,47 +25,50 @@ openmm-fep analyze fep/ ddg.tsv
 - `--cycles` (default 25) is the number of nonequilibrium cycles this replicate runs. Replicates pool, so four replicates at 25 are one estimate from 100 cycles, feflow's default per estimate.
 - `<out>/<leg>/replicate-<N>/` holds `run.json` (the request, the input's sha256, the package versions, the full feflow settings), `result.json` (feflow's `ProtocolDAGResult`), `wildtype.cif` and `mutant.cif` (the leg's end states before solvation), and `log.txt`.
 - A replicate with a `result.json` is done: running it again says so and exits 0. A replicate directory without one is a crashed run: it is emptied and started again, saying so. So a requeued Slurm array task needs no flags. Nothing is checkpointed inside a replicate.
-- A request that cannot run is refused with one line on stderr and exit 2, before anything is written (see Gotchas).
+- A request that cannot run is refused with one line on stderr and exit 2, before the leg is built (one refusal comes later; see Gotchas).
 - The platform is CUDA when one is present; otherwise CPU, with a line on stderr saying that is impractical beyond tests.
 - gufe's working directories live under `$TMPDIR` (else `/tmp`) on the node and are deleted when the result is copied out: they hold tens of MB of hybrid system and trajectory per replicate and failed to clean up on NFS.
 
-**`openmm-fep analyze <out> <table>`** pools every finished replicate of each leg and writes a TSV: columns `leg`, `dg_kcal_mol`, `err_kcal_mol`, `replicates`, `cycles`; rows `bound`, `unbound` and `ddg`. It needs a finished replicate of each leg and refuses a directory whose replicates disagree on input hash, mutation, partner or settings (only `num_cycles` may differ), naming the one that does.
+**`openmm-fep analyze <out> <table>`** pools every finished replicate of each leg and writes a TSV: columns `leg`, `dg_kcal_mol`, `err_kcal_mol`, `replicates`, `cycles`; rows `bound`, `unbound` and `ddg`. It needs a finished replicate of each leg and refuses a directory whose replicates disagree on input hash, mutation, settings or package versions (only `num_cycles` may differ), or on partner within a leg, naming the one that does. The `ddg` row leaves `replicates` and `cycles` empty. **`analyze` silently skips replicates with no `result.json`**: if array tasks crashed it pools the rest, and the `replicates` column is the only sign, so check it equals what you submitted.
 
-Four replicates per leg as a Slurm array (eight tasks; tasks 0-3 are bound, 4-7 unbound), then the pool:
+Four replicates per leg as a Slurm array (eight tasks; tasks 0-3 are bound, 4-7 unbound), then the pool once the whole array has finished:
 
 ```bash
-sbatch --array=0-7 --gres=gpu:1 --time=24:00:00 --wrap='
+jid=$(sbatch --parsable --array=0-7 --gres=gpu:1 --time=24:00:00 --wrap='
   leg=bound; [ $SLURM_ARRAY_TASK_ID -ge 4 ] && leg=unbound
   rep=$((SLURM_ARRAY_TASK_ID % 4))
   [ $leg = bound ] && partner="" || partner="--partner H,L"
   srun --container-image=ghcr.io#brineylab/toolshed/openmm-fep:1.0.0 \
     --container-mounts="$PWD":/work --container-workdir=/work \
-    openmm-fep run complex.cif fep/ --mutation H:Y33A --leg $leg $partner --replicate $rep'
+    openmm-fep run complex.cif fep/ --mutation H:Y33A --leg $leg $partner --replicate $rep')
 
-srun --container-image=ghcr.io#brineylab/toolshed/openmm-fep:1.0.0 \
-  --container-mounts="$PWD":/work --container-workdir=/work \
-  openmm-fep analyze fep/ ddg.tsv
+sbatch --dependency=afterok:$jid --wrap='
+  srun --container-image=ghcr.io#brineylab/toolshed/openmm-fep:1.0.0 \
+    --container-mounts="$PWD":/work --container-workdir=/work \
+    openmm-fep analyze fep/ ddg.tsv'
 ```
+
+If a task fails, `afterok` holds the pool: resubmit the failed tasks (`--array=` with their numbers; finished replicates are skipped), then run `analyze`.
 
 ## What it computes
 
 - **Sign and meaning.** Each leg's ΔG is wild type → mutant, in kcal/mol, as feflow's `get_estimate` returns it. ΔΔG = ΔG_bound − ΔG_unbound, so a positive ΔΔG means the mutation weakens binding. The `ddg` row's error is the two legs' errors added in quadrature.
 - **The unbound leg** is the partner cut from the relaxed complex, not relaxed again by itself, as is usual for relative binding free energies. Conformational change on unbinding is not sampled beyond what the cycles reach.
 - **Pooling.** feflow's `gather` concatenates the forward and reverse works of every replicate it is given. The estimate is one BAR (pymbar) over all the pooled cycles, not an average of per-replicate estimates, and the error is a bootstrap over them.
-- **The mutant** keeps the wild type atom for atom. Only the target residue changes: its side chain is deleted beyond N, CA, C, O and CB (CB too for Gly), the new side chain's heavy atoms are built by PDBFixer, and its hydrogens are placed by OpenMM's `addHydrogens` at pH 7. Every other atom keeps its wild-type name and position, and the wrapper refuses the pair if any differs. The mapping between the end states matches atoms by chain, residue and name; in the mutated residue it maps N, CA, C, O, CB and the backbone H and HA. A new His gets the protonation `addHydrogens` picks. Every other residue's protonation state is the input's, preserved, not re-decided.
+- **The mutant** keeps the wild type atom for atom. Only the target residue changes: its side chain is deleted beyond N, CA, C, O and CB (CB too when the new residue is Gly), the new side chain's heavy atoms are built by PDBFixer, and its hydrogens are placed by OpenMM's `addHydrogens` at pH 7. Every other atom keeps its wild-type name and position, and the wrapper refuses the pair if any differs. The mapping between the end states matches atoms by chain, residue and name; in the mutated residue it maps N, CA, C, O, and H, HA and CB where both end states have them (no CB for a mutation to Gly, no H for Pro). A new His gets the protonation `addHydrogens` picks. Every other residue's protonation state is the input's, preserved, not re-decided.
 - **Charge-changing mutations** (K→A, D→N, ...) keep the box neutral by turning one water into a counter-ion (feflow's `explicit_charge_correction`, on here). Both legs change charge by the same amount, so both take that path. The wrapper writes the ion it expects to `log.txt`: `K44A` inserts Na⁺.
 - **feflow's settings**, its defaults but for these: the force field is `amber14-all.xml`, `amber14/tip3pfb.xml`, `amber14/GLYCAM_06j-1.xml` (as `openmm`, so structures and MD are comparable), `num_cycles` is `--cycles`, `explicit_charge_correction` is on (feflow's default is off, which runs a charge change uncorrected with only a warning), and the platform is as above. The defaults it keeps: 300 K, 1 bar, 4 fs steps with hydrogen mass 3 amu, solvent padding 1.5 nm in a rhombic dodecahedron, 0.15 M NaCl, TIP3P-FB water, and per cycle 12,500 equilibrium steps then 12,500 nonequilibrium steps in each direction (50 ps each at 4 fs). `run.json` has them all.
 
 ## Inputs and outputs
 
 - **In:** `openmm relax` output, `.cif` or `.pdb`, with GLYCAM-named glycans. Waters and monatomic ions in the input are dropped before the legs are built (counted on stderr), since feflow solvates and ionises itself.
-- **Out:** a directory per replicate as above, and `analyze`'s TSV. `<out>` is one mutation of one input: a `run` into a directory whose `run.json` disagrees with the request on mutation, partner, cycles, replicate or input is refused, its files untouched. Use one directory per mutation.
+- **Out:** a directory per replicate as above, and `analyze`'s TSV. `<out>` is one mutation of one input: a `run` into a replicate directory whose `run.json` disagrees with the request on mutation, partner, cycles, replicate or input is refused, its files untouched. Use one directory per mutation.
 
 ## Compute
 
 One GPU per replicate; an array runs them in parallel. The image is CUDA 12.9: it needs an NVIDIA driver R575 or newer.
 
-Measured on one NVIDIA B200 (coreweave-barcelona) with the tool's own test, whose fixture is openmm's test complex after `openmm relax` (two protein chains of 53 and 28 residues and six glycan residues, 1,478 atoms before solvation). Each case is a whole `run` at `--cycles 1`, setup included:
+Measured on one NVIDIA B200 with the tool's own test, whose fixture is openmm's test complex after `openmm relax` (two protein chains of 53 and 28 residues and six glycan residues, 1,478 atoms before solvation). Each case is a whole `run` at `--cycles 1`, setup included:
 
 | case | wall time |
 | --- | --- |
@@ -74,11 +77,11 @@ Measured on one NVIDIA B200 (coreweave-barcelona) with the tool's own test, whos
 | A:K44A, bound (charge-changing) | 96 s |
 | A:G38A, bound | 90 s |
 | A:L47A, unbound, PDB input | 74 s |
-| the whole test: all runs, both `analyze` runs, 13 refusals | 835 s |
+| the whole test: all runs, both `analyze` runs, 11 refusals | 835 s |
 
-The fixture's hybrid system runs at about 335 ns/day, so one cycle at feflow's default length takes about 52 s. The patched hybrid build took 14 s on the fixture.
+The fixture's hybrid system runs at about 335 ns/day, so one cycle at feflow's default length (four 12,500-step stages of 4 fs, 200 ps in all) takes about 52 s. The patched hybrid build took 14 s on the fixture.
 
-HyHEL-10 Fab with hen lysozyme (~140,000 atoms solvated), `H:Y33A`: setup (the hybrid build, minimisation and equilibration) takes TODO(hyhel10) on a B200, and one cycle takes TODO(hyhel10), so a 25-cycle replicate takes about TODO(hyhel10) and a 100-cycle estimate about TODO(hyhel10) of GPU time spread over its replicates. The unpatched hybrid build of that system took over 40 minutes and never finished; the patched one takes 4.4 minutes.
+HyHEL-10 Fab with hen lysozyme (8,409 atoms before solvation, solvated by feflow at 1.5 nm padding to TODO(hyhel10) atoms), `H:Y33A`: setup (the hybrid build, minimisation and equilibration) takes TODO(hyhel10) on a B200, and one cycle takes TODO(hyhel10), so a 25-cycle replicate takes about TODO(hyhel10) and a 100-cycle estimate about TODO(hyhel10) of GPU time spread over its replicates. The unpatched hybrid build of that system (solvated in the spike, ~140,000 atoms) took over 40 minutes and never finished; the patched one takes 4.4 minutes.
 
 CPU is impractical: use it only to check that a request runs.
 
@@ -107,7 +110,11 @@ The array under Commands runs a whole estimate. Submit it again to redo any task
 - **feflow is experimental upstream.** Treat a ΔΔG as an estimate to compare across mutations run the same way, and judge it by its error and cycle count, which `analyze` writes beside it. A ΔΔG without them is not a result.
 - **One point mutation per run.** No double mutants, insertions or deletions, and no ligands or other small molecules.
 - **It is not an `openmm` verb** because openfe 1.13 requires OpenMM older than 8.5 and `openmm` 1.0.0 ships 8.6.1 for its ML/MM. If openfe supports OpenMM 8.5 or later, this folds back into `openmm` as a `fep` verb and this tool stops at its last version.
-- **Refused before any work** (exit 2, one line on stderr naming the problem): a chain or residue not in the structure; a wrong wild-type letter; a mutation to itself; a letter that is not one of the 20 standard amino acids; the first or last residue of a chain, whose terminal atoms do not map; an Asn, Ser or Thr that carries a glycan (the glycan would be orphaned); a Cys in a disulfide; any residue with another covalent link off its side chain; `--partner` with `bound`, no `--partner` with `unbound`, a `--partner` that omits the mutated chain or names a chain that is not a protein chain; `--cycles` below 1; and a replicate directory whose `run.json` disagrees with the request. A mutant that differs from the wild type anywhere outside the target residue is refused too.
+- **Refusals** (exit 2, one line on stderr naming the problem), all before the leg is built and before anything is written, except the last:
+  - `run`: a mutation not of the form `CHAIN:XnY`; a letter that is not one of the 20 standard amino acids; a mutation to itself; `--partner` with `bound`, no `--partner` with `unbound`, a `--partner` that omits the mutated chain or names a chain that is not a protein chain of the structure; `--cycles` below 1; a complex that is not a file or not `.pdb`/`.cif`; a chain or residue not in the structure; a wrong wild-type letter; the first or last residue of a chain (its terminal atoms do not map); an Asn, Ser or Thr that carries a glycan (the glycan would be orphaned); a Cys in a disulfide; any residue with another covalent link off its side chain; a replicate directory whose `run.json` disagrees with the request.
+  - `analyze`: replicates that disagree (above), and a leg with no finished replicate.
+  - The exception: a mutant that differs from the wild type anywhere outside the target residue (an atom's name or position) is refused inside the build, after the replicate directory and its `log.txt` exist. It leaves them behind, and a rerun treats that directory as a crashed run.
+- **What the test covers and does not.** The fixture is small (1,478 atoms before solvation, a 53-residue and a 28-residue chain, six glycan residues on two chains, no waters or ions, no antibody numbering or CDRs), so it crosses none of the size thresholds a Fab-antigen complex does: that is only measured by hand (Compute). The test runs `--partner A` only, never a multi-chain partner such as `H,L`; no insertion-code mutation such as `S100aG` (only one that is absent); never the `--cycles` default; and it never drops a water or ion. Among the refusals it does not exercise a terminal residue, a disulfide Cys, a side-chain link, a bad one-letter code or mutation format, `--cycles 0`, a non-protein partner chain, a `run.json` disagreement on partner, cycles, replicate or input, or `analyze` refusing on partner, settings, versions or input. Those paths are read from the code, not run.
 - **Protonation is the input's.** Hydrogens are not stripped and re-added, so the input's HID/HIE/HIP, CYX and the rest are what the legs use; the new residue alone gets `addHydrogens(pH=7)`.
 - **Waters and ions in the input are dropped**, not kept: the legs are solvated afresh at 0.15 M NaCl. A structural water or metal ion that matters to the mutation is lost.
 - **The error column varies a little between `analyze` runs** over the same data: feflow's `get_uncertainty()` bootstraps without a seed. The estimate does not.

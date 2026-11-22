@@ -8,7 +8,8 @@
 leg: it builds the leg's wild-type and mutant end states, then runs feflow's setup and K cycles on
 one GPU and writes out/<leg>/replicate-<N>/{run.json, result.json, wildtype.cif, mutant.cif,
 log.txt}. A replicate with a result.json is done (exit 0); one without is redone. A request that
-cannot be run is refused with one line on stderr and exit 2, before anything is written.
+cannot be run is refused with one line on stderr and exit 2, before anything is written, except a mutant
+that differs from the wild type outside the target, which is refused after the replicate directory exists.
 """
 
 import argparse
