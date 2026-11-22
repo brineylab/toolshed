@@ -1,0 +1,2 @@
+[{"name": "hivpr_msa", "modelSeeds": [0],
+  "sequences": [{"proteinChain": {"sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF", "count": 2, "id": ["A", "B"], "unpairedMsaPath": "hivpr.a3m"}}]}]
