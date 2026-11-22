@@ -75,6 +75,11 @@ mkdir -p "$T/pool" "$T/mix/bound" "$T/nores/unbound"
 cp -r "$T/bound/bound" "$T/unbound/unbound" "$T/pool"
 openmm-fep analyze "$T/pool" "$T/ddg.tsv"
 python3 -I check.py analyze "$T/ddg.tsv"
+# two bound replicates pool into one estimate: replicates and cycles both 2 for bound, 1 for unbound
+cp -r "$T/pool" "$T/pool2"
+cp -r "$T/pool2/bound/replicate-0" "$T/pool2/bound/replicate-1"
+openmm-fep analyze "$T/pool2" "$T/ddg2.tsv"
+python3 -I check.py analyze "$T/ddg2.tsv" 2
 cp -r "$T/unbound/unbound" "$T/mix"
 cp -r "$T/bound/bound/replicate-0" "$T/mix/bound/replicate-0"
 cp -r "$T/g38a/bound/replicate-0" "$T/mix/bound/replicate-1"

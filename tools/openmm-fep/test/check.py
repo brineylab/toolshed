@@ -122,13 +122,13 @@ def check_mapping(fixture):
     print("mapping ok")
 
 
-def check_table(path):
+def check_table(path, bound_replicates="1"):
     """analyze's TABLE: header, rows bound, unbound, ddg; all finite; ddg = bound - unbound, error in quadrature."""
     lines = [line.split("\t") for line in Path(path).read_text().splitlines()]
     assert lines[0] == ["leg", "dg_kcal_mol", "err_kcal_mol", "replicates", "cycles"], lines[0]
     assert [row[0] for row in lines[1:]] == ["bound", "unbound", "ddg"] and all(len(row) == 5 for row in lines), lines
     (_, b, eb, nb, cb), (_, u, eu, nu, cu), (_, d, ed, nd, cd) = lines[1:]
-    assert (nb, cb, nu, cu) == ("1", "1", "1", "1") and (nd, cd) == ("", ""), lines
+    assert (nb, cb, nu, cu) == (bound_replicates, bound_replicates, "1", "1") and (nd, cd) == ("", ""), lines
     b, eb, u, eu, d, ed = map(float, (b, eb, u, eu, d, ed))
     assert all(map(math.isfinite, (b, eb, u, eu, d, ed))) and eb >= 0 and eu >= 0, lines
     assert abs(d - (b - u)) < 1e-9 and abs(ed - math.hypot(eb, eu)) < 1e-9, lines
@@ -137,7 +137,7 @@ def check_table(path):
 
 def main():
     if sys.argv[1] == "analyze":
-        return check_table(sys.argv[2])
+        return check_table(*sys.argv[2:])
     if sys.argv[1] == "mapping":
         return check_mapping(sys.argv[2])
     t = Path(sys.argv[2])
