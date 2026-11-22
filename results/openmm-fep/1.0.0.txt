@@ -1,0 +1,139 @@
+---
+tool: openmm-fep
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/openmm-fep@sha256:670b11fdd06a29b447e5f95c1b48f2d25b902a66dcf6b61a043d49a8e97b5bc2
+digest: sha256:670b11fdd06a29b447e5f95c1b48f2d25b902a66dcf6b61a043d49a8e97b5bc2
+runner: flyloft job submit --cluster coreweave-barcelona --gpu-type b200 --gpus 1 --time 00:30:00 --tool openmm-fep@sha256:670b11fd
+host: slurm-b200-204-171
+started: 2026-11-22T03:04:48Z
+exit: 0
+---
+Job 3092: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=3092
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/openmm-fep@sha256:670b11fdd06a29b447e5f95c1b48f2d25b902a66dcf6b61a043d49a8e97b5bc2
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/openmm-fep@sha256:670b11fdd06a29b447e5f95c1b48f2d25b902a66dcf6b61a043d49a8e97b5bc2
+node: slurm-b200-204-171
+GPU 0: NVIDIA B200 (UUID: GPU-32d377ae-8001-b82f-1214-2c288f059b60)
+openmm-fep: two atoms of the mutant share a chain, residue number and name: the atoms cannot be mapped
+mapping ok
+2026-11-22 03:10:47,526 pint.util Redefining '[electric_potential]' (<class 'pint.delegates.txt_defparser.plain.DerivedDimensionDefinition'>)
+2026-11-22 03:10:47,841 matplotlib.font_manager generated new fontManager
+2026-11-22 03:10:50,468 numexpr.utils Note: detected 128 virtual cores but NumExpr set to maximum of 64, check "NUMEXPR_MAX_THREADS" environment variable.
+2026-11-22 03:10:50,468 numexpr.utils Note: NumExpr detected 128 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2026-11-22 03:10:50,468 numexpr.utils NumExpr defaulting to 16 threads.
+2026-11-22 03:10:50,818 pymbar.mbar_solvers JAX was either not detected or disabled, using standard NumPy and SciPy
+2026-11-22 03:10:54,937 gufekey.feflow.protocols.nonequilibrium_cycling.SetupUnit Parameterizing molecules
+2026-11-22 03:10:54,937 feflow.protocols.nonequilibrium_cycling Registering partial charges and FF parameters in template for posterior use in generating openmm systems.
+/opt/env/lib/python3.12/site-packages/feflow/protocols/nonequilibrium_cycling.py:169: UserWarning: Partial charges in the template could differ from what the small molecule components actually store. This potentially undesired behavior is to be improved in the future.
+  warnings.warn(
+2026-11-22 03:10:58,975 feflow.utils.hybrid_topology Creating hybrid system
+2026-11-22 03:10:59,426 feflow.utils.hybrid_topology Setting force field terms
+2026-11-22 03:10:59,533 feflow.utils.hybrid_topology Adding forces
+2026-11-22 03:11:10,652 feflow.utils.hybrid_topology Hybrid system created
+2026-11-22 03:11:43,896 neq-cycling replicate_cycle_0 Forward (lamba = 0) equilibration time : 0:00:13.894832
+2026-11-22 03:11:57,400 neq-cycling replicate_cycle_0 Forward nonequilibrium time (lambda 0 -> 1): 0:00:13.503848
+2026-11-22 03:12:10,859 neq-cycling replicate_cycle_0 Reverse (lambda 1) time: 0:00:13.458865
+2026-11-22 03:12:24,427 neq-cycling replicate_cycle_0 Reverse nonequilibrium time (lambda 1 -> 0): 0:00:13.568290
+2026-11-22 03:12:24,428 neq-cycling replicate_cycle_0 Nonequilibrium cycle total walltime: 0:00:54.425834
+2026-11-22 03:12:24,428 neq-cycling replicate_cycle_0 Estimated performance: 317.49628310702593 ns/day
+2026-11-22 03:12:25,299 openmm-fep hybrid system: 20928 particles
+openmm-fep: /tmp/openmm-fep.uRhgt7/bound/bound/replicate-0 done
+case bound: 99 s
+2026-11-22 03:12:27,082 pint.util Redefining '[electric_potential]' (<class 'pint.delegates.txt_defparser.plain.DerivedDimensionDefinition'>)
+2026-11-22 03:12:29,885 numexpr.utils Note: detected 128 virtual cores but NumExpr set to maximum of 64, check "NUMEXPR_MAX_THREADS" environment variable.
+2026-11-22 03:12:29,886 numexpr.utils Note: NumExpr detected 128 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2026-11-22 03:12:29,886 numexpr.utils NumExpr defaulting to 16 threads.
+2026-11-22 03:12:30,230 pymbar.mbar_solvers JAX was either not detected or disabled, using standard NumPy and SciPy
+2026-11-22 03:12:34,117 gufekey.feflow.protocols.nonequilibrium_cycling.SetupUnit Parameterizing molecules
+2026-11-22 03:12:34,117 feflow.protocols.nonequilibrium_cycling Registering partial charges and FF parameters in template for posterior use in generating openmm systems.
+/opt/env/lib/python3.12/site-packages/feflow/protocols/nonequilibrium_cycling.py:169: UserWarning: Partial charges in the template could differ from what the small molecule components actually store. This potentially undesired behavior is to be improved in the future.
+  warnings.warn(
+2026-11-22 03:12:36,292 feflow.utils.hybrid_topology Creating hybrid system
+2026-11-22 03:12:36,405 feflow.utils.hybrid_topology Setting force field terms
+2026-11-22 03:12:36,703 feflow.utils.hybrid_topology Adding forces
+2026-11-22 03:12:41,349 feflow.utils.hybrid_topology Hybrid system created
+2026-11-22 03:13:07,168 neq-cycling replicate_cycle_0 Forward (lamba = 0) equilibration time : 0:00:12.632851
+2026-11-22 03:13:19,596 neq-cycling replicate_cycle_0 Forward nonequilibrium time (lambda 0 -> 1): 0:00:12.427988
+2026-11-22 03:13:31,917 neq-cycling replicate_cycle_0 Reverse (lambda 1) time: 0:00:12.320157
+2026-11-22 03:13:44,293 neq-cycling replicate_cycle_0 Reverse nonequilibrium time (lambda 1 -> 0): 0:00:12.376524
+2026-11-22 03:13:44,293 neq-cycling replicate_cycle_0 Nonequilibrium cycle total walltime: 0:00:49.757520
+2026-11-22 03:13:44,294 neq-cycling replicate_cycle_0 Estimated performance: 347.28418940493816 ns/day
+2026-11-22 03:13:44,885 openmm-fep hybrid system: 11300 particles
+openmm-fep: /tmp/openmm-fep.uRhgt7/unbound/unbound/replicate-0 done
+case unbound: 80 s
+2026-11-22 03:15:00,714 pint.util Redefining '[electric_potential]' (<class 'pint.delegates.txt_defparser.plain.DerivedDimensionDefinition'>)
+2026-11-22 03:15:03,537 numexpr.utils Note: detected 128 virtual cores but NumExpr set to maximum of 64, check "NUMEXPR_MAX_THREADS" environment variable.
+2026-11-22 03:15:03,537 numexpr.utils Note: NumExpr detected 128 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2026-11-22 03:15:03,537 numexpr.utils NumExpr defaulting to 16 threads.
+2026-11-22 03:15:03,883 pymbar.mbar_solvers JAX was either not detected or disabled, using standard NumPy and SciPy
+2026-11-22 03:15:07,358 openmm-fep alchemical water: the mutation changes the net charge by -1, so one water becomes a Na+ ion
+2026-11-22 03:15:07,892 gufekey.feflow.protocols.nonequilibrium_cycling.SetupUnit Parameterizing molecules
+2026-11-22 03:15:07,892 feflow.protocols.nonequilibrium_cycling Registering partial charges and FF parameters in template for posterior use in generating openmm systems.
+/opt/env/lib/python3.12/site-packages/feflow/protocols/nonequilibrium_cycling.py:169: UserWarning: Partial charges in the template could differ from what the small molecule components actually store. This potentially undesired behavior is to be improved in the future.
+  warnings.warn(
+2026-11-22 03:15:11,672 feflow.utils.charge A charge difference of 1 is observed between the end states. This will be addressed by transforming a water into a Cl- ion
+2026-11-22 03:15:12,149 feflow.utils.hybrid_topology Creating hybrid system
+2026-11-22 03:15:12,586 feflow.utils.hybrid_topology Setting force field terms
+2026-11-22 03:15:12,693 feflow.utils.hybrid_topology Adding forces
+2026-11-22 03:15:23,910 feflow.utils.hybrid_topology Hybrid system created
+2026-11-22 03:15:53,671 neq-cycling replicate_cycle_0 Forward (lamba = 0) equilibration time : 0:00:13.869337
+2026-11-22 03:16:07,207 neq-cycling replicate_cycle_0 Forward nonequilibrium time (lambda 0 -> 1): 0:00:13.535771
+2026-11-22 03:16:20,705 neq-cycling replicate_cycle_0 Reverse (lambda 1) time: 0:00:13.497866
+2026-11-22 03:16:34,331 neq-cycling replicate_cycle_0 Reverse nonequilibrium time (lambda 1 -> 0): 0:00:13.625735
+2026-11-22 03:16:34,331 neq-cycling replicate_cycle_0 Nonequilibrium cycle total walltime: 0:00:54.528709
+2026-11-22 03:16:34,331 neq-cycling replicate_cycle_0 Estimated performance: 316.8972879955768 ns/day
+2026-11-22 03:16:35,163 openmm-fep hybrid system: 20928 particles
+openmm-fep: /tmp/openmm-fep.uRhgt7/k44a/bound/replicate-0 done
+case k44a: 96 s
+2026-11-22 03:16:37,327 pint.util Redefining '[electric_potential]' (<class 'pint.delegates.txt_defparser.plain.DerivedDimensionDefinition'>)
+2026-11-22 03:16:40,142 numexpr.utils Note: detected 128 virtual cores but NumExpr set to maximum of 64, check "NUMEXPR_MAX_THREADS" environment variable.
+2026-11-22 03:16:40,142 numexpr.utils Note: NumExpr detected 128 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2026-11-22 03:16:40,142 numexpr.utils NumExpr defaulting to 16 threads.
+2026-11-22 03:16:40,493 pymbar.mbar_solvers JAX was either not detected or disabled, using standard NumPy and SciPy
+2026-11-22 03:16:46,001 gufekey.feflow.protocols.nonequilibrium_cycling.SetupUnit Parameterizing molecules
+2026-11-22 03:16:46,001 feflow.protocols.nonequilibrium_cycling Registering partial charges and FF parameters in template for posterior use in generating openmm systems.
+/opt/env/lib/python3.12/site-packages/feflow/protocols/nonequilibrium_cycling.py:169: UserWarning: Partial charges in the template could differ from what the small molecule components actually store. This potentially undesired behavior is to be improved in the future.
+  warnings.warn(
+2026-11-22 03:16:49,966 feflow.utils.hybrid_topology Creating hybrid system
+2026-11-22 03:16:50,419 feflow.utils.hybrid_topology Setting force field terms
+2026-11-22 03:16:50,523 feflow.utils.hybrid_topology Adding forces
+2026-11-22 03:17:01,892 feflow.utils.hybrid_topology Hybrid system created
+2026-11-22 03:17:32,617 neq-cycling replicate_cycle_0 Forward (lamba = 0) equilibration time : 0:00:11.983012
+2026-11-22 03:17:44,130 neq-cycling replicate_cycle_0 Forward nonequilibrium time (lambda 0 -> 1): 0:00:11.513110
+2026-11-22 03:17:55,538 neq-cycling replicate_cycle_0 Reverse (lambda 1) time: 0:00:11.407436
+2026-11-22 03:18:07,032 neq-cycling replicate_cycle_0 Reverse nonequilibrium time (lambda 1 -> 0): 0:00:11.494726
+2026-11-22 03:18:07,033 neq-cycling replicate_cycle_0 Nonequilibrium cycle total walltime: 0:00:46.398284
+2026-11-22 03:18:07,033 neq-cycling replicate_cycle_0 Estimated performance: 372.42756650224396 ns/day
+2026-11-22 03:18:07,865 openmm-fep hybrid system: 20930 particles
+openmm-fep: /tmp/openmm-fep.uRhgt7/g38a/bound/replicate-0 done
+case g38a: 93 s
+2026-11-22 03:18:09,534 pint.util Redefining '[electric_potential]' (<class 'pint.delegates.txt_defparser.plain.DerivedDimensionDefinition'>)
+2026-11-22 03:18:12,333 numexpr.utils Note: detected 128 virtual cores but NumExpr set to maximum of 64, check "NUMEXPR_MAX_THREADS" environment variable.
+2026-11-22 03:18:12,333 numexpr.utils Note: NumExpr detected 128 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2026-11-22 03:18:12,333 numexpr.utils NumExpr defaulting to 16 threads.
+2026-11-22 03:18:12,677 pymbar.mbar_solvers JAX was either not detected or disabled, using standard NumPy and SciPy
+2026-11-22 03:18:15,463 gufekey.feflow.protocols.nonequilibrium_cycling.SetupUnit Parameterizing molecules
+2026-11-22 03:18:15,463 feflow.protocols.nonequilibrium_cycling Registering partial charges and FF parameters in template for posterior use in generating openmm systems.
+/opt/env/lib/python3.12/site-packages/feflow/protocols/nonequilibrium_cycling.py:169: UserWarning: Partial charges in the template could differ from what the small molecule components actually store. This potentially undesired behavior is to be improved in the future.
+  warnings.warn(
+2026-11-22 03:18:17,699 feflow.utils.hybrid_topology Creating hybrid system
+2026-11-22 03:18:17,810 feflow.utils.hybrid_topology Setting force field terms
+2026-11-22 03:18:17,871 feflow.utils.hybrid_topology Adding forces
+2026-11-22 03:18:22,417 feflow.utils.hybrid_topology Hybrid system created
+2026-11-22 03:18:43,380 neq-cycling replicate_cycle_0 Forward (lamba = 0) equilibration time : 0:00:12.301368
+2026-11-22 03:18:55,784 neq-cycling replicate_cycle_0 Forward nonequilibrium time (lambda 0 -> 1): 0:00:12.403874
+2026-11-22 03:19:08,084 neq-cycling replicate_cycle_0 Reverse (lambda 1) time: 0:00:12.299781
+2026-11-22 03:19:20,507 neq-cycling replicate_cycle_0 Reverse nonequilibrium time (lambda 1 -> 0): 0:00:12.423093
+2026-11-22 03:19:20,507 neq-cycling replicate_cycle_0 Nonequilibrium cycle total walltime: 0:00:49.428116
+2026-11-22 03:19:20,508 neq-cycling replicate_cycle_0 Estimated performance: 349.5985968795573 ns/day
+2026-11-22 03:19:21,100 openmm-fep hybrid system: 11300 particles
+openmm-fep: /tmp/openmm-fep.uRhgt7/pdb/unbound/replicate-0 done
+case pdb: 73 s
+run ok
+openmm-fep: /tmp/openmm-fep.uRhgt7/ddg.tsv written: ddg -3.739470480776106 +/- 4.2359806513463344e-15 kcal/mol
+analyze ok
+/opt/env/lib/python3.12/site-packages/pymbar/other_estimators.py:510: RuntimeWarning: invalid value encountered in sqrt
+  dDeltaF = np.sqrt(variance)
+openmm-fep: /tmp/openmm-fep.uRhgt7/ddg2.tsv written: ddg -3.739470480776106 +/- 4.2359806513463344e-15 kcal/mol
+analyze ok
+openmm-fep test passed
+Job 3092: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=3092
