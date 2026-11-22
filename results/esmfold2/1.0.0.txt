@@ -1,0 +1,61 @@
+---
+tool: esmfold2
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/esmfold2@sha256:791aa511e9407a86d77f00edb6938084cd2f8f267528f784be0aa139e86c7ba8
+digest: sha256:791aa511e9407a86d77f00edb6938084cd2f8f267528f784be0aa139e86c7ba8
+runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-22T21:04:41Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esmfold2@sha256:791aa511e9407a86d77f00edb6938084cd2f8f267528f784be0aa139e86c7ba8
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esmfold2@sha256:791aa511e9407a86d77f00edb6938084cd2f8f267528f784be0aa139e86c7ba8
+[2026-11-22T21:16:36Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-73a40213-2aab-a6d6-31db-2087640325db)
+[2026-11-22T21:16:36Z] a job without a name is refused before the model loads
+/usr/local/lib/python3.12/dist-packages/esm/models/esmc/kernels.py:54: UserWarning: ESMC: flash-attn is not installed or failed to import; attention and RoPE fall back to pure PyTorch. PyPI cannot carry our wheel, so install it by hand:
+
+    pip install "flash_attn @ https://github.com/evolutionaryscale/wheels/releases/download/py312-pt211-cu13-sm80-90/flash_attn-2.7.4.post1-cp312-cp312-linux_x86_64.whl"
+
+It needs Linux x86-64, Python 3.12, torch 2.11, CUDA 13, compute capability 8.0-9.0 and libstdc++ from GCC 13+ (Ubuntu 24.04, or LD_PRELOAD a newer libstdc++ on 22.04).
+  warnings.warn(
+Loading CCD dictionary from /opt/model/ccd.pkl
+esmfold2: bad.json: job 0: missing "name"
+[2026-11-22T21:16:48Z] an MSA row with an A3M's lowercase insertions left in is refused before the model loads
+/usr/local/lib/python3.12/dist-packages/esm/models/esmc/kernels.py:54: UserWarning: ESMC: flash-attn is not installed or failed to import; attention and RoPE fall back to pure PyTorch. PyPI cannot carry our wheel, so install it by hand:
+
+    pip install "flash_attn @ https://github.com/evolutionaryscale/wheels/releases/download/py312-pt211-cu13-sm80-90/flash_attn-2.7.4.post1-cp312-cp312-linux_x86_64.whl"
+
+It needs Linux x86-64, Python 3.12, torch 2.11, CUDA 13, compute capability 8.0-9.0 and libstdc++ from GCC 13+ (Ubuntu 24.04, or LD_PRELOAD a newer libstdc++ on 22.04).
+  warnings.warn(
+Loading CCD dictionary from /opt/model/ccd.pkl
+esmfold2: bad_msa.json: job 0 (hivpr_a3m): chain A: every MSA row must be aligned to the sequence: 99 characters of uppercase residues and '-' gaps, with an A3M's lowercase insertions removed
+[2026-11-22T21:17:00Z] folding the fixture's three jobs (the 198-residue HIV-1 protease dimer alone and with an MSA, GCN4-p1) in one process
+/usr/local/lib/python3.12/dist-packages/esm/models/esmc/kernels.py:54: UserWarning: ESMC: flash-attn is not installed or failed to import; attention and RoPE fall back to pure PyTorch. PyPI cannot carry our wheel, so install it by hand:
+
+    pip install "flash_attn @ https://github.com/evolutionaryscale/wheels/releases/download/py312-pt211-cu13-sm80-90/flash_attn-2.7.4.post1-cp312-cp312-linux_x86_64.whl"
+
+It needs Linux x86-64, Python 3.12, torch 2.11, CUDA 13, compute capability 8.0-9.0 and libstdc++ from GCC 13+ (Ubuntu 24.04, or LD_PRELOAD a newer libstdc++ on 22.04).
+  warnings.warn(
+fp8 ESMC on cpu: no fp8 GEMM here (needs compute capability >= 8.9). Weights stay fp8, but each matmul upcasts them and runs without the fp8 speedup.
+Loading CCD dictionary from /opt/model/ccd.pkl
+hivpr: 1 sample(s) written to /tmp/tmp.gTAQHgc5cK
+gcn4.p1: 1 sample(s) written to /tmp/tmp.gTAQHgc5cK
+hivpr_msa: 1 sample(s) written to /tmp/tmp.gTAQHgc5cK
+[2026-11-22T21:17:46Z] again into the same directory
+/usr/local/lib/python3.12/dist-packages/esm/models/esmc/kernels.py:54: UserWarning: ESMC: flash-attn is not installed or failed to import; attention and RoPE fall back to pure PyTorch. PyPI cannot carry our wheel, so install it by hand:
+
+    pip install "flash_attn @ https://github.com/evolutionaryscale/wheels/releases/download/py312-pt211-cu13-sm80-90/flash_attn-2.7.4.post1-cp312-cp312-linux_x86_64.whl"
+
+It needs Linux x86-64, Python 3.12, torch 2.11, CUDA 13, compute capability 8.0-9.0 and libstdc++ from GCC 13+ (Ubuntu 24.04, or LD_PRELOAD a newer libstdc++ on 22.04).
+  warnings.warn(
+fp8 ESMC on cpu: no fp8 GEMM here (needs compute capability >= 8.9). Weights stay fp8, but each matmul upcasts them and runs without the fp8 speedup.
+Loading CCD dictionary from /opt/model/ccd.pkl
+hivpr: 1 sample(s) written to /tmp/tmp.gTAQHgc5cK
+gcn4.p1: 1 sample(s) written to /tmp/tmp.gTAQHgc5cK
+hivpr_msa: 1 sample(s) written to /tmp/tmp.gTAQHgc5cK
+[2026-11-22T21:18:32Z] predictions finished; checking outputs
+ok: hivpr: 2 chain(s) x 99 residues, plddt 0.941, ptm 0.959, iptm 0.952, CA RMSD 0.46 A to the crystal
+ok: gcn4.p1: 1 chain(s) x 33 residues, plddt 0.784, ptm 0.439
+ok: hivpr_msa: 2 chain(s) x 99 residues, plddt 0.940, ptm 0.958, iptm 0.952, CA RMSD 0.47 A to the crystal
+[2026-11-22T21:18:32Z] all checks passed
+[2026-11-22T21:18:32Z] peak GPU memory: 8649 MiB
