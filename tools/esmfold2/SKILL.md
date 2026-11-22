@@ -16,7 +16,7 @@ ESMFold2 (Hugging Face `biohub/ESMFold2` at revision `69869f737beffec5294845ede2
 esmfold2 predict --in jobs.json --out out --seed 0
 ```
 
-`--in` is a JSON file of one job or a list of them; `--out` is created if missing, and a rerun into it overwrites the same files. `--samples` is diffusion samples per job (default 1); `--seed` (default 0) seeds input preparation and sampling; `--loops` (trunk recycling, default 20) and `--steps` (diffusion steps, default 200) trade speed for quality, defaults from `esm`'s own `fold()` (`$ESMFOLD2_LOOPS`, `$ESMFOLD2_STEPS`); the model card's quick example uses 3 and 50. The model loads once per invocation, so put a batch in one file. Every job is checked before the model loads; a malformed one stops the run with exit 1 and a line naming it.
+`--in` is a JSON file of one job or a list of them; `--out` is created if missing, and a rerun into it overwrites the same files. `--samples` is diffusion samples per job (default 1); `--seed` (default 0) seeds input preparation and sampling; `--loops` (trunk recycling, default 20) and `--steps` (diffusion steps, default 200) trade speed for quality, defaults from `esm`'s own `fold()` (`$ESMFOLD2_LOOPS`, `$ESMFOLD2_STEPS`); the model card's quick example uses 3 and 50. The model loads once per invocation, so put a batch in one file. Every job is checked and prepared on the CPU before the model loads (names, sequences, each MSA row aligned to its chain, CCD codes and SMILES); a malformed one stops the run with exit 1 and a line naming it, before any output is written.
 
 ## Inputs and outputs
 
@@ -31,7 +31,7 @@ esmfold2 predict --in jobs.json --out out --seed 0
 
 ## Compute
 
-One GPU. On an L40S (48 GB), one `esmfold2 predict` of the test's file (the 198-residue HIV-1 protease dimer alone and with a five-row MSA, and the 33-residue GCN4-p1, one sample each at the default 20 loops and 200 steps) takes 45–50 s, the 13 GB model's load included, at a peak of 8.6 GB of GPU memory. The image is 21 GB: the test job spent about 10 minutes before its first line, most of it the node importing the image. The fp8 backbone needs compute capability 8.9 or newer (L40S, H100, H200, B200) for its speed; an A100 upcasts each matrix multiply. Larger inputs and deeper MSAs were not measured.
+One GPU, with NVIDIA driver 580 or newer (the image is CUDA 13), and about 20 GB of host RAM: the model is built and cast on the CPU before it moves to the GPU, peaking at 19.1 GiB, so ask Slurm for `--mem=32G` or more. On an L40S (48 GB), one `esmfold2 predict` of the test's file (the 198-residue HIV-1 protease dimer alone and with a five-row MSA, and the 33-residue GCN4-p1, one sample each at the default 20 loops and 200 steps) takes 45–50 s, the 13 GB model's load included, at a peak of 8.6 GB of GPU memory. The image is 21 GB: the test job spent about 10 minutes before its first line, most of it the node importing the image. The fp8 backbone needs compute capability 8.9 or newer (L40S, H100, H200, B200) for its speed; an A100 upcasts each matrix multiply. Larger inputs and deeper MSAs were not measured. The record is from an L40S; the CUDA 13 build carries Blackwell's kernels, so a B200 is expected to work but is untested.
 
 ## Running it
 
@@ -45,7 +45,7 @@ podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/esmfold2:1.0.0 \
+srun --gres=gpu:1 --mem=32G --container-image=ghcr.io#brineylab/toolshed/esmfold2:1.0.0 \
   --container-mounts="$PWD":/work --container-workdir=/work esmfold2 predict --in jobs.json --out out --seed 0
 ```
 
