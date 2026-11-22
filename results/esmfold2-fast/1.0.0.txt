@@ -1,17 +1,17 @@
 ---
 tool: esmfold2-fast
 version: 1.0.0
-image: ghcr.io/brineylab/toolshed/esmfold2-fast@sha256:0953082d3d4e2df0fc2e6ca677ab6666c53e658eac2bf4de93d26b0ea26c9e8e
-digest: sha256:0953082d3d4e2df0fc2e6ca677ab6666c53e658eac2bf4de93d26b0ea26c9e8e
+image: ghcr.io/brineylab/toolshed/esmfold2-fast@sha256:e99b50e578f5c871728f8501ad0a0284244abfb1c78260ceafc47105ca5a4ed3
+digest: sha256:e99b50e578f5c871728f8501ad0a0284244abfb1c78260ceafc47105ca5a4ed3
 runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
 host: bcr.scripps.edu
-started: 2026-11-22T17:13:23Z
+started: 2026-11-22T21:04:40Z
 exit: 0
 ---
-pyxis: importing docker image: ghcr.io#brineylab/toolshed/esmfold2-fast@sha256:0953082d3d4e2df0fc2e6ca677ab6666c53e658eac2bf4de93d26b0ea26c9e8e
-pyxis: imported docker image: ghcr.io#brineylab/toolshed/esmfold2-fast@sha256:0953082d3d4e2df0fc2e6ca677ab6666c53e658eac2bf4de93d26b0ea26c9e8e
-[2026-11-22T17:24:55Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-fdb5bacc-2c29-e0a7-2bd0-de787dbdd5f4)
-[2026-11-22T17:24:55Z] a job without a name is refused before the model loads
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esmfold2-fast@sha256:e99b50e578f5c871728f8501ad0a0284244abfb1c78260ceafc47105ca5a4ed3
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esmfold2-fast@sha256:e99b50e578f5c871728f8501ad0a0284244abfb1c78260ceafc47105ca5a4ed3
+[2026-11-22T21:16:33Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-fdb5bacc-2c29-e0a7-2bd0-de787dbdd5f4)
+[2026-11-22T21:16:33Z] a job without a name is refused before the model loads
 /usr/local/lib/python3.12/dist-packages/esm/models/esmc/kernels.py:54: UserWarning: ESMC: flash-attn is not installed or failed to import; attention and RoPE fall back to pure PyTorch. PyPI cannot carry our wheel, so install it by hand:
 
     pip install "flash_attn @ https://github.com/evolutionaryscale/wheels/releases/download/py312-pt211-cu13-sm80-90/flash_attn-2.7.4.post1-cp312-cp312-linux_x86_64.whl"
@@ -20,7 +20,7 @@ It needs Linux x86-64, Python 3.12, torch 2.11, CUDA 13, compute capability 8.0-
   warnings.warn(
 Loading CCD dictionary from /opt/model/ccd.pkl
 esmfold2: bad.json: job 0: missing "name"
-[2026-11-22T17:25:07Z] folding the fixture's two jobs (the 198-residue HIV-1 protease dimer, GCN4-p1) in one process
+[2026-11-22T21:16:46Z] folding the fixture's two jobs (the 198-residue HIV-1 protease dimer, GCN4-p1) in one process
 /usr/local/lib/python3.12/dist-packages/esm/models/esmc/kernels.py:54: UserWarning: ESMC: flash-attn is not installed or failed to import; attention and RoPE fall back to pure PyTorch. PyPI cannot carry our wheel, so install it by hand:
 
     pip install "flash_attn @ https://github.com/evolutionaryscale/wheels/releases/download/py312-pt211-cu13-sm80-90/flash_attn-2.7.4.post1-cp312-cp312-linux_x86_64.whl"
@@ -29,9 +29,9 @@ It needs Linux x86-64, Python 3.12, torch 2.11, CUDA 13, compute capability 8.0-
   warnings.warn(
 fp8 ESMC on cpu: no fp8 GEMM here (needs compute capability >= 8.9). Weights stay fp8, but each matmul upcasts them and runs without the fp8 speedup.
 Loading CCD dictionary from /opt/model/ccd.pkl
-hivpr: 1 sample(s) written to /tmp/tmp.uUkPCCxdSE
-gcn4.p1: 1 sample(s) written to /tmp/tmp.uUkPCCxdSE
-[2026-11-22T17:25:36Z] again into the same directory
+hivpr: 1 sample(s) written to /tmp/tmp.n0pZ7kggH4
+gcn4.p1: 1 sample(s) written to /tmp/tmp.n0pZ7kggH4
+[2026-11-22T21:17:15Z] again into the same directory
 /usr/local/lib/python3.12/dist-packages/esm/models/esmc/kernels.py:54: UserWarning: ESMC: flash-attn is not installed or failed to import; attention and RoPE fall back to pure PyTorch. PyPI cannot carry our wheel, so install it by hand:
 
     pip install "flash_attn @ https://github.com/evolutionaryscale/wheels/releases/download/py312-pt211-cu13-sm80-90/flash_attn-2.7.4.post1-cp312-cp312-linux_x86_64.whl"
@@ -40,10 +40,10 @@ It needs Linux x86-64, Python 3.12, torch 2.11, CUDA 13, compute capability 8.0-
   warnings.warn(
 fp8 ESMC on cpu: no fp8 GEMM here (needs compute capability >= 8.9). Weights stay fp8, but each matmul upcasts them and runs without the fp8 speedup.
 Loading CCD dictionary from /opt/model/ccd.pkl
-hivpr: 1 sample(s) written to /tmp/tmp.uUkPCCxdSE
-gcn4.p1: 1 sample(s) written to /tmp/tmp.uUkPCCxdSE
-[2026-11-22T17:26:03Z] predictions finished; checking outputs
-ok: hivpr: 2 chain(s) x 99 residues, plddt 0.941, ptm 0.956, iptm 0.949
-ok: gcn4.p1: 1 chain(s) x 33 residues, plddt 0.777, ptm 0.446
-[2026-11-22T17:26:03Z] all checks passed
-[2026-11-22T17:26:03Z] peak GPU memory: 8489 MiB
+hivpr: 1 sample(s) written to /tmp/tmp.n0pZ7kggH4
+gcn4.p1: 1 sample(s) written to /tmp/tmp.n0pZ7kggH4
+[2026-11-22T21:17:42Z] predictions finished; checking outputs
+ok: hivpr: 2 chain(s) x 99 residues, plddt 0.941, ptm 0.956, iptm 0.949, CA RMSD 0.41 A to the crystal
+ok: gcn4.p1: 1 chain(s) x 33 residues, plddt 0.777, ptm 0.444
+[2026-11-22T21:17:42Z] all checks passed
+[2026-11-22T21:17:42Z] peak GPU memory: 8489 MiB
