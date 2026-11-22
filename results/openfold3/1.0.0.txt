@@ -1,17 +1,17 @@
 ---
 tool: openfold3
 version: 1.0.0
-image: ghcr.io/brineylab/toolshed/openfold3@sha256:603d5826cdd5b4393badb0032d8cbe18d142fdc5c16779b0f570f4db0be14ce3
-digest: sha256:603d5826cdd5b4393badb0032d8cbe18d142fdc5c16779b0f570f4db0be14ce3
+image: ghcr.io/brineylab/toolshed/openfold3@sha256:0d263801f47f801dd5bc2b9de48ca9843635c99973ec822911d0209e8b214920
+digest: sha256:0d263801f47f801dd5bc2b9de48ca9843635c99973ec822911d0209e8b214920
 runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
 host: bcr.scripps.edu
-started: 2026-11-22T15:32:53Z
+started: 2026-11-22T17:13:23Z
 exit: 0
 ---
-pyxis: importing docker image: ghcr.io#brineylab/toolshed/openfold3@sha256:603d5826cdd5b4393badb0032d8cbe18d142fdc5c16779b0f570f4db0be14ce3
-pyxis: imported docker image: ghcr.io#brineylab/toolshed/openfold3@sha256:603d5826cdd5b4393badb0032d8cbe18d142fdc5c16779b0f570f4db0be14ce3
-[2026-11-22T15:37:23Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-9538431d-54ab-814f-e473-3b72bbae1522)
-[2026-11-22T15:37:23Z] folding the 198-residue HIV-1 protease dimer, single-sequence, 1 sample
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/openfold3@sha256:0d263801f47f801dd5bc2b9de48ca9843635c99973ec822911d0209e8b214920
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/openfold3@sha256:0d263801f47f801dd5bc2b9de48ca9843635c99973ec822911d0209e8b214920
+[2026-11-22T17:19:47Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-9538431d-54ab-814f-e473-3b72bbae1522)
+[2026-11-22T17:19:47Z] folding the 198-residue HIV-1 protease dimer, single-sequence, 1 sample
 /usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
   warnings.warn(
 GPU available: True (cuda), used: True
@@ -26,7 +26,7 @@ SLURM auto-requeueing enabled. Setting signal handlers.
 [rank: 0] Seed set to 2746317213
 /usr/local/lib/python3.12/dist-packages/torch/autograd/function.py:596: UserWarning: OpenFold3 Triton evoformer kernel is running on a non-HIP backend with default, untuned Triton config (AMD MFMA / waves_per_eu tunings disabled). Correctness holds; performance is not tuned for this backend.
   return super().apply(*args, **kwargs)  # type: ignore[misc]
-Predicting: |          | 0/? [00:00<?, ?s/it]Predicting: |          | 0/? [00:00<?, ?s/it]Predicting DataLoader 0:   0%|          | 0/1 [00:00<?, ?s/it]Predicting DataLoader 0: 100%|██████████| 1/1 [00:11<00:00, 11.73s/it]Predicting DataLoader 0: 100%|██████████| 1/1 [00:11<00:00, 11.79s/it]
+Predicting: |          | 0/? [00:00<?, ?s/it]Predicting: |          | 0/? [00:00<?, ?s/it]Predicting DataLoader 0:   0%|          | 0/1 [00:00<?, ?s/it]Predicting DataLoader 0: 100%|██████████| 1/1 [00:12<00:00, 12.41s/it]Predicting DataLoader 0: 100%|██████████| 1/1 [00:12<00:00, 12.47s/it]
 
 ==================================================
     PREDICTION SUMMARY (COMPLETE)    
@@ -37,7 +37,7 @@ Total Queries Processed: 1
 ==================================================
 
 Removing empty log directory...
-[2026-11-22T15:37:52Z] prediction finished; checking outputs
+[2026-11-22T17:20:18Z] prediction finished; checking outputs
 ok: hivpr: 2 chains x 99 residues, avg_plddt 36.5, ptm 0.218, iptm 0.061, sample_ranking_score 0.092
-[2026-11-22T15:37:52Z] all checks passed
-[2026-11-22T15:37:52Z] peak GPU memory: 2317 MiB
+[2026-11-22T17:20:18Z] all checks passed
+[2026-11-22T17:20:18Z] peak GPU memory: 2317 MiB
