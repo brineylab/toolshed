@@ -1,4 +1,4 @@
-# STok (github.com/briney/stok, MIT) at commit 5dcecfed: protein structure
+# STok (github.com/briney/stok, MIT) at commit a5252d04: protein structure
 # tokenization for paired sequence-structure training.  Its GCP-VQVAE
 # "Large" preset (huggingface.co/Mahdip72/gcp-vqvae-large, upstream MIT --
 # LICENSE-gcp-vqvae.md, stok's own MIT in LICENSE-stok.md) encodes a protein
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
 # caps that bite here: hydra-core needs omegaconf<2.4; graphein pins numpy<2,
 # which holds pyarrow under 26.
 RUN pip install --no-cache-dir --break-system-packages \
-  "stok @ git+https://github.com/briney/stok@5dcecfedd1040f30ca28de54ac6a6b22b9dc184b" \
+  "stok @ git+https://github.com/briney/stok@a5252d0428b16134d7c9835d38f49be52a075d16" \
   torch==2.14.1 \
   hydra-core==1.3.8 \
   omegaconf==2.3.0 \

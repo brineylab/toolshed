@@ -2,13 +2,13 @@
 name: stok
 description: "STok's GCP-VQVAE Large structure tokenizer: turns protein structures into discrete structure tokens (one of 4096 per residue) from mmCIF text in Parquet shards or from structure files, as sharded Parquet with tokenizer-identity metadata. Reach for it to build a structure-token dataset over structures you hold, or to tokenize structures alongside their sequences for paired sequence-structure training."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # stok
 
-Image: `ghcr.io/brineylab/toolshed/stok:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/stok:1.0.1`
 
-STōk (github.com/briney/stok, MIT) at commit `5dcecfedd1040f30ca28de54ac6a6b22b9dc184b`, on PyTorch 2.14.1 (the base's CUDA 13.0 build), with the GCP-VQVAE **Large** preset's weights (huggingface.co/Mahdip72/gcp-vqvae-large, revision `64bb4ff628f7d2ccba587cdc9f0eaa97c1f3f9a1`, upstream MIT) baked into the image at `/opt/stok-gcp`, fetched at build time through STōk's own resolver, which verifies the checkpoint's pinned sha256 — so a run reaches no network and carries exactly the release every output shard's metadata names. The same code also decodes tokens back to backbone coordinates (`load_pretrained_decoder`), which is how the tool's test checks the tokens mean the structure.
+STōk (github.com/briney/stok, MIT) at commit `a5252d0428b16134d7c9835d38f49be52a075d16`, on PyTorch 2.14.1 (the base's CUDA 13.0 build), with the GCP-VQVAE **Large** preset's weights (huggingface.co/Mahdip72/gcp-vqvae-large, revision `64bb4ff628f7d2ccba587cdc9f0eaa97c1f3f9a1`, upstream MIT) baked into the image at `/opt/stok-gcp`, fetched at build time through STōk's own resolver, which verifies the checkpoint's pinned sha256 — so a run reaches no network and carries exactly the release every output shard's metadata names. The same code also decodes tokens back to backbone coordinates (`load_pretrained_decoder`), which is how the tool's test checks the tokens mean the structure.
 
 ## Commands
 
@@ -50,7 +50,7 @@ On a laptop, from the directory holding the input shards:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/stok:1.0.0 \
+  ghcr.io/brineylab/toolshed/stok:1.0.1 \
   stok tokenize-structures input_dir output_dir --preset large --text-column cif \
   --id-column id --include-coordinates --device cuda
 ```
@@ -58,7 +58,7 @@ podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/stok:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/stok:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work \
   stok tokenize-structures input_dir output_dir --preset large --text-column cif \
   --id-column id --include-coordinates --device cuda
@@ -71,5 +71,6 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/stok:1.0.0 \
 - Token identity is deterministic per device (the CLI turns on `torch.use_deterministic_algorithms`): reruns on the same device reproduce exactly, but CPU and GPU may differ near ties, and GPU model generations may differ from each other. `codebook_sha256` and `checkpoint_sha256` in each shard's footer pin which tokenizer produced it; compare those, not raw token values, when checking provenance.
 - Only the Large preset is in this image. `--preset lite` would need its own checkpoint, which is not baked in: with the image offline it fails rather than downloading.
 - The tool's test fixture is two 243-residue chains — well past the policy's 25-residue floor — one with a whole residue unobserved and one with a single missing O, so it exercises the null-token and null-coordinate paths, plus a 20-residue chain that must be rejected `chains_too_short`, and decodes both accepted rows' tokens back to within 1.5 Å RMSD of the input coordinates. Chains over 1280 residues (rejected `chains_too_long`) are the one policy branch it does not cover.
+- Multi-GPU `stok train` (`accelerate launch -m stok.train`) in 1.0.0 ended every rank with SIGABRT after "Training complete." because the process group was never destroyed: the run's files were complete but the exit code was nonzero. From 1.0.1 (STōk a5252d04) training finishes its W&B run and destroys the process group, and exits 0.
 - The PyPI package named `stok` is an unrelated older project; this image installs STōk from GitHub at the pinned commit above.
 - Weights are MIT licensed (both licenses sit beside the checkpoint in `/opt/stok-gcp`); STōk itself is MIT.
