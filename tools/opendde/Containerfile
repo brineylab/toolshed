@@ -10,19 +10,25 @@ RUN pip install --no-cache-dir "opendde[gpu]==1.2.0"
 # OPENDDE_ROOT_DIR holds what `opendde pred` would otherwise download: the general-purpose checkpoint and the
 # CCD-derived common files, from the revision opendde 1.2.0's manifest pins, each checked against the size and
 # sha256 opendde itself verifies (opendde/config/model_manifest.json, opendde/config/dependency_url.py).
+# The files come through the hf CLI (Xet transfer, many connections): a plain HTTPS fetch of the 2.6 GB
+# checkpoint ran at about 0.5 MB/s on one connection to the CDN and had not finished in 70 minutes.
 ENV OPENDDE_ROOT_DIR=/opt/opendde HF_HUB_OFFLINE=1
-RUN python3 -I -c "import hashlib, pathlib, urllib.request; \
-base = 'https://huggingface.co/aurekaresearch/OpenDDE/resolve/eddd563ce96571f784012edd8f045181c8f8627d/'; \
+RUN pip install --no-cache-dir "huggingface_hub==1.30.0"
+RUN HF_HUB_OFFLINE=0 hf download aurekaresearch/OpenDDE opendde.pt common/components.cif common/components.cif.rdkit_mol.pkl \
+      common/obsolete_to_successor.json common/release_date_cache.json \
+      --revision eddd563ce96571f784012edd8f045181c8f8627d --local-dir /opt/opendde \
+ && mkdir /opt/opendde/checkpoint && mv /opt/opendde/opendde.pt /opt/opendde/checkpoint/ && rm -rf /opt/opendde/.cache \
+ && python3 -I -c "import functools, hashlib, pathlib; \
 root = pathlib.Path('/opt/opendde'); \
 files = { \
-  'checkpoint/opendde.pt': ('opendde.pt', 2625249069, '7b826620390afad877ee2babc6a4d0df81b94d3a0be030959853d6a7da0807cc'), \
-  'common/components.cif': ('common/components.cif', 490777362, 'bb31ae5cf6c8bc669924313077cb4231ee5ffefd3a20118cd14f3ec89f8bb6a5'), \
-  'common/components.cif.rdkit_mol.pkl': ('common/components.cif.rdkit_mol.pkl', 142498117, 'd1cfb71f5993a3ebea7c47877022d7f597bbfbaf86e28a4770e957da6c50cd35'), \
-  'common/obsolete_to_successor.json': ('common/obsolete_to_successor.json', 86882, '2bc08348d0efba438c109bb27be6fa25b611d371c60b8a8da3de387a4a0698ad'), \
-  'common/release_date_cache.json': ('common/release_date_cache.json', 12754898, '8b1ef12ddc01a0d5eb2d388c77ded91aa906eebce7440726c57b6f8d1a3ec142'), \
+  'checkpoint/opendde.pt': (2625249069, '7b826620390afad877ee2babc6a4d0df81b94d3a0be030959853d6a7da0807cc'), \
+  'common/components.cif': (490777362, 'bb31ae5cf6c8bc669924313077cb4231ee5ffefd3a20118cd14f3ec89f8bb6a5'), \
+  'common/components.cif.rdkit_mol.pkl': (142498117, 'd1cfb71f5993a3ebea7c47877022d7f597bbfbaf86e28a4770e957da6c50cd35'), \
+  'common/obsolete_to_successor.json': (86882, '2bc08348d0efba438c109bb27be6fa25b611d371c60b8a8da3de387a4a0698ad'), \
+  'common/release_date_cache.json': (12754898, '8b1ef12ddc01a0d5eb2d388c77ded91aa906eebce7440726c57b6f8d1a3ec142'), \
 }; \
-[(dst := root / rel).parent.mkdir(parents = True, exist_ok = True) or urllib.request.urlretrieve(base + src, dst) for rel, (src, size, sha) in files.items()]; \
-bad = [rel for rel, (src, size, sha) in files.items() if (root / rel).stat().st_size != size or hashlib.sha256((root / rel).read_bytes()).hexdigest() != sha]; \
+sha = lambda p: (h := hashlib.sha256(), [h.update(b) for b in iter(functools.partial(open(p, 'rb').read, 1 << 24), b'')], h.hexdigest())[2]; \
+bad = [rel for rel, (size, digest) in files.items() if (root / rel).stat().st_size != size or sha(root / rel) != digest]; \
 assert not bad, f'size or sha256 mismatch: {bad}'; print('verified', len(files), 'files')"
 COPY LICENSE /opt/opendde/
 COPY test /toolshed/test
