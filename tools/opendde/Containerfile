@@ -7,6 +7,9 @@ ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 # torch==2.7.1 is already the base's cu128 build, so pip keeps it; the gpu extra pins triton 3.3.1 and cuEquivariance 0.10.0.
 RUN pip install --no-cache-dir "opendde[gpu]==1.2.0"
+# pip's console script runs its interpreter without -I, so under pyxis the caller's PYTHONPATH and
+# ~/.local would shadow the image's packages; -I on the shebang keeps them out.
+RUN sed -i '1s|$| -I|' "$(command -v opendde)" && head -1 "$(command -v opendde)" | grep -q -- ' -I$'
 # OPENDDE_ROOT_DIR holds what `opendde pred` would otherwise download: the general-purpose checkpoint and the
 # CCD-derived common files, from the revision opendde 1.2.0's manifest pins, each checked against the size and
 # sha256 opendde itself verifies (opendde/config/model_manifest.json, opendde/config/dependency_url.py).
