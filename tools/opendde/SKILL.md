@@ -27,7 +27,7 @@ opendde pred -i input.json -o out -n opendde_v1 --use_msa false --use_template f
   "sequences": [{"proteinChain": {"sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF", "count": 2, "id": ["A", "B"]}}]}]
 ```
 
-- **Out:** under `-o`, a `<name>/seed_<seed>/predictions/` directory per job and seed holding, per sample ranked by `ranking_score` (`sample_0` the best), `<name>_sample_<i>.cif` (atom pLDDT in the B-factor column, 0–100) and `<name>_summary_confidence_sample_<i>.json` with `plddt` (mean, 0–100), `ptm`, `iptm` (0–1), `ranking_score`, `has_clash`, `gpde`, and per-chain and chain-pair pTM/ipTM.
+- **Out:** under `-o`, a `<name>/seed_<seed>/predictions/` directory per job and seed holding, per sample ranked by `ranking_score` (`sample_0` the best), `<name>_sample_<i>.cif` (atom pLDDT in the B-factor column, 0–100) and `<name>_summary_confidence_sample_<i>.json` with `plddt` (mean, 0–100), `ptm`, `iptm` (0–1), `ranking_score`, `has_clash`, `gpde`, and per-chain and chain-pair pTM/ipTM, beside `<name>_full_data_sample_<i>.json` with the per-atom and pairwise confidences (PAE among them).
 
 ## Compute
 
