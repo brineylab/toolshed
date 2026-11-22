@@ -31,7 +31,7 @@ opendde pred -i input.json -o out -n opendde_v1 --use_msa false --use_template f
 
 ## Compute
 
-One GPU. Compute numbers come from this tool's test record (filled in below when measured).
+One GPU. On an L40S (48 GB), the test's 198-residue dimer at one seed and one sample takes 23 s inside `opendde pred` (17 s of it the model's forward pass) at a peak of 5.7 GB of GPU memory; at the documented `--sample 5`, 26 s. The whole test job, the image's import on the node included, finished in under 3 minutes. Memory and time grow with the token count squared and beyond, so larger complexes cost more; they were not measured. Every run loads the checkpoint once, so put many jobs in one input file.
 
 ## Running it
 
@@ -51,7 +51,7 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/opendde:1.0.0 \
 
 ## Gotchas
 
-- Single-sequence mode costs accuracy, more for complexes whose interfaces an MSA would inform. With `--use_msa true` (the default) and no A3M paths in the JSON, OpenDDE asks the public ColabFold MMseqs2 server for MSAs, which needs the network; A3M files named in the JSON need none. Neither route is exercised by this tool's test. Templates and RNA MSAs need search databases and HMMER, which this image does not carry.
+- Single-sequence mode costs accuracy, more for complexes whose interfaces an MSA would inform. On the test's HIV-1 protease dimer it gives a well-formed, compact dimer with low confidence (pLDDT 42–43, ipTM about 0.2 over five samples), so read its confidences before its interface. With `--use_msa true` (the default) and no A3M paths in the JSON, OpenDDE asks the public ColabFold MMseqs2 server for MSAs, which needs the network; A3M files named in the JSON need none. Neither route is exercised by this tool's test. Templates and RNA MSAs need search databases and HMMER, which this image does not carry.
 - Upstream calls OpenDDE a preview and says checkpoints may change between versions; this image pins revision `eddd563c…` of the weights.
 - Only the general-purpose checkpoint is carried; upstream's antibody–antigen checkpoint (`opendde_abag.pt`) is not.
 - The test folds HIV-1 protease as a homodimer (2 × 99 = 198 residues), past cuEquivariance's 100-residue crossover, so it exercises the Triton kernels and their first-use compile (gcc is in the image for it). Inputs larger than that were not measured.
