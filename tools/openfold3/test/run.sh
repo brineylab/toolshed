@@ -11,10 +11,10 @@ out=$(mktemp -d)
 # Peak GPU memory for the skill's Compute: nvidia-smi sampled every half second through the run.
 nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -lms 500 > "$out/.gpu-mem" 2>/dev/null &
 sampler=$!
-echo "[$(stamp)] folding the 198-residue HIV-1 protease dimer, single-sequence, 1 sample"
+echo "[$(stamp)] folding the 198-residue HIV-1 protease dimer, single-sequence and with the fixture's 128-row MSA, 1 sample each"
 run_openfold predict --query-json hivpr.json --use-msa-server=False --use-templates=False \
   --num-diffusion-samples 1 --num-model-seeds 1 --output-dir "$out"
-echo "[$(stamp)] prediction finished; checking outputs"
+echo "[$(stamp)] predictions finished; checking outputs"
 python3 -I check.py "$out"
 echo "[$(stamp)] all checks passed"
 kill "$sampler" 2>/dev/null || true
