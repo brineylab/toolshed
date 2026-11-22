@@ -6,6 +6,9 @@ ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 # Triton compiles a small C driver shim on first use; the runtime base has no C compiler.
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --break-system-packages "openfold3==0.5.1" "cuequivariance==0.10.0" "cuequivariance-torch==0.10.0" "cuequivariance-ops-torch-cu13==0.10.0"
+# pip's console script runs its interpreter without -I, so under pyxis the caller's PYTHONPATH and
+# ~/.local would shadow the image's packages; -I on the shebang keeps them out.
+RUN sed -i '1s|$| -I|' "$(command -v run_openfold)" && head -1 "$(command -v run_openfold)" | grep -q -- ' -I$'
 # OPENFOLD_CACHE is where run_openfold looks for its default checkpoint: ckpt_root names the directory, and
 # 0.5.1's default, openbind-2025-06-30-174k, is of3-ob-2025-06-30-174k.pt there. Fetched from the OpenFold
 # AWS Open Data bucket over anonymous HTTPS (the Hugging Face copy is gated) and checked against its size

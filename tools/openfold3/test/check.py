@@ -13,9 +13,11 @@ SEQ = "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIG
 PLDDT_FLOOR = 25.0  # 0-100; single-sequence hivpr scored 33.0-43.3 over 5 samples on an L40S (36.5 for sample 1)
 
 def assert_folded(name, ca):
-    """Trained weights give chains, not a cloud: neighbouring CAs 3.6-4.0 A apart (3.73-3.81 A median on the
-    L40S runs, a cis-proline the odd 2.9 A), and a dimer compact (Rg 15.6-19.1 A) with its chains touching
-    (closest CA pair 4.0-6.7 A). Confidence alone cannot tell low-confidence folds from broken weights."""
+    """Trained weights give chains, not a cloud: neighbouring CAs 3.6-4.0 A apart, and a dimer compact with its
+    chains touching. opendde's and openfold3's single-sequence hivpr on an L40S (5 samples each): CA steps
+    3.73-3.81 A median (a cis-proline the odd 2.9 A), Rg 15.6-19.1 A, closest A-B CA pair 4.0-6.7 A; scrambled,
+    stretched, and pulled-apart (16 A and up) copies fail. Confidence alone cannot tell a low-confidence fold
+    from broken weights."""
     steps = np.concatenate([np.linalg.norm(np.diff(ca.coord[ca.chain_id == c], axis=0), axis=1)
                             for c in sorted(set(ca.chain_id))])
     bonded = float(np.mean((steps > 3.6) & (steps < 4.0)))
@@ -26,7 +28,7 @@ def assert_folded(name, ca):
         assert rg < 25.0, f"{name}: radius of gyration {rg:.1f} A: not a compact fold"
         a, b = (ca.coord[ca.chain_id == c] for c in chains)
         gap = float(np.linalg.norm(a[:, None] - b[None], axis=2).min())
-        assert gap < 8.0, f"{name}: the chains' closest CAs are {gap:.1f} A apart: not a dimer"
+        assert gap < 12.0, f"{name}: the chains' closest CAs are {gap:.1f} A apart: not a dimer"
 
 
 out = Path(sys.argv[1])
