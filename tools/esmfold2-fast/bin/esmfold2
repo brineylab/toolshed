@@ -6,7 +6,7 @@
 The input is one job or a list of them. A job is {"name": ..., "sequences": [...]} plus, optionally,
 "covalent_bonds" and "pocket": esm's own serialized StructurePredictionInput (protein, dna, rna, and ligand
 entries), read by esm.utils.structure.input_builder.deserialize_structure_prediction_input. Every job is
-checked before the model loads; the model loads once for the whole file. For each job and sample i,
+checked, and prepared on the CPU, before the model loads; a bad one exits 1 with a line naming it. The model loads once for the whole file. For each job and sample i,
 out/<name>_sample_<i>.cif, .json (mean plddt, ptm, iptm, pair_chains_iptm), and .npz (per-token plddt, pae).
 """
 import argparse
@@ -16,52 +16,87 @@ import sys
 from pathlib import Path
 
 
-def load_jobs(path):
-    """The file's jobs, each deserialized, or exit 2 naming the first job that is not one."""
+def sequence_problem(seqs):
+    """What is wrong with a job's sequences that esm would let through silently, or None."""
+    if not isinstance(seqs, list) or not seqs:
+        return 'no "sequences"'
+    for s in seqs:
+        if not isinstance(s, dict):
+            return f"sequence entry {s!r} is not an object"
+        if s.get("type") not in ("protein", "dna", "rna"):
+            continue
+        chain, seq = s.get("id"), s.get("sequence")
+        if not isinstance(seq, str) or not (seq.isascii() and seq.isalpha() and seq.isupper()):
+            return f"chain {chain}: the sequence must be uppercase letters, not {seq!r}"
+        msa = s.get("msa")
+        rows = msa.get("sequences") if isinstance(msa, dict) else None
+        if rows is None:
+            continue
+        if not isinstance(rows, list) or not rows or rows[0] != seq:
+            return f"chain {chain}: the MSA's first row must be the chain's sequence"
+        for r in rows:
+            if not isinstance(r, str) or len(r) != len(seq) or not set(r) <= set("ABCDEFGHIJKLMNOPQRSTUVWXYZ-"):
+                return (f"chain {chain}: every MSA row must be aligned to the sequence: {len(seq)} characters of "
+                        f"uppercase residues and '-' gaps, with an A3M's lowercase insertions removed")
+    return None
+
+
+def load_jobs(path, builder, seed):
+    """The file's jobs, each deserialized and prepared on the CPU, or exit 1 with one line naming the first that is not one."""
     from esm.utils.structure.input_builder import deserialize_structure_prediction_input
 
-    data = json.loads(Path(path).read_text())
+    try:
+        data = json.loads(Path(path).read_text())
+    except (OSError, ValueError) as e:
+        sys.exit(f"esmfold2: {path}: not a readable JSON file: {e}")
     jobs = data if isinstance(data, list) else [data]
     parsed, seen = [], set()
     for i, job in enumerate(jobs):
         where = f"{path}: job {i}"
         if not isinstance(job, dict) or not isinstance(job.get("name"), str) or not job["name"]:
             sys.exit(f'esmfold2: {where}: missing "name"')
-        if "/" in job["name"] or job["name"] in seen:
-            sys.exit(f'esmfold2: {where}: name {job["name"]!r} has a "/" or repeats another job\'s')
-        seen.add(job["name"])
+        name = job["name"]
+        if "/" in name or name in seen:
+            sys.exit(f'esmfold2: {where}: name {name!r} has a "/" or repeats another job\'s')
+        seen.add(name)
+        problem = sequence_problem(job.get("sequences"))
+        if problem:
+            sys.exit(f"esmfold2: {where} ({name}): {problem}")
         try:
-            parsed.append((job["name"], deserialize_structure_prediction_input(job)))
-        except (KeyError, TypeError, ValueError) as e:
-            sys.exit(f"esmfold2: {where} ({job['name']}): not an ESMFold2 input: {type(e).__name__}: {e}")
+            inp = deserialize_structure_prediction_input(job)
+            builder.prepare_input(inp, seed=seed)  # CPU only: unknown CCD codes and bad SMILES fail here, not after the load
+        except Exception as e:
+            sys.exit(f"esmfold2: {where} ({name}): not an ESMFold2 input: {type(e).__name__}: {e}".splitlines()[0])
+        parsed.append((name, inp))
     return parsed
 
 
 def write(stem, result):
     import numpy as np
 
-    stem.with_suffix(".cif").write_text(result.complex.to_mmcif())
+    path = lambda suffix: stem.parent / f"{stem.name}{suffix}"  # a dotted job name stays whole; with_suffix would cut it
+    path(".cif").write_text(result.complex.to_mmcif())
     plddt = result.plddt.float().numpy()
     pair = result.pair_chains_iptm
-    stem.with_suffix(".json").write_text(json.dumps({
+    path(".json").write_text(json.dumps({
         "plddt": float(plddt.mean()), "ptm": result.ptm, "iptm": result.iptm,
         "pair_chains_iptm": None if pair is None else pair.float().tolist(),
     }, indent=1) + "\n")
     arrays = {"plddt": plddt}
     if result.pae is not None:
         arrays["pae"] = result.pae.float().numpy()
-    np.savez_compressed(stem.with_suffix(".npz"), **arrays)
+    np.savez_compressed(path(".npz"), **arrays)
 
 
 def predict(args):
-    jobs = load_jobs(args.inp)
     import torch
     from esm.models.esmfold2 import ESMFold2InputBuilder, EsmFold2Model
 
+    builder = ESMFold2InputBuilder()
+    jobs = load_jobs(args.inp, builder, args.seed)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     model = EsmFold2Model.from_pretrained(os.environ["ESMFOLD2_MODEL"], device="cuda").eval()
-    builder = ESMFold2InputBuilder()
     with torch.inference_mode():
         for name, inp in jobs:
             results = builder.fold(model, inp, num_loops=args.loops, num_sampling_steps=args.steps,
