@@ -145,6 +145,12 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/alphafold3-blackw
   format) are rejected by `folding_input.Input.from_json`; translate to the
   `"protein"` key, add `dialect: "alphafold3"`, `version: 4`, `modelSeeds`
   and per-chain `id`s first.
+- **`--help` exits 1.** absl-py's help flags (`--help`, `--helpshort`,
+  `--helpfull`) print the usage to stdout and exit with code 1 by design
+  (the gflags convention); a script wrapping the CLI must tolerate that
+  nonzero code rather than treat it as a failure. The help text itself is
+  the contract: it documents `--json_path`, `--model_dir`,
+  `--run_data_pipeline` and friends.
 - **pyxis ignores entrypoints**; run `python3` (the venv's, already first on
   `PATH`) with explicit script paths. `/hmmer/bin` is on `PATH` for the data
   pipeline, which is off in the example above.

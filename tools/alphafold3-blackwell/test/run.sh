@@ -34,9 +34,22 @@ echo "== alphafold3 package =="
 python3 -I -c "import alphafold3; print('alphafold3 at', alphafold3.__file__)"
 
 echo "== run_alphafold.py --help =="
+# absl-py's help flags print the usage to STDOUT and exit 1 by design
+# (the gflags convention: requesting help is an error exit), so tolerate
+# the nonzero code and assert on the help text itself.
+set +e
 python3 /app/alphafold/run_alphafold.py --help > ra_help.txt 2> ra_help.err
+rc=$?
+set -e
+echo "exit code $rc (absl --help exits 1 by design)"
+case "$rc" in
+  0|1) ;;
+  *) echo "unexpected exit code $rc from --help; stderr:"; cat ra_help.err; exit 1 ;;
+esac
+[ -s ra_help.err ] && { echo "(stderr from --help, informational:)"; head -5 ra_help.err; }
 grep -q "model_dir" ra_help.txt
-echo "run_alphafold.py answers --help and documents --model_dir"
+grep -q "json_path" ra_help.txt
+echo "run_alphafold.py answers --help and documents --model_dir/--json_path"
 
 echo "== the library path (make_model_config + ModelRunner) =="
 python3 -I - <<'PY'
