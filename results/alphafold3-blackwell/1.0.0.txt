@@ -1,0 +1,34 @@
+---
+tool: alphafold3-blackwell
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/alphafold3-blackwell@sha256:fb960edbbcf510771e9a83ce83d5438ac67b552f8b54b68c084c42e0254dce0f
+digest: sha256:fb960edbbcf510771e9a83ce83d5438ac67b552f8b54b68c084c42e0254dce0f
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-22T04:26:23Z
+exit: 0
+---
+Job 3249: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=3249
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/alphafold3-blackwell@sha256:fb960edbbcf510771e9a83ce83d5438ac67b552f8b54b68c084c42e0254dce0f
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/alphafold3-blackwell@sha256:fb960edbbcf510771e9a83ce83d5438ac67b552f8b54b68c084c42e0254dce0f
+node: slurm-b200-205-097
+GPU 0: NVIDIA B200 (UUID: GPU-95aa173f-75f0-bcce-6752-4bfa6664bf24)
+== python ==
+Python 3.12.3
+== jax on the GPU ==
+cuBLAS < 13.2 (120901 found) has a known issue where many kernels free TMEM buffers multiple times. Executing a cuBLAS kernel concurrently with another kernel (e.g. on another stream) can lead to silent data corruption.
+jax 0.9.1
+device NVIDIA B200 compute capability 10.0
+== alphafold3 package ==
+alphafold3 at /app/alphafold/src/alphafold3/__init__.py
+== run_alphafold.py --help ==
+exit code 1 (absl --help exits 1 by design)
+run_alphafold.py answers --help and documents --model_dir/--json_path
+== the library path (make_model_config + ModelRunner) ==
+cuBLAS < 13.2 (120901 found) has a known issue where many kernels free TMEM buffers multiple times. Executing a cuBLAS kernel concurrently with another kernel (e.g. on another stream) can lead to silent data corruption.
+ModelRunner ModelRunner (parameters NOT loaded in this test)
+== input dialect contract (fixture) ==
+fixture_two_chains chains ['A', 'B'] templates [(), ()] seeds (0,)
+absent templates key parses as search (None), as documented
+TEST COMPLETE
+Job 3249: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=3249
