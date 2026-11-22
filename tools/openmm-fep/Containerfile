@@ -10,7 +10,7 @@ ADD --checksum=sha256:366cd9cd8be14df1ab8ed50352a82111082a36686b2d389fdb79a92c3f
 # 12.9 selects the CUDA 12 builds; CONDA_OVERRIDE_CUDA lets the solver accept
 # them with no driver on the build host. pytorch is the build the solve picks.
 RUN CONDA_OVERRIDE_CUDA=12.9 micromamba create -y -p /opt/env -c conda-forge --override-channels \
-      python=3.12.16 openmm=8.4.0 openfe=1.13.0 feflow=0.2.1 gufe=1.13.1 \
+      python=3.12.16 openmm=8.4.0 openfe=1.13.0 feflow=0.2.1 gufe=1.13.1 pdbfixer=1.12 \
       cuda-version=12.9 "pytorch=2.14.1=cuda129_mkl_py312_h0509a7e_300" \
  && micromamba clean -a -y
 ENV PATH=/opt/env/bin:$PATH
@@ -55,13 +55,14 @@ h = HybridTopologyFactory(sa, pa, ta, sb, pb, tb, core, core)
 print(h.hybrid_system.getNumParticles())
 PY
 # Licenses beside the code they cover. OpenMM's three files ship in the conda
-# environment; openfe, feflow and gufe carry theirs in dist-info.
+# environment; openfe, feflow, gufe and pdbfixer carry theirs in dist-info.
 RUN mkdir -p /opt/openmm-fep/licenses \
  && S=/opt/env/lib/python3.12/site-packages \
  && cp /opt/env/licenses/GPL.txt /opt/env/licenses/LGPL.txt /opt/env/licenses/Licenses.txt /opt/openmm-fep/licenses/ \
  && cp $S/openfe-1.13.0.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/openfe-LICENSE \
  && cp $S/feflow-*.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/feflow-LICENSE \
- && cp $S/gufe-1.13.1.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/gufe-LICENSE
+ && cp $S/gufe-1.13.1.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/gufe-LICENSE \
+ && cp $S/pdbfixer-1.12.0.dist-info/licenses/LICENSE /opt/openmm-fep/licenses/pdbfixer-LICENSE
 COPY feflow-0.2.1.patch /opt/openmm-fep/licenses/
 # The wrapper, and --help as a build check that it starts.
 COPY --chmod=755 bin/openmm-fep /usr/local/bin/openmm-fep

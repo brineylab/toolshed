@@ -92,7 +92,7 @@ openmm-fep analyze fep/ ddg.tsv
 
 - Read the complex with OpenMM's `PDBxFile`, using the same `auth_seq_id` re-keying `openmm` 1.0.0 uses for AF3-style glycan links. The builder copies that function, since tools do not import each other.
 - For `unbound`, delete every chain not in `--partner`, and every glycan chain not linked (by struct_conn bond) to a kept chain.
-- **Mutant:** Modeller deletes the target's atoms other than N, CA, C, O and CB (CB too when the new residue is Gly), renames the residue, and calls `addHydrogens` with the force field at pH 7. Every other residue already has its hydrogens. A new His gets the protonation `addHydrogens` chooses, which `run.json` records.
+- **Mutant:** Modeller deletes the target's atoms other than N, CA, C, O and CB (CB too when the new residue is Gly), renames the residue, and calls `addHydrogens` with the force field at pH 7. Every other residue already has its hydrogens. A new His gets the protonation `addHydrogens` chooses; it is visible only in `mutant.cif`'s atom names.
 - **Mapping:** atoms are matched by (chain, residue, name). In the mutated residue only N, CA, C, O, and H, HA and CB where both ends have them, are mapped.
 - **Settings:** feflow's defaults, with these overrides:
   - `forcefield_settings.forcefields` = the three files above;

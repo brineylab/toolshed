@@ -9,7 +9,6 @@
 # the unbound one's result.json deleted, which must be redone; A:K44A bound (charge-changing, so the alchemical
 # water); A:G38A bound (Gly to Ala, whose CB is built); complex.pdb unbound; then the refusals, each checked
 # for exit 2 and its stderr word, writing nothing; then analyze over the L47A pair and its refusals. check.py verifies the answers. Writes only under /tmp.
-# With FLYLOFT_OUT set, every case's output tree is copied there at the end.
 set -euo pipefail
 cd "$(dirname "$0")"
 T=$(mktemp -d /tmp/openmm-fep.XXXXXX)
@@ -91,8 +90,4 @@ rm "$T/nores/unbound/replicate-0/result.json"
 refused "unbound" openmm-fep analyze "$T/nores" "$T/nores.tsv"
 test ! -e "$T/mix.tsv" -a ! -e "$T/k44a.tsv" -a ! -e "$T/nores.tsv"
 
-if [ -n "${FLYLOFT_OUT:-}" ]; then
-    mkdir -p "$FLYLOFT_OUT"
-    for d in bound unbound k44a g38a pdb; do cp -r "$T/$d" "$FLYLOFT_OUT/$d"; done
-fi
 echo "openmm-fep test passed" >&2

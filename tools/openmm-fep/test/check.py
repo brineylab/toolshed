@@ -78,6 +78,7 @@ def check_result(leg_dir):
         assert works and all(math.isfinite(w) for w in works), (leg_dir, side, works)
     run = json.loads((leg_dir / "run.json").read_text())
     assert set(run) == {"mutation", "leg", "partner", "cycles", "replicate", "input_sha256", "versions", "settings"}, run
+    assert run["versions"]["openmm-fep"] == "1.0.0", run["versions"]
     assert run["settings"]["alchemical_settings"]["explicit_charge_correction"] is True
     assert run["settings"]["num_cycles"] == run["cycles"] == 1
 
@@ -99,6 +100,7 @@ def check_mapping(fixture):
     path = shutil.which("openmm-fep")
     loader = importlib.machinery.SourceFileLoader("openmm_fep", path)
     wrapper = importlib.util.module_from_spec(importlib.util.spec_from_loader("openmm_fep", loader))
+    sys.dont_write_bytecode = True  # no __pycache__ beside the wrapper: scripts/build refuses one under tools/
     loader.exec_module(wrapper)
     from gufe import ProteinComponent
     top, pos = wrapper.load(fixture)
@@ -119,6 +121,16 @@ def check_mapping(fixture):
     outside = [a for a in wt.GetAtoms() if not in_target(a)]
     assert all(a.GetIdx() in mapping for a in outside)
     assert len(mapping) == len(outside) + 6
+    # a duplicated (chain, residue, name) key is refused, not mapped to the wrong atom
+    first, second = [a for a in mut.GetAtoms() if not in_target(a)][:2]
+    second.GetPDBResidueInfo().SetName(first.GetPDBResidueInfo().GetName())
+    second.GetPDBResidueInfo().SetResidueNumber(first.GetPDBResidueInfo().GetResidueNumber())
+    try:
+        wrapper.atom_mapping(wt, mut, ("A", "47"))
+    except SystemExit as stop:
+        assert stop.code == 2
+    else:
+        raise AssertionError("a duplicated atom key was mapped")
     print("mapping ok")
 
 
