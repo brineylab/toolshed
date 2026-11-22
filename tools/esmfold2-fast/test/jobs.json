@@ -1,0 +1,6 @@
+[
+  {"name": "hivpr",
+   "sequences": [{"type": "protein", "id": ["A", "B"], "sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF"}]},
+  {"name": "gcn4.p1",
+   "sequences": [{"type": "protein", "id": "A", "sequence": "RMKQLEDKVEELLSKNYHLENEVARLKKLVGER"}]}
+]

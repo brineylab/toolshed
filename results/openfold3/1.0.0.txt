@@ -1,0 +1,45 @@
+---
+tool: openfold3
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/openfold3@sha256:bd86fbba6773a07268e041cd11d94e43a412ff7069acfcd2b7fc256df8317690
+digest: sha256:bd86fbba6773a07268e041cd11d94e43a412ff7069acfcd2b7fc256df8317690
+runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-22T21:04:40Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/openfold3@sha256:bd86fbba6773a07268e041cd11d94e43a412ff7069acfcd2b7fc256df8317690
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/openfold3@sha256:bd86fbba6773a07268e041cd11d94e43a412ff7069acfcd2b7fc256df8317690
+[2026-11-22T21:09:40Z] gpu-swann-0: GPU 0: NVIDIA L40S (UUID: GPU-9538431d-54ab-814f-e473-3b72bbae1522)
+[2026-11-22T21:09:40Z] folding the 198-residue HIV-1 protease dimer, single-sequence and with the fixture's 128-row MSA, 1 sample each
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+💡 Tip: For seamless cloud uploads and versioning, try installing [litmodels](https://pypi.org/project/litmodels/) to enable LitModelCheckpoint, which syncs automatically with the Lightning model registry.
+/usr/local/lib/python3.12/dist-packages/openfold3/core/data/framework/data_module.py:712: UserWarning: Expected MSA file for chain A,B of type PROTEIN in query hivpr, but no MSA files found. A dummy MSA with only the query sequence will be used for this chain.
+  self.inference_config.query_set = augment_main_msa_with_query_sequence(
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+SLURM auto-requeueing enabled. Setting signal handlers.
+/usr/local/lib/python3.12/dist-packages/pytorch_lightning/utilities/_pytree.py:21: `isinstance(treespec, LeafSpec)` is deprecated, use `isinstance(treespec, TreeSpec) and treespec.is_leaf()` instead.
+[rank: 0] Seed set to 2746317213
+/usr/local/lib/python3.12/dist-packages/torch/autograd/function.py:596: UserWarning: OpenFold3 Triton evoformer kernel is running on a non-HIP backend with default, untuned Triton config (AMD MFMA / waves_per_eu tunings disabled). Correctness holds; performance is not tuned for this backend.
+  return super().apply(*args, **kwargs)  # type: ignore[misc]
+[rank: 0] Seed set to 2746317213
+Predicting: |          | 0/? [00:00<?, ?s/it]Predicting: |          | 0/? [00:00<?, ?s/it]Predicting DataLoader 0:   0%|          | 0/2 [00:00<?, ?s/it]Predicting DataLoader 0:  50%|█████     | 1/2 [00:12<00:12, 12.48s/it]Predicting DataLoader 0: 100%|██████████| 2/2 [00:19<00:00,  9.59s/it]Predicting DataLoader 0: 100%|██████████| 2/2 [00:19<00:00,  9.61s/it]
+
+==================================================
+    PREDICTION SUMMARY (COMPLETE)    
+==================================================
+Total Queries Processed: 2
+  - Successful Queries:  2
+  - Failed Queries:      0
+==================================================
+
+Removing empty log directory...
+[2026-11-22T21:10:17Z] predictions finished; checking outputs
+ok: hivpr: 2 chains x 99 residues, avg_plddt 36.5, ptm 0.218, iptm 0.061, sample_ranking_score 0.092
+ok: hivpr_msa: 2 chains x 99 residues, avg_plddt 91.6, ptm 0.923, iptm 0.906, sample_ranking_score 0.925, CA RMSD 1.66 A to the crystal
+[2026-11-22T21:10:18Z] all checks passed
+[2026-11-22T21:10:18Z] peak GPU memory: 2361 MiB

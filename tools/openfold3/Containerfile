@@ -1,0 +1,26 @@
+# OpenFold3 0.5.1 on PyTorch 2.12.1's CUDA 13.0 build: the torch upstream's pixi.lock resolves for its
+# cuda13 environment (Python 3.12 in this base; openfold3 needs >= 3.12), with cuEquivariance at the 0.10.0
+# that lock pins. CUDA 13 wheels carry Blackwell's kernels as well as Ampere's, Ada's, and Hopper's.
+FROM docker.io/pytorch/pytorch:2.12.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# Triton compiles a small C driver shim on first use; the runtime base has no C compiler.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir --break-system-packages "openfold3==0.5.1" "cuequivariance==0.10.0" "cuequivariance-torch==0.10.0" "cuequivariance-ops-torch-cu13==0.10.0"
+# pip's console script runs its interpreter without -I, so under pyxis the caller's PYTHONPATH and
+# ~/.local would shadow the image's packages; -I on the shebang keeps them out.
+RUN sed -i '1s|$| -I|' "$(command -v run_openfold)" && head -1 "$(command -v run_openfold)" | grep -q -- ' -I$'
+# OPENFOLD_CACHE is where run_openfold looks for its default checkpoint: ckpt_root names the directory, and
+# 0.5.1's default, openbind-2025-06-30-174k, is of3-ob-2025-06-30-174k.pt there. Fetched from the OpenFold
+# AWS Open Data bucket over anonymous HTTPS (the Hugging Face copy is gated) and checked against its size
+# and the sha256 of the bytes that bucket served on 2026-11-21.
+ENV OPENFOLD_CACHE=/opt/openfold3 HF_HUB_OFFLINE=1
+RUN python3 -I -c "import hashlib, pathlib, urllib.request; \
+root = pathlib.Path('/opt/openfold3'); root.mkdir(parents = True); \
+ckpt = root / 'of3-ob-2025-06-30-174k.pt'; \
+urllib.request.urlretrieve('https://openfold3-data.s3.amazonaws.com/openfold3-parameters/of3-ob-2025-06-30-174k.pt', ckpt); \
+h = hashlib.sha256(); f = open(ckpt, 'rb'); [h.update(b) for b in iter(lambda: f.read(1 << 24), b'')]; \
+assert ckpt.stat().st_size == 2287872989, ckpt.stat().st_size; \
+assert h.hexdigest() == 'bd43301c011d5f87580d3e8b548658869433e4488399feb03035ba248f8e29e4', h.hexdigest(); \
+(root / 'ckpt_root').write_text(str(root) + '\n'); print('verified', ckpt)"
+COPY LICENSE /opt/openfold3/
+COPY test /toolshed/test

@@ -1,0 +1,3 @@
+{"queries": {
+  "hivpr": {"use_msas": false, "chains": [{"molecule_type": "protein", "chain_ids": ["A", "B"], "sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF"}]},
+  "hivpr_msa": {"use_msas": true, "chains": [{"molecule_type": "protein", "chain_ids": ["A", "B"], "sequence": "PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNF", "main_msa_file_paths": ["colabfold_main.a3m"]}]}}}
