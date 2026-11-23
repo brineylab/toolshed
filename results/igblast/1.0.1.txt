@@ -1,0 +1,19 @@
+---
+tool: igblast
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/igblast@sha256:76b58ae1ae60f4783f2775781f7a74b90fd85e048b212759663993b3c67255e9
+digest: sha256:76b58ae1ae60f4783f2775781f7a74b90fd85e048b212759663993b3c67255e9
+runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-23T07:04:13Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/igblast@sha256:76b58ae1ae60f4783f2775781f7a74b90fd85e048b212759663993b3c67255e9
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/igblast@sha256:76b58ae1ae60f4783f2775781f7a74b90fd85e048b212759663993b3c67255e9
+node: gpu-swann-0
+gpu: none
+igblastn: 1.22.0
+heavy: 6 sequences, 0 failures
+kappa: 4 sequences, 0 failures
+lambda: 4 sequences, 0 failures
+igblast test passed
