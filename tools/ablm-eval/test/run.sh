@@ -44,3 +44,9 @@ fi
 tr "\n" " " < "$d/refused.txt" | grep -q "exists and is not empty"
 COLUMNS=1000 ablm-eval run "$d/run.yaml" --cache-dir "$d/cache" --overwrite
 python3 -I /toolshed/test/check.py "$d/results"
+
+# an ablm-forge checkpoint, the reason for 1.0.4: one written here (no forge
+# checkpoint is public), scored through AbLM-Eval's Python API on the same
+# fixture and checked against the log-probabilities computed directly
+mkdir -p "$d/forge"
+python3 -I /toolshed/test/forge.py /toolshed/test/paired-mini.parquet "$d/forge"
