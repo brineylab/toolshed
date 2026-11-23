@@ -1,73 +1,57 @@
-# AbLM-Eval (github.com/smburbach/AbLM-Eval, MIT) at commit 32a3961: evaluation
-# of antibody language models -- inference, per-position inference, mutation
-# prediction, naturalness, classification (fine-tuning a classification head
-# over folds) and MoE routing -- from a YAML config, on the lab's published
-# models, each downloaded at a pinned Hugging Face revision with the chain
-# separator it was trained with.  A general-purpose image (DESIGN §1), like
-# datascience: it carries no weights and sets no HF_HUB_OFFLINE, because its
-# work reaches the network -- it downloads the models a config names at run
-# time.
+# AbLM-Eval (github.com/smburbach/AbLM-Eval, MIT) at commit 13062db, with its
+# forge extra: evaluation of antibody language models -- inference,
+# per-position inference, mutation prediction, naturalness, classification
+# (fine-tuning a classification head over folds) and MoE routing -- from a YAML
+# config, on the lab's published models, each downloaded at a pinned Hugging
+# Face revision with the chain separator it was trained with, and on
+# ablm-forge checkpoints through its Python API.  A general-purpose image
+# (DESIGN §1), like datascience: it carries no weights and sets no
+# HF_HUB_OFFLINE, because its work reaches the network -- it downloads the
+# models a config names at run time.
 FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
-# git and ca-certificates: pip installs AbLM-Eval (and its BALM dependency)
-# from GitHub at pinned commits.  gcc and g++: AbLM-Eval requires numpy<2, and
-# abutils' fastcluster is the one dependency that leaves wheel-land there --
-# 1.3.0 needs numpy 2, so numpy<2 holds it at 1.2.6, whose wheels stop at
-# cp311; pip compiles its C++ sdist in the image (against the numpy 1.26
-# wheel its pyproject's oldest_supported_numpy pins), and the runtime base
-# ships no C++ compiler -- the first build died on exactly that.  A compiler
-# at run time also covers Triton, which JIT-compiles kernels on first use
-# (boltz-2 1.0.1's lesson, e1-150m's gcc g++).
+# git and ca-certificates: pip installs AbLM-Eval, ablm-forge and BALM from
+# GitHub.  gcc and g++: Triton JIT-compiles kernels on first use and needs a C
+# compiler at run time, which the runtime base does not ship (boltz-2 1.0.1's
+# lesson, e1-150m's gcc g++).  1.0.3 also needed them to compile fastcluster
+# 1.2.6's C++ sdist under AbLM-Eval's old numpy<2 pin; with that pin gone,
+# numpy 2 and abutils 0.6 take fastcluster 1.3.0, which has a cp312 wheel.
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates gcc g++ \
   && rm -rf /var/lib/apt/lists/*
-# torch first, in its own layer: it replaces the base's 2.14.1, and its wheel
-# plus the nvidia-* CUDA-13 dependencies it pulls are the download, so a later
-# step that fails and is retried does not fetch them again.  The base also
-# ships torchaudio and torchvision built against its 2.14.1+cu13.0; the pinned
-# torch is a cu132 wheel, transformers' Trainer imports torchaudio at import
-# time, and torchaudio's torch-CUDA check then raises a RuntimeError that
-# transformers' ImportError guards do not catch -- the first candidate's test
-# died on exactly that.  torchaudio has no release past 2.11.1, so none
-# matches torch 2.15, and nothing in AbLM-Eval, BALM or transformers needs
-# either companion (the known-good set's own freeze carries neither) -- they
-# go with the torch they were built for
+# torch first, in its own layer: it replaces the base's 2.14.1 -- ablm-forge
+# declares torch<2.14 -- and its wheel plus the nvidia-* CUDA-13 dependencies
+# it pulls are the download, so a later step that fails and is retried does not
+# fetch them again.  The base also ships torchaudio and torchvision built
+# against its 2.14.1; transformers' Trainer imports torchaudio at import time,
+# and against a different torch its CUDA check raises a RuntimeError that
+# transformers' ImportError guards do not catch (1.0.0's first candidate died
+# on exactly that).  Nothing in AbLM-Eval, ablm-forge, BALM or transformers
+# needs either, and the resolved set carries neither -- they go with the torch
+# they were built for
 RUN pip uninstall -y --break-system-packages torchaudio torchvision \
-  && pip install --no-cache-dir --break-system-packages torch==2.15.0
-# The brief's known-good set: AbLM-Eval's tests passed (38 passed) on exactly
-# these versions (a Python 3.11 venv; this base is Python 3.12, which the same
-# wheels support).  numpy 1.26.4 / pyarrow 20.0.0 pin under the base's numpy 2,
-# because AbLM-Eval requires numpy<2 and pyarrow<21
-# (any pyarrow 21 or later needs numpy 2 and breaks the import).  pyyaml,
-# matplotlib, seaborn and tqdm are pinned at the versions the same set resolved
-# to in the campaign's Python 3.12 build of it.  BALM rides AbLM-Eval's own
-# dependency pin, git a91d7b4 -- the commit that fixes BalmTokenizer on
-# transformers 5.23 (which passes special tokens as AddedToken objects), so
-# balm-moe loads.
+  && pip install --no-cache-dir --break-system-packages torch==2.13.0
+# requirements.txt is the whole set uv resolved for ablm-eval[forge] at
+# 13062db with nothing else pinned, on CPython 3.12, every package at ==.  The
+# 1.0.3 set is not carried forward: 13062db drops numpy<2 (it mirrored abutils
+# 0.5.2-0.5.4, which moved to numpy>=2 at 0.6.0), and ablm-forge declares
+# torch<2.14 and transformers<5.18, below 1.0.3's torch 2.15 and transformers
+# 5.23.  pyarrow stays at 20.0.0 under AbLM-Eval's own pyarrow<21.  The forge
+# extra is the point of 1.0.4: ablm-forge registers its "ablm" architecture in
+# process on import and its checkpoints carry no auto_map, so without it every
+# forge checkpoint fails to load.  The extra is unpinned upstream on purpose --
+# the forge that wrote a checkpoint is the one that can load it -- so the build
+# takes forge's current commit and the check below pins it: a build that
+# resolves another forge fails here, and the skill records the one it carries.
+# BALM rides AbLM-Eval's own pin, a91d7b4.
+COPY requirements.txt /toolshed/requirements.txt
 RUN pip install --no-cache-dir --break-system-packages \
-  "ablm-eval @ git+https://github.com/smburbach/AbLM-Eval@32a396150cc16303f7c06b7f0631f103f493b728" \
-  numpy==1.26.4 \
-  pyarrow==20.0.0 \
-  transformers==5.23.0 \
-  accelerate==1.16.0 \
-  deepspeed==0.20.0 \
-  datasets==4.0.0 \
-  pandas==3.0.6 \
-  huggingface-hub==2.4.0 \
-  tokenizers==0.23.3 \
-  safetensors==0.8.0 \
-  scikit-learn==1.9.1 \
-  abutils==0.5.4 \
-  typer==0.29.2 \
-  rich==15.0.0 \
-  wandb==0.31.0 \
-  pyyaml==6.0.3 \
-  matplotlib==3.11.2 \
-  seaborn==0.13.2 \
-  tqdm==4.70.1
-# The import chain that broke the first candidate, proven at build time
+  "ablm-eval[forge] @ git+https://github.com/smburbach/AbLM-Eval@13062dba91bcc0163216d704e86b878ca0d597c1" \
+  -r /toolshed/requirements.txt
+# What 1.0.3 was built to protect and what 1.0.4 adds, proven at build time
 # instead of in the test slot: transformers' Trainer (whose import pulls
 # torchaudio's torch-CUDA check), BALM's trainer (which imports Trainer at
-# module level) and the CLI's entry module.  The asserts make an uninstall
-# that silently missed the stale companions fail the build, not the test.
-RUN python3 -E -s -c "import importlib.util as u; import torch, transformers, balm; from transformers import Trainer; from ablm_eval.cli import app; assert u.find_spec('torchaudio') is None; assert u.find_spec('torchvision') is None; print('torch', torch.__version__, '| transformers', transformers.__version__, '| Trainer, balm and the cli import')"
+# module level), the CLI's entry module, torchaudio and torchvision gone,
+# AbLM-Eval's loader seeing forge, the "ablm" architecture registered, and
+# forge at the commit the skill names.
+RUN python3 -E -s -c "import importlib.util as u, json; from importlib.metadata import distribution; import torch, numpy, transformers, balm, ablm; from transformers import Trainer; from transformers.models.auto.configuration_auto import CONFIG_MAPPING; from ablm_eval.cli import app; from ablm_eval.utils import load_model; assert u.find_spec('torchaudio') is None; assert u.find_spec('torchvision') is None; assert load_model.ablm is not None; assert 'ablm' in CONFIG_MAPPING; forge = json.loads(distribution('ablm-forge').read_text('direct_url.json'))['vcs_info']['commit_id']; assert forge == '6da77a69db57afd84561e918f0b375eec9349817', forge; print('torch', torch.__version__, '| numpy', numpy.__version__, '| transformers', transformers.__version__, '| ablm-forge', forge, '| Trainer, balm, ablm and the cli import')"
 COPY test /toolshed/test
