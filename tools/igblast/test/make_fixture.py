@@ -3,9 +3,10 @@
 
 Each sequence is V-REGION + N + (D) + N + J-REGION, with N-region lengths chosen so the
 J lands in the coding frame its human_gl.aux line gives, and with no stop codon anywhere;
-a few sequences carry somatic substitutions in V's framework regions. The V, D and J
-genes are therefore known by construction, which is what test/run.sh checks IgBLAST
-against. It is run once, by hand, and its output committed:
+eight of the fourteen carry 3-6 somatic substitutions at positions drawn from across V
+(framework and CDR alike). The V, D and J genes are therefore known by construction, and
+so is the V identity implied by the substitutions, which is what test/run.sh checks
+IgBLAST against. It is run once, by hand, and its output committed:
 
     python3 make_fixture.py <dir with imgt_human_ig_v.fa, imgt_human_ig_d.fa, imgt_human_ig_j.fa> <human_gl.aux>
 
@@ -18,7 +19,7 @@ import sys
 
 STOPS = {"TAA", "TAG", "TGA"}
 
-# sequence_id, V, D, J, substitutions in V's framework regions, rng seed
+# sequence_id, V, D, J, substitutions at positions drawn from across V, rng seed
 HEAVY = [
     ("H01", "IGHV1-18*01", "IGHD3-22*01", "IGHJ4*02", 0, 101),
     ("H02", "IGHV3-23*01", "IGHD6-19*01", "IGHJ6*02", 4, 102),
@@ -85,7 +86,8 @@ def make(spec, v_seq, d_seq, j_seq, j_frame):
         seq = v_seq + n1 + d_seq + n2 + j_seq
         if has_stop(seq):
             continue
-        # somatic substitutions in V's framework regions, away from the 3' end
+        # somatic substitutions at positions drawn from across V (framework and CDR
+        # alike), away from the 3' end
         for _ in range(n_sub):
             for _ in range(100):
                 p = rng.randrange(9, len(v_seq) - 45)
@@ -115,11 +117,14 @@ def main():
                 fh.write(f">{sid} {spec[1]}+{spec[2] or ''}+{spec[3]} len={len(seq)}\n")
                 for i in range(0, len(seq), 60):
                     fh.write(seq[i:i + 60] + "\n")
-                rows.append((sid, spec[1], spec[2] or "", spec[3]))
+                v_seq = v[spec[1]]
+                subs = sum(1 for i in range(len(v_seq)) if seq[i] != v_seq[i])
+                v_identity = 100.0 * (len(v_seq) - subs) / len(v_seq)
+                rows.append((sid, spec[1], spec[2] or "", spec[3], f"{v_identity:.3f}"))
     with open(out_dir / "expected.tsv", "w") as fh:
-        fh.write("sequence_id\tv_call\td_call\tj_call\tproductive\n")
-        for sid, vc, dc, jc in rows:
-            fh.write(f"{sid}\t{vc}\t{dc}\t{jc}\tT\n")
+        fh.write("sequence_id\tv_call\td_call\tj_call\tproductive\tv_identity\n")
+        for sid, vc, dc, jc, vid in rows:
+            fh.write(f"{sid}\t{vc}\t{dc}\t{jc}\tT\t{vid}\n")
     print(f"wrote {len(rows)} sequences to {out_dir}")
 
 

@@ -2,11 +2,11 @@
 name: igblast
 description: "NCBI IgBLAST 1.22.0: annotates immunoglobulin rearrangements against IMGT human IG germline databases, with AIRR Rearrangement output. Reach for it to call V, D and J genes, the junction and CDR3, productivity and V identity on nucleotide antibody reads, the way the field's standard annotator is run."
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 # igblast
 
-Image: `ghcr.io/brineylab/toolshed/igblast:1.0.1`
+Image: `ghcr.io/brineylab/toolshed/igblast:1.0.2`
 
 NCBI IgBLAST 1.22.0 (the latest release, built October 2023; ncbi.nlm.nih.gov/igblast), its `igblastn` and `igblastp` beside `makeblastdb`, `blastdbcmd` and `edit_imgt_file.pl`, run the way its users run it: `-organism human -ig_seqtype Ig` against IMGT human IG germline V, D and J databases (one V, one D, one J database over IGH, IGK and IGL together), prepared exactly as NCBI's setup guide says — `edit_imgt_file.pl`, then `makeblastdb -parse_seqids` — with NCBI's patched `optional_file/human_gl.aux` (2026-06-16) and the release's `internal_data`. Everything lives under `/usr/local/share/igblast`, and the programs are also linked into `/usr/local/bin`, so `igblastn` is on PATH however the image is run; `IGDATA` points there, so `internal_data` and `optional_file` are found without options. It needs no network. CPU only.
 
@@ -23,7 +23,7 @@ igblastn -germline_db_V /usr/local/share/igblast/database/imgt_human_ig/imgt_hum
   -query /work/seqs.fa -out /work/seqs_airr.tsv -outfmt 19 -num_threads 8
 ```
 
-The same run in IgBLAST's own tabular layout, with the per-query annotation summary at the top of the output file (`-outfmt 3`; `2` and `7` are variants, `blast`-like and tab-separated):
+The same run in IgBLAST's own text layout (`-outfmt 3`; `2` and `7` are variants, `blast`-like and tab-separated): one block per query, opening with its V-(D)-J rearrangement summary (top V, D and J genes, chain type, productivity), then junction and sub-region details, then the per-region alignment summary, and ending in BLAST-like pairwise alignments:
 
 ```bash
 igblastn -germline_db_V /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_v.fa \
@@ -44,7 +44,7 @@ makeblastdb -parse_seqids -dbtype nucl -in /work/my_v.fa
 ## Inputs and outputs
 
 - **In:** nucleotide FASTA (or FASTQ) of antibody rearrangements, the first word of each header the sequence's id; `-germline_db_V/D/J` accepts any BLAST nucleotide database. `-ig_seqtype Tcr` with `-germline_db_*` of TR genes annotates TCRs; `-organism` also knows mouse, rat, rabbit and rhesus_monkey (with their `internal_data`), or any name, given custom internal data as IgBLAST's documentation describes.
-- **Out, `-outfmt 19`:** one row per query in the AIRR Rearrangement TSV (v_call, d_call, j_call, junction, junction_aa, cdr3, cdr3_aa, np1, np2, fwr1–fwr4, cdr1–cdr2, v_identity, d_identity, j_identity, productive, stop_codon, vj_in_frame, v_frameshift, d_frame, rev_comp, complete_vdj, vj_in_frame, and the alignment coordinates). **`-outfmt 3/2/7/blast`:** IgBLAST's own annotation block (V, D, J hits with identity and chain type, CDR/FWR with numbering) followed by a BLAST-like alignment table. Warnings (queries with no V hit, J genes missing from the aux file) go to stderr; every query still gets an AIRR row.
+- **Out, `-outfmt 19`:** one row per query in the AIRR Rearrangement TSV (v_call, d_call, j_call, junction, junction_aa, cdr3, cdr3_aa, np1, np2, fwr1–fwr4, cdr1–cdr2, v_identity, d_identity, j_identity, productive, stop_codon, vj_in_frame, v_frameshift, d_frame, rev_comp, complete_vdj, vj_in_frame, and the alignment coordinates). **`-outfmt 3/2/7/blast`:** IgBLAST's own per-query annotation block (V-(D)-J rearrangement summary, junction and sub-region details, per-region alignment summary) followed by BLAST-like pairwise alignments. Warnings (queries with no V hit, J genes missing from the aux file) go to stderr; every query still gets an AIRR row.
 
 ## Compute
 
@@ -55,7 +55,7 @@ CPU only; `-num_threads` is the knob, default 1 (the BLAST default), and the dat
 On a laptop, from the directory holding `seqs.fa`:
 
 ```bash
-podman run --rm -v "$PWD":/work ghcr.io/brineylab/toolshed/igblast:1.0.1 \
+podman run --rm -v "$PWD":/work ghcr.io/brineylab/toolshed/igblast:1.0.2 \
   igblastn -germline_db_V /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_v.fa \
   -germline_db_D /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_d.fa \
   -germline_db_J /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_j.fa \
@@ -67,7 +67,7 @@ podman run --rm -v "$PWD":/work ghcr.io/brineylab/toolshed/igblast:1.0.1 \
 On a Slurm cluster with pyxis (a CPU partition):
 
 ```bash
-srun --cpus-per-task=8 --mem=8G --container-image=ghcr.io#brineylab/toolshed/igblast:1.0.1 \
+srun --cpus-per-task=8 --mem=8G --container-image=ghcr.io#brineylab/toolshed/igblast:1.0.2 \
   --container-mounts="$PWD":/work --container-workdir=/work \
   igblastn -germline_db_V /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_v.fa \
   -germline_db_D /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_d.fa \
@@ -86,4 +86,4 @@ srun --cpus-per-task=8 --mem=8G --container-image=ghcr.io#brineylab/toolshed/igb
 - `-auxiliary_data` is passed explicitly in every example, but with `IGDATA` set it is also the default; the file must match the J genes in `-germline_db_J` (the image's patched human_gl.aux covers every J allele in the IMGT human IG files it shipped with; a J gene missing from it costs its CDR3 stop, and with it junction, CDR3 and productivity, but not the gene calls).
 - The IMGT files hold functional, ORF and in-frame pseudogene alleles, with IMGT's gaps removed by `edit_imgt_file.pl`; orphons (names ending in D, -2, or P) are kept, as `edit_imgt_file.pl` keeps them.
 - IgBLAST is public domain, a United States government work (the release's LICENSE is in the image at /usr/local/share/igblast/LICENSE). IMGT® germline sequences are free for research and academic use only, with commercial use requiring a license from IMGT; cite Lefranc et al., the international ImMunoGeneTics information system.
-- The test's fixture is fourteen productive rearrangements joined out of IMGT germline V, (D) and J regions by `make_fixture.py` (seeded; four carry framework substitutions, v_identity 97.9 to 100%), so the V, D and J calls are known by construction; it exercises all three loci, D reading frame, gene-name ties, and the stop-codon and frame logic of the aux file. igblastn has no input-size threshold; the fixture covers single- and multi-allele calls, not scale.
+- The test's fixture is fourteen productive rearrangements joined out of IMGT germline V, (D) and J regions by `make_fixture.py` (seeded; eight carry 3-6 somatic substitutions at positions drawn from across V, framework and CDR alike, v_identity 97.95 to 100%), so the V, D and J calls are known by construction; it exercises all three loci, D reading frame, gene-name ties, and the stop-codon and frame logic of the aux file. igblastn has no input-size threshold; the fixture covers single- and multi-allele calls, not scale.
