@@ -1,0 +1,51 @@
+# IgBLAST 1.22.0, the latest NCBI release, with human IG germline databases from IMGT's V-QUEST reference directory,
+# prepared the way NCBI's setup guide says: edit_imgt_file.pl over the combined V, D and J FASTAs, then
+# makeblastdb -parse_seqids. optional_file/human_gl.aux is NCBI's patched copy (2026-06-16), newer than the release's,
+# which the release README recommends using.
+FROM docker.io/library/debian:bookworm-20261104-slim@sha256:c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl perl libgomp1 \
+  && rm -rf /var/lib/apt/lists/*
+ENV LC_ALL=C PATH=/usr/local/share/igblast/bin:$PATH IGDATA=/usr/local/share/igblast
+# the release, pinned by checksum (public domain, a United States government work)
+RUN curl -fsSL -o /tmp/igblast.tar.gz \
+    https://ftp.ncbi.nlm.nih.gov/blast/executables/igblast/release/1.22.0/ncbi-igblast-1.22.0-x64-linux.tar.gz \
+  && echo "d54f1e1001fff529811c933595ef3c2322961c82b2d37a53f7a7914cd5807449  /tmp/igblast.tar.gz" | sha256sum -c - \
+  && tar -C /usr/local/share -xzf /tmp/igblast.tar.gz \
+  && mv /usr/local/share/ncbi-igblast-1.22.0 /usr/local/share/igblast \
+  && rm /tmp/igblast.tar.gz
+# NCBI updates annotation files between releases; this human_gl.aux (fetched 2026-06-16 by NCBI) replaces the 2023 one
+RUN curl -fsSL -o /usr/local/share/igblast/optional_file/human_gl.aux \
+    https://ftp.ncbi.nlm.nih.gov/blast/executables/igblast/release/patch/optional_file/human_gl.aux \
+  && sha256sum /usr/local/share/igblast/optional_file/human_gl.aux
+# IMGT's human IG germline (V, D, J of IGH, IGK, IGL): IMGT's reference directory when it answers this network, else the
+# identical files vendored in the partis repository's tree. PROVENANCE.txt records, per file, which source was used,
+# its sha256 and the fetch date (IMGT does not version the files individually; the reference directory's release is
+# published on https://www.imgt.org/vquest/refseqh.html).
+RUN set -eux \
+  && mkdir -p /usr/local/share/igblast/database/imgt_human_ig \
+  && cd /usr/local/share/igblast/database/imgt_human_ig \
+  && echo "# fetched $(date -u +%Y-%m-%d)" > PROVENANCE.txt \
+  && for g in IGHV IGHD IGHJ IGKV IGKJ IGLV IGLJ; do \
+       case $g in IGH*) locus=igh ;; IGK*) locus=igk ;; IGL*) locus=igl ;; esac; \
+       if curl -fsSL --retry 2 --connect-timeout 20 -m 300 -o "$g.fasta" \
+         "https://www.imgt.org/download/V-QUEST/IMGT_V-QUEST_reference_directory/Homo_sapiens/IG/$g.fasta"; then \
+         echo "$g.fasta: IMGT V-QUEST reference directory (imgt.org)" >> PROVENANCE.txt; \
+       else \
+         echo "$g.fasta: IMGT snapshot vendored in github.com/psathyrella/partis commit 40ff8e3 (data/germlines/imgt-download/human/$locus)" >> PROVENANCE.txt; \
+         curl -fsSL --retry 2 --connect-timeout 20 -m 300 -o "$g.fasta" \
+           "https://raw.githubusercontent.com/psathyrella/partis/40ff8e3c9b07309193aa76c29652ca4a2531f101/data/germlines/imgt-download/human/$locus/$(echo "$g" | tr '[:upper:]' '[:lower:]').fasta"; \
+       fi; \
+       head -c1 "$g.fasta" | grep -q '>' || { echo "$g.fasta is not a FASTA file" >&2; exit 1; }; \
+       sha256sum "$g.fasta" >> PROVENANCE.txt; \
+     done \
+  && cat IGHV.fasta IGKV.fasta IGLV.fasta > ig_v.fasta \
+  && cp IGHD.fasta ig_d.fasta \
+  && cat IGHJ.fasta IGKJ.fasta IGLJ.fasta > ig_j.fasta \
+  && edit_imgt_file.pl ig_v.fasta > imgt_human_ig_v.fa \
+  && edit_imgt_file.pl ig_d.fasta > imgt_human_ig_d.fa \
+  && edit_imgt_file.pl ig_j.fasta > imgt_human_ig_j.fa \
+  && makeblastdb -parse_seqids -dbtype nucl -in imgt_human_ig_v.fa > /dev/null \
+  && makeblastdb -parse_seqids -dbtype nucl -in imgt_human_ig_d.fa > /dev/null \
+  && makeblastdb -parse_seqids -dbtype nucl -in imgt_human_ig_j.fa > /dev/null \
+  && rm ig_v.fasta ig_d.fasta ig_j.fasta
+COPY test /toolshed/test
