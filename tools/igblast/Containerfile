@@ -48,4 +48,8 @@ RUN set -eux \
   && makeblastdb -parse_seqids -dbtype nucl -in imgt_human_ig_d.fa > /dev/null \
   && makeblastdb -parse_seqids -dbtype nucl -in imgt_human_ig_j.fa > /dev/null \
   && rm ig_v.fasta ig_d.fasta ig_j.fasta
+# Under Slurm's pyxis (enroot) the image's ENV PATH never reaches the job command: the container runs its commands on
+# the distro's default PATH, which /usr/local/share/igblast/bin is not on. /usr/local/bin is, so the programs are
+# linked there; ENV PATH stays for podman and docker, and IGDATA (needed for internal_data) does survive pyxis.
+RUN ln -s /usr/local/share/igblast/bin/* /usr/local/bin/
 COPY test /toolshed/test

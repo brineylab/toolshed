@@ -2,13 +2,13 @@
 name: igblast
 description: "NCBI IgBLAST 1.22.0: annotates immunoglobulin rearrangements against IMGT human IG germline databases, with AIRR Rearrangement output. Reach for it to call V, D and J genes, the junction and CDR3, productivity and V identity on nucleotide antibody reads, the way the field's standard annotator is run."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # igblast
 
-Image: `ghcr.io/brineylab/toolshed/igblast:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/igblast:1.0.1`
 
-NCBI IgBLAST 1.22.0 (the latest release, built October 2023; ncbi.nlm.nih.gov/igblast), its `igblastn` and `igblastp` beside `makeblastdb`, `blastdbcmd` and `edit_imgt_file.pl`, run the way its users run it: `-organism human -ig_seqtype Ig` against IMGT human IG germline V, D and J databases (one V, one D, one J database over IGH, IGK and IGL together), prepared exactly as NCBI's setup guide says — `edit_imgt_file.pl`, then `makeblastdb -parse_seqids` — with NCBI's patched `optional_file/human_gl.aux` (2026-06-16) and the release's `internal_data`. Everything lives under `/usr/local/share/igblast`; `IGDATA` points there, so `internal_data` and `optional_file` are found without options. It needs no network. CPU only.
+NCBI IgBLAST 1.22.0 (the latest release, built October 2023; ncbi.nlm.nih.gov/igblast), its `igblastn` and `igblastp` beside `makeblastdb`, `blastdbcmd` and `edit_imgt_file.pl`, run the way its users run it: `-organism human -ig_seqtype Ig` against IMGT human IG germline V, D and J databases (one V, one D, one J database over IGH, IGK and IGL together), prepared exactly as NCBI's setup guide says — `edit_imgt_file.pl`, then `makeblastdb -parse_seqids` — with NCBI's patched `optional_file/human_gl.aux` (2026-06-16) and the release's `internal_data`. Everything lives under `/usr/local/share/igblast`, and the programs are also linked into `/usr/local/bin`, so `igblastn` is on PATH however the image is run; `IGDATA` points there, so `internal_data` and `optional_file` are found without options. It needs no network. CPU only.
 
 ## Commands
 
@@ -55,7 +55,7 @@ CPU only; `-num_threads` is the knob, default 1 (the BLAST default), and the dat
 On a laptop, from the directory holding `seqs.fa`:
 
 ```bash
-podman run --rm -v "$PWD":/work ghcr.io/brineylab/toolshed/igblast:1.0.0 \
+podman run --rm -v "$PWD":/work ghcr.io/brineylab/toolshed/igblast:1.0.1 \
   igblastn -germline_db_V /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_v.fa \
   -germline_db_D /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_d.fa \
   -germline_db_J /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_j.fa \
@@ -67,7 +67,7 @@ podman run --rm -v "$PWD":/work ghcr.io/brineylab/toolshed/igblast:1.0.0 \
 On a Slurm cluster with pyxis (a CPU partition):
 
 ```bash
-srun --cpus-per-task=8 --mem=8G --container-image=ghcr.io#brineylab/toolshed/igblast:1.0.0 \
+srun --cpus-per-task=8 --mem=8G --container-image=ghcr.io#brineylab/toolshed/igblast:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work \
   igblastn -germline_db_V /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_v.fa \
   -germline_db_D /usr/local/share/igblast/database/imgt_human_ig/imgt_human_ig_d.fa \
@@ -79,6 +79,7 @@ srun --cpus-per-task=8 --mem=8G --container-image=ghcr.io#brineylab/toolshed/igb
 
 ## Gotchas
 
+- **Under pyxis the image's `ENV PATH` does not reach the job** — enroot runs the container's commands on the distro's default PATH, which `/usr/local/share/igblast/bin` is not on — so the programs are symlinked into `/usr/local/bin` (1.0.0's test failed on exactly this: `igblastn: command not found`). `IGDATA` and `LC_ALL` from the image's ENV do survive pyxis, so `internal_data` is found and sorting is byte-wise.
 - **IMGT blocks some networks.** The image's germline databases were fetched at build time from IMGT's V-QUEST reference directory when it answered, and otherwise from the identical files vendored in the partis repository's tree (its `data/germlines/imgt-download/`, IMGT's own FASTAs, unmodified); `database/imgt_human_ig/PROVENANCE.txt` records, per file, which source was used, its sha256 and the fetch date. IMGT does not version the individual files; the reference directory's own release at fetch time is published on IMGT's V-QUEST reference page (release 202643-4, 22 October 2026, when this was written).
 - `v_call` and `j_call` can hold several equally best alleles, comma-separated (the fixture's IGHV3-23 chains also hit its duplicate IGHV3-23D); read those fields as a list. Light chains get an empty `d_call`.
 - IgBLAST's junction and CDR3 run from the conserved cysteine (IMGT position 104) to the conserved tryptophan (position 118), inclusive, which is one codon longer at each end than IMGT's CDR3 definition; `junction_aa_length` and `cdr3_aa_length` follow it.
