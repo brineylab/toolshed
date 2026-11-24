@@ -1,0 +1,23 @@
+# CUDA 13 wheels carry Blackwell sm_100 kernels. The upstream 1.0.2 release
+# is installed without its CUDA 12 cuEquivariance dependency declaration;
+# those two packages are replaced explicitly with the CUDA 13 extensions.
+FROM docker.io/pytorch/pytorch:2.12.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    HF_HUB_OFFLINE=1 DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends gcc curl && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://github.com/soedinglab/hh-suite/releases/download/v3.3.0/hhsuite-3.3.0-SSE2-Linux.tar.gz \
+    | tar xz -C /opt && ln -s /opt/bin/hhfilter /usr/local/bin/hhfilter
+COPY bin/msa-pairformer /usr/local/bin/msa-pairformer
+RUN pip install --no-cache-dir --break-system-packages \
+    "numpy==1.26.4" "pandas==2.3.3" "pyarrow==22.0.0" "einops==0.8.1" "einx==0.3.0" \
+    "jaxtyping==0.3.8" "biopython==1.86" "environs==14.5.0" \
+    "https://files.pythonhosted.org/packages/25/70/7bfedcdd0223357930f5312c9ac5d6cc5fea88b73372c4087ffc3655a9e3/cuequivariance-0.9.1-py3-none-any.whl" \
+    "https://files.pythonhosted.org/packages/35/cd/fa977d329f2d2b1da474625de8d8ef52be8803d85d9a28f74113bedc79c1/cuequivariance_torch-0.9.1-py3-none-any.whl" \
+    "https://files.pythonhosted.org/packages/dc/78/cb05abff3e94cae7c28c29e76dc3b1d961385650002fa57147fc42e0b5e2/cuequivariance_ops_torch_cu13-0.9.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl#sha256=5bb6ae33706d5d9c1c99e5bfce201437dafae59365ba6b0aa46fc79607497473" \
+ && pip install --no-cache-dir --break-system-packages --no-deps \
+    "git+https://github.com/yoakiyama/MSA_Pairformer.git@875363570df1ae484cf725aba382790444223005"
+# Snapshot downloads at build time, never during a run. These are the cuEx and
+# two contact-head weights at yoakiyama/MSA-Pairformer's pinned revision.
+RUN python3 -I -c "from huggingface_hub import snapshot_download; snapshot_download('yoakiyama/MSA-Pairformer', revision='7563e77a87536b5572f91683c39073ef348639a4', local_dir='/opt/model', allow_patterns=['model_cuex.bin', 'contact.bin', 'confind_contact.bin'])"
+COPY LICENSE CODE_LICENSE /opt/model/
+COPY test /toolshed/test
