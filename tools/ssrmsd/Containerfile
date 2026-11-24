@@ -1,0 +1,28 @@
+# ssRMSD 0.1.1 (github.com/brineylab/ssrmsd, MIT): self-consistency RMSD scoring
+# for predicted antibody-antigen and protein complex structure ensembles across
+# heterogeneous structure predictors. CPU-only, no model weights, no network.
+FROM docker.io/library/python:3.12-slim-bookworm@sha256:0f086103b026048cc50cb5da25ec435c023c5241a83fc44daea593377abc61c4
+RUN pip install --no-cache-dir \
+  ssRMSD==0.1.1 \
+  gemmi==0.7.5 \
+  numpy==2.5.5 \
+  typer==0.29.2 \
+  annotated-doc==0.0.7 \
+  annotated-types==0.8.0 \
+  markdown-it-py==4.3.0 \
+  mdurl==0.1.2 \
+  pydantic==2.14.4 \
+  pydantic_core==2.50.5 \
+  Pygments==2.21.0 \
+  rich==15.0.0 \
+  shellingham==1.5.4 \
+  typing-inspection==0.4.5 \
+  typing_extensions==4.16.0
+# Pyxis passes the caller's environment and home (~/.local) into the container:
+# run /usr/local/bin/ssrmsd under python3 -I and disable user site-packages so
+# caller packages or PYTHONPATH never shadow the image's pinned set.
+ENV PYTHONNOUSERSITE=1
+RUN sed -i '1s|.*|#!/usr/local/bin/python3 -I|' /usr/local/bin/ssrmsd
+COPY LICENSE /opt/ssrmsd/LICENSE
+RUN ssrmsd --version | grep -Fx 'ssrmsd 0.1.1'
+COPY test /toolshed/test

@@ -1,0 +1,58 @@
+{
+  "mab1": {
+    "SD": 1.4945,
+    "cross_source_mean_rmsd": 3.0,
+    "mean_rmsd": 2.4,
+    "mean_sq_rmsd": 7.4,
+    "median_rmsd": 2.0,
+    "n_ca_align": 30,
+    "n_ca_score": 50,
+    "n_structures": 5,
+    "rms_rmsd": 2.7203,
+    "rmsd_sd": 1.2806,
+    "ssRMSD": 148.0,
+    "within_source_mean_rmsd": 1.5
+  },
+  "mab1_single": {
+    "SD": 0.9682,
+    "cross_source_mean_rmsd": 2.0,
+    "mean_rmsd": 1.6667,
+    "mean_sq_rmsd": 3.3333,
+    "median_rmsd": 1.5,
+    "n_ca_align": 30,
+    "n_ca_score": 50,
+    "n_structures": 4,
+    "rms_rmsd": 1.8257,
+    "rmsd_sd": 0.7454,
+    "ssRMSD": 40.0,
+    "within_source_mean_rmsd": 1.3333
+  },
+  "mab2": {
+    "SD": 1.249,
+    "cross_source_mean_rmsd": 2.5833,
+    "mean_rmsd": 2.0,
+    "mean_sq_rmsd": 5.15,
+    "median_rmsd": 1.75,
+    "n_ca_align": 30,
+    "n_ca_score": 50,
+    "n_structures": 5,
+    "rms_rmsd": 2.2694,
+    "rmsd_sd": 1.0724,
+    "ssRMSD": 103.0,
+    "within_source_mean_rmsd": 1.125
+  },
+  "mab3": {
+    "SD": 1.2,
+    "cross_source_mean_rmsd": 1.6667,
+    "mean_rmsd": 2.0,
+    "mean_sq_rmsd": 5.0,
+    "median_rmsd": 2.0,
+    "n_ca_align": 30,
+    "n_ca_score": 50,
+    "n_structures": 5,
+    "rms_rmsd": 2.2361,
+    "rmsd_sd": 1.0,
+    "ssRMSD": 100.0,
+    "within_source_mean_rmsd": 2.5
+  }
+}
