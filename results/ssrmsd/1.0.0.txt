@@ -1,0 +1,28 @@
+---
+tool: ssrmsd
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/ssrmsd@sha256:4e4450d83fc81a482fe0e30d4570cf761a65aa708aa4d356f0e4cbc787ce0a10
+digest: sha256:4e4450d83fc81a482fe0e30d4570cf761a65aa708aa4d356f0e4cbc787ce0a10
+runner: podman
+host: strix
+started: 2026-11-24T23:38:39Z
+exit: 0
+---
+Trying to pull ghcr.io/brineylab/toolshed/ssrmsd@sha256:4e4450d83fc81a482fe0e30d4570cf761a65aa708aa4d356f0e4cbc787ce0a10...
+Getting image source signatures
+Copying blob sha256:a7788e82fcb3ca3ced2f15be7a053d62f9a0a4f3e812b033d37044ce9f2aa99d
+Copying blob sha256:bbc51d65db1b905b60c3ddb0a816c193122bfd4ce76e680358a98a4020134435
+Copying blob sha256:d3159e4bd7f4c4d44f675f8c4c9c11d0939d79229820ff98186f57e4ad036424
+Copying blob sha256:c6dd1fd28f55813d9978b46322694c2a901a8001d56698abb7d1f9829c851077
+Copying blob sha256:da3d6a5416236f79ae1b680608651dc8207a744ccf7b7b963f8d47a90d6c4945
+Copying blob sha256:be8052324e1a2994a1143777db26b9e9856358f873cc18adf66f7cbe60995a56
+Copying blob sha256:5cd73947a31a614cc7a195100c9698f5207031b71095cd7d88f34ae0f30fc72d
+Copying blob sha256:7d3b3ab95a8d740895573358bc0b5c8d9e80385b7cd171af6712551984a0e14f
+Copying blob sha256:053c36693205e05d847db54ec9a498162bb84facce67669b5032455ead8322c9
+Copying config sha256:7829aa722643b92946f68b12a1ffae53b5c6f08698734613c2997fc9a1768b75
+Writing manifest to image destination
+node: b4627cd739f5
+gpu: none
+ssrmsd 0.1.1
+ssrmsd 0.1.1
+ssrmsd test passed: 3 batch ensembles (30 pairs), 1 archive+polyG score (6 pairs), manifest ok+error, Pyxis isolation
