@@ -66,6 +66,7 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
     array = np.stack([np.array(list(row))[keep_columns] for row in rows])
     coverage = (array != "-").mean(axis=1)
     keep_indices = np.flatnonzero((np.arange(len(rows)) == 0) | (coverage >= min_coverage))
+    coverage_rows = len(keep_indices)
     array = array[keep_indices]
     # A sequence's identity to the query is its matching ungapped amino acids at
     # query columns. It is not affected by the sequence's gaps at other columns.
@@ -89,7 +90,7 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
     effective_neff = neff(msa.select_diverse_msa, 0.8)
     metadata = {
         "length": int(array.shape[1]), "input_rows": len(rows),
-        "coverage_rows": len(array), "depth": tokens.shape[0],
+        "coverage_rows": coverage_rows, "depth": tokens.shape[0],
         "neff": effective_neff, "neff_sqrt_l": effective_neff / math.sqrt(array.shape[1]),
         "neff_identity_threshold": 0.8, "query_identity_cap": query_identity_cap,
         "min_coverage": min_coverage, "seed": seed, "requested_depth": depth,
