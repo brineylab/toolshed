@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from MSA_Pairformer.dataset import MSA, aa2tok_d, prepare_msa_masks
 from MSA_Pairformer.model import MSAPairformer
 
-ALPHABET = "ACDEFGHIKLMNPQRSTVWY"
+ALPHABET = "ARNDCEQGHILKMFPSTWYV"
 AA_TO_INDEX = {a: i for i, a in enumerate(ALPHABET)}
 WEIGHTS_REVISION = "7563e77a87536b5572f91683c39073ef348639a4"
 
@@ -92,7 +92,8 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
         "coverage_rows": len(array), "depth": tokens.shape[0],
         "neff": effective_neff, "neff_sqrt_l": effective_neff / math.sqrt(array.shape[1]),
         "neff_identity_threshold": 0.8, "query_identity_cap": query_identity_cap,
-        "min_coverage": min_coverage,
+        "min_coverage": min_coverage, "seed": seed, "requested_depth": depth,
+        "weights_revision": WEIGHTS_REVISION, "homolog_rows_masked": False,
         "query_homolog_max_identity": float(identities.max()) if len(identities) else None,
         "msa_path": str(path),
         "selected_source_rows": [int(keep_indices[i]) for i in msa.select_diverse_indices],
@@ -101,12 +102,9 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
 
 
 def query_folds(length, k, seed):
-    """Deterministic disjoint folds; K=2 takes the first two ~15%-row folds."""
+    """Deterministic disjoint folds; K=2 reuses the first two K=7 folds."""
     permutation = np.random.default_rng(seed).permutation(length)
-    if k == 2:
-        n = max(1, min((length + 1) // 2, int(round(length * 0.15))))
-        return np.array_split(permutation[:2 * n], 2)
-    return np.array_split(permutation, k)
+    return np.array_split(permutation, 7 if k == 2 else k)[:k]
 
 
 def get_model(device):
@@ -165,6 +163,39 @@ def load_completed(path):
     return {json.loads(line)["id"]: json.loads(line) for line in path.read_text().splitlines()} if path.exists() else {}
 
 
+def validate_completed(out, input_dir, completed, args):
+    """Reject stale ledgers, mixed configurations, and incomplete artifacts."""
+    for row in completed.values():
+        destination = out / row["id"]
+        metadata = json.loads((destination / "mask.json").read_text())
+        expected = {
+            "requested_depth": args.depth, "k": args.k,
+            "query_identity_cap": args.query_identity_cap,
+            "min_coverage": args.min_coverage, "seed": args.seed,
+        }
+        for key, value in expected.items():
+            assert row.get(key) == value and metadata.get(key) == value, (row["id"], key, row.get(key), value)
+        assert row["weights_revision"] == metadata["weights_revision"] == WEIGHTS_REVISION
+        assert row["homolog_rows_masked"] is False and metadata["homolog_rows_masked"] is False
+        candidates = [input_dir / f"{row['id']}{suffix}" for suffix in (".a3m", ".a3m.gz")]
+        source = next((path for path in candidates if path.is_file()), None)
+        assert source is not None and Path(row["msa_path"]).samefile(source), row["msa_path"]
+        table = pd.read_parquet(destination / "logits.parquet")
+        assert len(table) == row["length"] == metadata["length"]
+        assert table["id"].eq(row["id"]).all()
+        assert np.array_equal(table["position"].to_numpy(), np.arange(row["length"]))
+        conditional = table["has_conditional_logits"].to_numpy()
+        assert conditional.sum() == sum(metadata["fold_sizes"])
+        assert set(table.loc[conditional, "fold"]) == set(range(args.k))
+        assert table["logits_f16"].map(len).eq(40).all()
+        logits = np.stack([np.frombuffer(value, dtype="<f2") for value in table["logits_f16"]])
+        assert np.isfinite(logits[conditional]).all() and np.isnan(logits[~conditional]).all()
+        contacts = np.load(destination / "contacts.npz")["contacts"]
+        assert contacts.shape == (row["length"], row["length"]) and np.isfinite(contacts).all()
+        assert (destination / "complete.json").is_file()
+    return completed
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--in", dest="input", required=True, type=Path, help="Directory of .a3m or .a3m.gz files")
@@ -198,6 +229,7 @@ def main():
     model = get_model(device)
     metrics_path = args.out / "metrics.jsonl"
     completed = load_completed(metrics_path)
+    completed = validate_completed(args.out, args.input, completed, args)
     print(json.dumps({"command": "extract", "device": str(device),
                       "gpu": torch.cuda.get_device_name() if device.type == "cuda" else None,
                       "depth": args.depth, "k": args.k, "query_identity_cap": args.query_identity_cap,
@@ -221,8 +253,10 @@ def main():
             torch.cuda.reset_peak_memory_stats()
         try:
             true_tokens = tokens[0].numpy()
-            logits = np.full((length, 20), np.nan, dtype=np.float32)
+            logits = np.zeros((length, 20), dtype=np.float32)
+            logits[:] = np.nan  # Canonicalize the IEEE NaN payload across NumPy versions.
             fold_seconds = []
+            saved_contacts = None
             for fold, positions in enumerate(folds):
                 before = time.perf_counter()
                 onehot, masks = tensor_inputs(tokens, positions, device)
@@ -235,6 +269,8 @@ def main():
                     values = result["logits"][0, 0, positions][:, :20].float().cpu().numpy()
                     contacts = result["pairwise_repr_d"][f"layer_{model.contact_layer}"]
                     contacts = model.contact_head(contacts.to(device))[0].float().cpu().numpy() if fold == 0 else None
+                    if fold == 0:
+                        saved_contacts = contacts
                 logits[positions] = values
                 fold_seconds.append(time.perf_counter() - before)
                 del onehot, masks, result, contacts
@@ -251,25 +287,31 @@ def main():
                                   "target_index": np.where(valid_targets, true_tokens, 255).astype(np.uint8),
                                   "fold": fold_by_position, "is_valid_target": valid_targets,
                                   "has_conditional_logits": np.isfinite(logits).all(axis=1)})
+            # Byte-identical storage for unobserved K=2 positions makes the
+            # two-fold records directly comparable with the matching K=7 rows.
+            logits[~table["has_conditional_logits"].to_numpy()] = np.nan
             temporary = destination / "logits.partial.parquet"
             table.to_parquet(temporary, index=False, compression="zstd")
             temporary.replace(destination / "logits.parquet")
             (destination / "mask.json").write_text(json.dumps({**metadata, **mask_metadata(length, folds, args.seed)}))
             # Masked contacts are the first query-only K-fold prediction.
-            np.savez_compressed(destination / "contacts.partial", contacts=contacts.astype(np.float16))
+            assert saved_contacts is not None and saved_contacts.shape == (length, length)
+            np.savez_compressed(destination / "contacts.partial", contacts=saved_contacts.astype(np.float16))
             os.replace(destination / "contacts.partial.npz", destination / "contacts.npz")
             metrics = summary_metrics(logits, true_tokens)
             metrics.update(metadata)
-            metrics.update({"logit_seconds": sum(fold_seconds), "fold_seconds": fold_seconds,
+            metrics.update({"requested_depth": args.depth, "k": args.k, "logit_seconds": sum(fold_seconds), "fold_seconds": fold_seconds,
                             "preprocess_seconds": preprocess_seconds,
                             "inference_seconds": sum(fold_seconds),
                             "total_seconds": time.perf_counter() - started,
                             "peak_gpu_mib": torch.cuda.max_memory_allocated() / (1 << 20) if device.type == "cuda" else None})
+            (destination / "complete.json").write_text(json.dumps({k: v for k, v in metrics.items() if k != "fold_seconds"}))
+            # The ledger is the commit marker. An interruption before this write
+            # leaves rerunnable files; no half-written chain is ever skipped.
             with metrics_path.open("a") as handle:
                 handle.write(json.dumps(metrics) + "\n")
                 handle.flush()
                 os.fsync(handle.fileno())
-            (destination / "complete.json").write_text(json.dumps({k: v for k, v in metrics.items() if k != "fold_seconds"}))
             print(json.dumps({k: v for k, v in metrics.items() if k != "selected_source_rows"}), flush=True)
             del tokens, true_tokens, logits
         except Exception:

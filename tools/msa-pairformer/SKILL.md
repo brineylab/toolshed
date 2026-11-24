@@ -8,7 +8,7 @@ metadata:
 
 Image: `ghcr.io/brineylab/toolshed/msa-pairformer:1.0.0`
 
-`yoakiyama/MSA-Pairformer` at revision `7563e77a87536b5572f91683c39073ef348639a4`, with code commit `875363570df1ae484cf725aba382790444223005`, PyTorch 2.12.1 on CUDA 13 and cuEquivariance 0.9.1 for Blackwell. The cuEx main checkpoint and two contact-head checkpoints are baked into `/opt/model`; no network is used at run time.
+`yoakiyama/MSA-Pairformer` at revision `7563e77a87536b5572f91683c39073ef348639a4`, with code commit `875363570df1ae484cf725aba382790444223005`, PyTorch 2.12.1 on CUDA 13 and cuEquivariance 0.10.0 for Blackwell. The cuEx main checkpoint and two contact-head checkpoints are baked into `/opt/model`; no network is used at run time.
 
 ## Commands
 
@@ -77,5 +77,5 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/msa-pairformer:1.
 - `--k 7` partitions every query position into seven balanced folds. `--k 2` uses two disjoint approximately 15% stretches of a seeded permutation, not two partitions of half a sequence. Other positive K values mean balanced full query partitions.
 - The standard hhfilter settings retain upstream defaults, not the hidden `qid=0/qsc` variants used in some training scripts. The query clone cap is applied before hhfilter; its metadata max identity therefore reports filtering before hhfilter's own max-90% representative selection.
 - Neff is computed from filtered selected rows, not the unfiltered database MSA. Use the same depth and identity-cap for extraction and any Neff gate, unless deliberately studying a full-MSA Neff.
-- A test fixture of 120 residues and 40 A3M rows crosses the real hhfilter and K-fold paths and confirms dtype, coverage, no-homolog masking, row filtering and C-beta map shape. It does not establish contact accuracy on experimental structures or quantify the longest-chain B200 memory use; these are benchmark measurements, not promises of the synthetic smoke test.
+- A test fixture of 120 residues and 40 A3M rows crosses the real hhfilter and K-fold paths and confirms dtype, coverage, no-homolog masking, row filtering, source-token target indexing, C-beta map values and shape. It does not establish contact accuracy on experimental structures or quantify the longest-chain B200 memory use; these are benchmark measurements, not promises of the synthetic smoke test.
 - The checkpoint's modified MIT license (weights, Pizza edition) permits redistribution and requires copyright/permission inclusion; code has the corresponding Coffee edition. Both license texts are at `/opt/model/LICENSE` and `/opt/model/CODE_LICENSE`. Cite MSA Pairformer (`Akiyama et al.`, Cell 2026, DOI `10.1016/j.cell.2026.06.029`) in derivative analyses.
