@@ -35,7 +35,9 @@ assert np.allclose(references.astype(np.float32), references.T.astype(np.float32
 if k == 7:
     assert conditional.all() and meta['fold_sizes'] == [18, 17, 17, 17, 17, 17, 17]
     assert sorted(set(imports['fold'])) == list(range(7))
-    assert imports['target_index'].to_numpy().tolist() == [i % 20 for i in range(20)] * 6
+    query = next(iter((Path(__file__).parent / 'fixture.a3m').read_text().split('>')[1:]))
+    expected_query = ['ARNDCEQGHILKMFPSTWYV'.index(aa) for aa in ''.join(query.splitlines()[1:])]
+    assert imports['target_index'].to_numpy().tolist() == expected_query
 else:
     assert conditional.sum() == 35 and meta['fold_sizes'] == [18, 17]
     assert sorted(set(imports.loc[conditional, 'fold'])) == [0, 1]
