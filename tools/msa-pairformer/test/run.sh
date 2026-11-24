@@ -7,8 +7,8 @@ export PYTHONPATH=/tmp/does-not-exist
 out=$(mktemp -d)
 mkdir "$out/input"
 gzip -c fixture.a3m > "$out/input/fixture.a3m.gz"
-# Exercise the real multi-row hhfilter, all seven query-only masks, and both
-# ordinary and moved-directory resumes on CUDA 13 cuEquivariance.
+# Exercise real multi-row hhfilter and greedy diversity selection past the
+# cuEquivariance 100-residue threshold, plus query-only masks and resumption.
 command=(msa-pairformer --in "$out/input" --depth 16 --k 7 --query-identity-cap .99 --min-coverage .82)
 "${command[@]}" --out "$out/result"
 "${command[@]}" --out "$out/result"
