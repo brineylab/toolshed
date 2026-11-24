@@ -68,6 +68,9 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
     keep_indices = np.flatnonzero((np.arange(len(rows)) == 0) | (coverage >= min_coverage))
     coverage_rows = len(keep_indices)
     array = array[keep_indices]
+    print(json.dumps({"path": str(path), "stage": "coverage_filter",
+                      "input_rows": len(rows), "retained_rows": len(array),
+                      "removed_rows": len(rows) - len(array)}), flush=True)
     # A sequence's identity to the query is its matching ungapped amino acids at
     # query columns. It is not affected by the sequence's gaps at other columns.
     matches = ((array[1:] == array[0]) & (array[1:] != "-")).sum(axis=1)
@@ -77,6 +80,10 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
         array = array[keep]
         keep_indices = keep_indices[keep]
         identities = identities[identities <= query_identity_cap]
+    print(json.dumps({"path": str(path), "stage": "query_clone_cap",
+                      "identity_cap": query_identity_cap, "retained_rows": len(array),
+                      "maximum_retained_homolog_identity": float(identities.max()) if len(identities) else None}),
+          flush=True)
     filtered_input = work / "input.a3m"
     with filtered_input.open("w") as handle:
         for i, row in enumerate(array):
@@ -86,6 +93,10 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
               hhfilter_kwargs={"binary": "hhfilter", "seq_id": 90,
                                "cov": 70, "qid": 30, "qsc": -20},
               parser_kwargs={"keep_insertions": False, "to_upper": True})
+    selected_rows = [int(i) for i in msa.select_diverse_indices]
+    print(json.dumps({"path": str(path), "stage": "parsed_hhfilter_output",
+                      "retained_rows": msa.diverse_tokenized_msa.shape[0],
+                      "selected_source_rows": [int(keep_indices[i]) for i in selected_rows]}), flush=True)
     tokens = msa.diverse_tokenized_msa.long()
     effective_neff = neff(msa.select_diverse_msa, 0.8)
     metadata = {

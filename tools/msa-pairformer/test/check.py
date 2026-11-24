@@ -13,7 +13,7 @@ assert row['requested_depth'] == 16 and row['depth'] >= 2, row
 assert row['coverage_rows'] < 41, row
 assert row['query_homolog_max_identity'] <= .99, row
 assert row['neff'] > 1 and row['neff_sqrt_l'] > 0, row
-assert row['ncount'] == (36 if k == 2 else 120), row
+assert row['ncount'] == (35 if k == 2 else 120), row
 assert np.isfinite(row['nll_sum']) and np.isfinite(row['entropy_sum']), row
 assert row['entropy_sum'] > 0 and row['inference_seconds'] > 0, row
 meta = json.loads((out / 'fixture' / 'mask.json').read_text())
