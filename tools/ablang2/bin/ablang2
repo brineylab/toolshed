@@ -100,7 +100,8 @@ def fill(model, pair, tokens, allowed):
     residues = list(heavy + light)
     for index, position in enumerate(positions.tolist()):
         if ids[0, position] == model.tokenizer.mask_token:
-            residues[index] = RESIDUES[int(allowed[logits[position].argmax(-1)])]
+            # logits already contains only the 20 residue columns, in RESIDUES order.
+            residues[index] = RESIDUES[int(logits[position].argmax(-1))]
     return name, "".join(residues[:len(heavy)]) + "|" + "".join(residues[len(heavy):])
 
 
