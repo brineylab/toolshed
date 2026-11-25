@@ -51,15 +51,20 @@ def read_pairs(heavy_path, light_path, fill=False):
     return [(name, sequence, light[name]) for name, sequence in heavy]
 
 
-def encode(model, pair, device):
+def encode(model, pair, device, fill=False):
     _, heavy, light = pair
     # Upstream pretrained.py:add_extra_tokens and models/ablang2/vocab.py:
     # heavy first, light second, '<' and '>' at the chain ends, and '|' between chains.
     text = f"<{heavy}>|<{light}>"
     ids = model.tokenizer(text, pad=True, w_extra_tkns=False, device=device)
+    special_tokens = model.tokenizer.all_special_tokens
+    if fill:
+        # Input masks occupy residue positions; output masks do not.
+        special_tokens = [token for token in special_tokens
+                          if token != model.tokenizer.mask_token]
     residue_positions = torch.tensor(
         [i for i, token in enumerate(ids[0].tolist())
-         if token not in model.tokenizer.all_special_tokens],
+         if token not in special_tokens],
         dtype=torch.long, device=device)
     assert len(residue_positions) == len(heavy) + len(light)
     return ids, residue_positions
@@ -121,7 +126,7 @@ def main():
           f"input_bytes={os.path.getsize(args.heavy) + os.path.getsize(args.light)}", flush=True)
     residue_tokens = model.tokenizer.aa_to_token
     allowed = torch.tensor([residue_tokens[aa] for aa in RESIDUES], device=args.device)
-    tokens = [encode(model, pair, args.device) for pair in pairs]
+    tokens = [encode(model, pair, args.device, fill=args.cmd == "fill") for pair in pairs]
     with torch.inference_mode():
         if args.cmd == "embed":
             np.savez(args.out, ids=np.array([p[0] for p in pairs]),
