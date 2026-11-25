@@ -61,6 +61,17 @@ class CatalogTests(unittest.TestCase):
         entries = catalog.collect(self.root)
         self.assertEqual([e["name"] for e in entries], ["alpha"])
 
+    def test_non_string_description_degrades_cleanly(self):
+        tool_dir = self.root / "tools" / "broken"
+        tool_dir.mkdir(parents=True)
+        (tool_dir / "SKILL.md").write_text(
+            "---\nname: broken\ndescription:\n  indented: line\nmetadata:\n  version: 1.0.0\n---\n",
+            encoding="utf-8",
+        )
+        entries = catalog.collect(self.root)
+        self.assertEqual(entries[0]["summary"], "")
+        self.assertIn("| [broken](tools/broken/SKILL.md) | `1.0.0` | — |  |", catalog.render(entries))
+
     def test_renders_sorted_deterministic_table_and_writes_output(self):
         write_tool(self.root, "zeta", version="2.1.0", description='"Zeta: second."', record_body="GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-1)")
         write_tool(self.root, "alpha", version="1.0.0", description='"Alpha: first."', record_body="gpu: none")

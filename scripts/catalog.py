@@ -66,12 +66,14 @@ def collect(root: Path) -> list[dict[str, str]]:
         meta = check.frontmatter(skill)
         metadata = meta.get("metadata")
         version = metadata.get("version", "") if isinstance(metadata, dict) else ""
+        desc = meta.get("description", "")
+        summary = desc if isinstance(desc, str) else ""
         record = root / "results" / tool_dir.name / f"{version}.txt"
         entries.append({
             "name": tool_dir.name,
             "version": version,
             "tested_on": tested_on(record),
-            "summary": meta.get("description", ""),
+            "summary": summary,
             "skill": f"tools/{tool_dir.name}/SKILL.md",
         })
     return entries
