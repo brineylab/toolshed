@@ -50,16 +50,18 @@ def encode(model, sequence, device):
 
 def residue_logp(model, tokens):
     ids, positions, _ = tokens
+    # AbLang's columns 1:21 are tokens in its own vocabulary order, not the
+    # alphabetical matrix convention. Select columns by their vocabulary ids.
+    residue_ids = torch.tensor([model.tokenizer.vocab_to_token[residue] for residue in RESIDUES],
+                               device=ids.device)
     rows = []
     for start in range(0, len(positions), BATCH):
         pos = positions[start:start + BATCH]
         index = torch.arange(len(pos), device=ids.device)
         batch = ids.repeat((len(pos), 1))
         batch[index, pos] = model.tokenizer.vocab_to_token["*"]
-        predictions = model.AbLang(batch)
-        # Upstream's likelihood head exposes its 20 logit columns directly.
-        # Normalizing those columns leaves the predicted residue unchanged.
-        rows.append(predictions[index, pos, 1:21].log_softmax(-1))
+        predictions = model.AbLang(batch)[index, pos]
+        rows.append(predictions[:, residue_ids].log_softmax(-1))
     return torch.cat(rows).float().cpu().numpy()
 
 
