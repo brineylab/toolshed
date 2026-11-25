@@ -53,8 +53,8 @@ masked_light = read(root / "masked-light.fasta")
 path = os.environ["ANTIBERTA2_MODEL"]
 tokenizer = AutoTokenizer.from_pretrained(path)
 model, loading_info = AutoModelForMaskedLM.from_pretrained(path, output_loading_info=True)
-assert loading_info["missing_keys"] == [], loading_info["missing_keys"]
-assert loading_info["mismatched_keys"] == [], loading_info["mismatched_keys"]
+assert not loading_info["missing_keys"], loading_info["missing_keys"]
+assert not loading_info["mismatched_keys"], loading_info["mismatched_keys"]
 model = model.eval().cuda()
 print("load_keys", {key: loading_info[key] for key in ("missing_keys", "unexpected_keys", "mismatched_keys")})
 ids, positions, paired_text, _ = encode(tokenizer, heavy, light)
