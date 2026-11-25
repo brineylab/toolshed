@@ -3,7 +3,7 @@ ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility \
     HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ABLANG2_MODEL=/opt/ABLANG-paired \
     RANK= WORLD_SIZE= LOCAL_RANK=
 # The upstream package is the same ablang2 0.2.1 release used for the reference check.
-RUN pip uninstall -y torchaudio torchvision && \
+RUN pip uninstall -y --break-system-packages torchaudio torchvision && \
     pip install --no-cache-dir --break-system-packages \
       ablang2==0.2.1 einops==0.8.2 rotary-embedding-torch==0.9.2 numpy==2.5.4 requests==2.33.1 && \
     python3 -I -c "import torch, ablang2, rotary_embedding_torch"
