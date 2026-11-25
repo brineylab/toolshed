@@ -83,8 +83,8 @@ with torch.inference_mode():
     predictions = logits[:, allowed].argmax(-1).tolist()
 filled = "".join(RESIDUES[predictions[position]] if int(masked_ids[0, position]) == tokenizer.mask_token_id
                   else token for position, token in zip(masked_positions.tolist(),
-                                                        list(masked_heavy + masked_light)))
-filled = filled.replace("X", "M")
+                                                        list(masked_heavy.replace("<mask>", "M") +
+                                                             masked_light.replace("<mask>", "M"))))
 expected_fasta = [">brii1", filled[:len(heavy)] + "|" + filled[len(heavy):]]
 assert (out / "filled.fasta").read_text().splitlines() == expected_fasta
 print("fill exactly matches an independent RoFormer infill", expected_fasta[1])
