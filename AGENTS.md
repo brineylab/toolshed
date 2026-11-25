@@ -14,11 +14,13 @@ Read before changing anything:
 ## Layout
 
 ```
+CATALOG.md                   CI-generated index of every tool, version, tested hardware, description, and SKILL.md path
 tools/<name>/SKILL.md        the skill: what the tool is for, how to call it, what it needs
 tools/<name>/Containerfile
 tools/<name>/test/run.sh     plus a tiny fixture; exit 0 iff the tool works
 tools/<name>/bin/            the wrapper program, only where upstream has none
 results/<name>/<version>.txt the record of a candidate's test
+scripts/catalog.py           generate CATALOG.md from tools/*/SKILL.md and results/
 scripts/check.py             a tool directory's rules, its candidate, its record, and whether its version is published
 scripts/changed-tools <range>  the tools a git diff range changed, for CI
 scripts/promote <repo> <candidate> <tested digest> <version>  copy the tested image to its version tag, never overwriting
@@ -27,6 +29,7 @@ scripts/push <name>          push it, first asking seed.yml to create a new tool
 scripts/test <name> podman|srun [flags]  test it by digest and write its record
 scripts/record <name> <image@digest> <exit> <runner> <host> <started> < output  write a record from a test run some other way
 tests/                       unit tests of the scripts, with registry, podman, srun, and skopeo stubbed
+.github/workflows/catalog.yml  regenerate and push CATALOG.md on merges to main, on hosted runners
 .github/workflows/tools.yml  check and promote, on hosted runners
 .github/workflows/seed.yml   create a new tool's package, public and linked, with a placeholder
 ```
