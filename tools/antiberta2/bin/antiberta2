@@ -68,7 +68,7 @@ def encode(tokenizer, pair, device):
     assert len(residue_positions) == len(heavy.replace("[MASK]", "M")) + len(light.replace("[MASK]", "M"))
     ids = tokenizer(text, return_tensors="pt")["input_ids"].to(device)
     assert ids.shape[1] == len(residue_positions) + 5
-    assert tokenizer.convert_ids_to_tokens(ids[0, residue_positions]) == token_list
+    assert tokenizer.convert_ids_to_tokens(ids[0, residue_positions]) == [token_list[position - 1] for position in residue_positions]
     positions = torch.tensor(residue_positions, dtype=torch.long, device=device)
     masked = ids[0, positions] == tokenizer.mask_token_id
     return ids, positions, masked
