@@ -2,11 +2,11 @@
 name: antiberty
 description: "AntiBERTy single-chain antibody language model: pseudo-log-likelihoods, per-sequence embeddings, masked infilling, and per-position amino-acid matrices for antibody heavy or light variable domains. Reach for it to score, embed, or infill an antibody chain, or to compute its per-position mutation profile."
 metadata:
-  version: 1.0.4
+  version: 1.0.5
 ---
 # antiberty
 
-Image: `ghcr.io/brineylab/toolshed/antiberty:1.0.4`
+Image: `ghcr.io/brineylab/toolshed/antiberty:1.0.5`
 
 AntiBERTy (`antiberty` 1.0.0), an eight-layer BERT encoder with 512-dimensional representations, trained on 558M antibody variable domains. Each input sequence is one heavy or light chain; this tool does not concatenate heavy/light pairs. Weights are in the image at Hugging Face `jeffruffolo/AntiBERTy` revision `d582006e0c7dc6917d26fa60740a357e8df7b466`, and no network is needed.
 
@@ -31,7 +31,7 @@ Each takes `--device cuda` or `--device cpu`; the default is the GPU when one is
 
 ## Compute
 
-One GPU, one sequence at a time for `pll` and `matrix`, in batches of 32 masked copies. Each of those commands costs one masked forward pass per residue; `embed` and `fill` cost one forward pass per input (a single padded batch for `fill`). The model holds about 26M fp32 parameters, with a 104 MB safetensors checkpoint. Measured per-command timings, throughput and GPU memory are printed by every command and recorded in `results/antiberty/1.0.4.txt` for the 121-residue fixture. The positional limit is **510 residues** plus `[CLS]` and `[SEP]`; longer inputs are rejected.
+One GPU, one sequence at a time for `pll` and `matrix`, in batches of 32 masked copies. Each of those commands costs one masked forward pass per residue; `embed` and `fill` cost one forward pass per input (a single padded batch for `fill`). The model holds about 26M fp32 parameters, with a 104 MB safetensors checkpoint. Measured per-command timings, throughput and GPU memory are printed by every command and recorded in `results/antiberty/1.0.5.txt` for the 121-residue fixture. The positional limit is **510 residues** plus `[CLS]` and `[SEP]`; longer inputs are rejected.
 
 ## Running it
 
@@ -39,13 +39,13 @@ On a laptop, from the directory holding the FASTAs (omit `--device` without a GP
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/antiberty:1.0.4 antiberty matrix --in sequences.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/antiberty:1.0.5 antiberty matrix --in sequences.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/antiberty:1.0.4 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/antiberty:1.0.5 \
   --container-mounts="$PWD":/work --container-workdir=/work antiberty pll --in sequences.fasta --out pll.tsv
 ```
 
