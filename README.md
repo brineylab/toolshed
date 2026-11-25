@@ -8,7 +8,9 @@ Why it exists and what it is not: [docs/VISION.md](docs/VISION.md). How it works
 
 ## Finding a tool
 
-`ls tools`. Each `tools/<name>/SKILL.md` starts with what the tool is for and when to reach for it, then its image, its commands, its inputs and outputs, the compute it needs, and its gotchas.
+Start with [CATALOG.md](CATALOG.md) — an index of every published tool, its current version, tested hardware, description, and `SKILL.md` path, regenerated on every merge to `main`. Agents without a local clone can fetch it in one request from `https://raw.githubusercontent.com/brineylab/toolshed/main/CATALOG.md`.
+
+Each `tools/<name>/SKILL.md` gives the full details: image URI, commands, inputs and outputs, compute, and gotchas.
 
 ## Running a tool from a laptop
 
