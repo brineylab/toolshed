@@ -93,13 +93,14 @@ def embedding(model, tokens):
 
 
 def fill(model, pair, tokens, allowed):
-    (name, heavy, light), (ids, _) = pair, tokens
+    (name, heavy, light), (ids, positions) = pair, tokens
     logits = forward(model, ids)[0][:, allowed]
-    out = ids[0].clone()
+    out = ids[0, positions].clone()
     masked = out == model.tokenizer.mask_token
-    out[masked] = allowed[logits[masked].argmax(-1)]
-    # decode expects one sequence; __call__(mode="decode") expects a batch of them.
-    return name, model.tokenizer.decode(out).replace("<", "").replace(">", "")
+    out[masked] = allowed[logits[positions[masked]].argmax(-1)]
+    # Render only residue tokens; preserve the caller's chain boundaries exactly.
+    joined = "".join(model.tokenizer.token_to_aa[int(token)] for token in out.tolist())
+    return name, joined[:len(heavy)] + "|" + joined[len(heavy):]
 
 
 def main():
