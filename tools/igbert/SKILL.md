@@ -1,12 +1,12 @@
 ---
 name: igbert
-description: "IgBert paired antibody BERT language model: pseudo-log-likelihoods, per-pair embeddings, masked infilling, and per-position amino-acid matrices for heavy/light antibody pairs. Reach for it to score, embed, or infill a paired antibody, or to compute its per-position mutation profile; use igbert-unpaired for a single chain."
+description: "IgBert paired antibody BERT language model: pseudo-log-likelihoods, per-pair embeddings, masked infilling, and per-position amino-acid matrices for heavy/light antibody pairs. Reach for it to score, embed, or infill a paired antibody, or to compute its per-position mutation profile. This tool takes paired chains only and does not score a single chain."
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 # igbert
 
-Image: `ghcr.io/brineylab/toolshed/igbert:1.0.1`
+Image: `ghcr.io/brineylab/toolshed/igbert:1.0.2`
 
 IgBert (`transformers`' BERT implementation), a 30-layer, 1024-dimensional antibody language model with 420M fp32 parameters. Hugging Face `Exscientia/IgBert` revision `81a4abb8a4dac5cdcbefc28e5b331a82224c485d` is in the image as safetensors, and no network is needed. The caller supplies separate chain FASTAs; the tool constructs heavy–`[SEP]`–light input.
 
@@ -39,19 +39,19 @@ On a laptop, from the directory holding the FASTAs:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/igbert:1.0.1 igbert matrix --heavy h.fasta --light l.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/igbert:1.0.2 igbert matrix --heavy h.fasta --light l.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/igbert:1.0.1 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/igbert:1.0.2 \
   --container-mounts="$PWD":/work --container-workdir=/work igbert pll --heavy h.fasta --light l.fasta --out pll.tsv
 ```
 
 ## Gotchas
 
 - **The chain separator is directly evidenced, not guessed from vocabulary.** Kenlay et al., *Large scale paired antibody language models* (arXiv:2403.17889), §6 says paired inputs concatenate heavy and light with a separator, and Appendix A constructs `" ".join(sequence_heavy) + " [SEP] " + " ".join(sequence_light)` itself at https://github.com/Exscientia/IgBert/blob/main/README.md. Its tokenization example is `[CLS] heavy-residues [SEP] light-residues [SEP]`. The tool accepts no caller-written separator. §3/Table 1 documents the 300-token paired training target.
-- IgBert is fine-tuned from a separate unpaired checkpoint. For single-chain scoring use the separate `igbert-unpaired` tool, not a fabricated empty light chain.
+- IgBert is fine-tuned from a separate unpaired checkpoint, but this tool takes paired chains only. It does not score a single chain, and an empty light chain must not be fabricated.
 - The test uses the paper's first 228-residue example pair (119 heavy + 109 light), crossing the wrapper's 32-mask batching threshold seven times. Direct `BertForMaskedLM` per-position full-vocabulary log-softmax reference calls reproduce `matrix` and `pll`, the documented last-layer pooling reproduces `embed`, and independent argmax infilling reproduces `fill`. The load requires `missing_keys=[]`, `unexpected_keys=[]` and `mismatched_keys=[]`.
 - The weights' upstream repository and metadata carry the **MIT license**, which permits redistribution with its copyright and permission notice. The license is shipped beside the weights as `/opt/model/LICENSE`; no credential is needed or stored. Exscientia's Hugging Face model API declares `license: mit`; the corresponding Zenodo deposit 10876909 independently offers the same weights under CC BY 4.0.
