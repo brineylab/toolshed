@@ -76,7 +76,9 @@ def encode(tokenizer, pair, device):
     positions = torch.tensor(residue_positions, dtype=torch.long, device=device)
     masked = []
     for chain in (heavy, light):
-        masked.extend(part == "[MASK]" for part in chain.replace("[MASK]", " [MASK] ").split())
+        for part in chain.replace("[MASK]", " [MASK] ").split():
+            masked.append(True) if part == "[MASK]" else masked.extend([False] * len(part))
+    assert len(masked) == expected_length
     masked = torch.tensor(masked, dtype=torch.bool, device=device)
     ids[0, positions[masked]] = tokenizer.mask_token_id
     return ids, positions, masked
