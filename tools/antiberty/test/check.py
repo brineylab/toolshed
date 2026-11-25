@@ -35,7 +35,7 @@ assert math.isfinite(pll) and abs(pll - expected) < 0.002, (pll, expected)
 print(f"pll={pll:.6f}; upstream mean*residues={expected:.6f}")
 
 embeddings = np.load(out / "emb.npz")["embeddings"]
-upstream_embedding = runner.embed([sequence])[-1][0, 1:-1].mean(0).float().cpu().numpy()
+upstream_embedding = runner.embed([sequence], hidden_layer=-1)[0][1:-1].mean(0).float().cpu().numpy()
 print("embedding_diagnostics:",
       f"tool_range=({embeddings.min():.6f}, {embeddings.max():.6f})",
       f"upstream_range=({upstream_embedding.min():.6f}, {upstream_embedding.max():.6f})",
