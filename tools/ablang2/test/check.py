@@ -15,10 +15,10 @@ masked_heavy = (root / "masked-heavy.fasta").read_text().splitlines()[1]
 masked_light = (root / "masked-light.fasta").read_text().splitlines()[1]
 joint_masked = masked_heavy + masked_light
 joint_truth = heavy + light
-assert joint_masked.replace("<mask>", "*") == "".join(
-    "*" if masked != true else true
-    for masked, true in zip(joint_masked.replace("<mask>", "*"), joint_truth)
-), "masked fixture must differ from its answer only at masked positions"
+assert len(joint_masked) == len(joint_truth), "masked fixture must preserve both chain lengths"
+assert all(masked == true or masked == "*"
+           for masked, true in zip(joint_masked, joint_truth)), \
+    "masked fixture must preserve every unmasked residue"
 model = ablang2.pretrained(model_to_use=os.environ["ABLANG2_MODEL"], random_init=False,
                            ncpu=1, device="cpu")
 upstream_mean = float(model([[heavy, light]], mode="pseudo_log_likelihood")[0])
