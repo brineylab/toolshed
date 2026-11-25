@@ -4,6 +4,7 @@ import hashlib
 import pathlib
 import sys
 import tarfile
+import time
 import urllib.request
 
 URL = "https://zenodo.org/api/records/10185169/files/ablang2-weights.tar.gz/content"
@@ -15,9 +16,32 @@ def main(destination):
     destination = pathlib.Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
     archive = pathlib.Path("/tmp/ablang2-weights.tar.gz")
-    with urllib.request.urlopen(URL, timeout=120) as response, archive.open("wb") as handle:
-        while chunk := response.read(1 << 20):
-            handle.write(chunk)
+    # The cluster observed two interrupted reads of this archive. Resume its
+    # byte range instead of restarting, and verify its published pin.
+    for attempt in range(1, 5):
+        have = archive.stat().st_size if archive.exists() else 0
+        if have > BYTES:
+            archive.unlink()
+            have = 0
+        headers = {"Range": f"bytes={have}-"} if have else {}
+        try:
+            request = urllib.request.Request(URL, headers=headers)
+            with urllib.request.urlopen(request, timeout=120) as response:
+                resume = bool(have and response.status == 206)
+                if have and not resume:
+                    have = 0
+                with archive.open("ab" if resume else "wb") as handle:
+                    while chunk := response.read(1 << 20):
+                        handle.write(chunk)
+            size = archive.stat().st_size
+            if size == BYTES:
+                break
+            raise IOError(f"downloaded {size} of {BYTES} bytes")
+        except (OSError, EOFError) as error:
+            print(f"weights attempt {attempt}/4: {type(error).__name__}: {error}", flush=True)
+            if attempt == 4:
+                raise
+            time.sleep(2 ** attempt)
     assert archive.stat().st_size == BYTES
     digest = hashlib.md5(archive.read_bytes()).hexdigest()
     assert digest == MD5, (digest, MD5)
