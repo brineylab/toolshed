@@ -1,0 +1,44 @@
+---
+tool: antiberta2
+version: 1.0.3
+image: ghcr.io/brineylab/toolshed/antiberta2@sha256:294ce9160c727fd4aa1d58b7434248f41c36919c612e1c7655e340ffb447bb36
+digest: sha256:294ce9160c727fd4aa1d58b7434248f41c36919c612e1c7655e340ffb447bb36
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-25T19:30:07Z
+exit: 0
+---
+Job 9705: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9705
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/antiberta2@sha256:294ce9160c727fd4aa1d58b7434248f41c36919c612e1c7655e340ffb447bb36
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/antiberta2@sha256:294ce9160c727fd4aa1d58b7434248f41c36919c612e1c7655e340ffb447bb36
+node: slurm-b200-204-213
+GPU 0: NVIDIA B200 (UUID: GPU-998ef1df-1610-ed45-41ea-11d9af0bba4d)
+Loading weights:   0%|          | 0/266 [00:00<?, ?it/s]Loading weights: 100%|██████████| 266/266 [00:00<00:00, 12486.96it/s]
+AntiBERTa2 (c) 2023 Alchemab Therapeutics Ltd; non-commercial research and academic use only; see /opt/model/LICENSE
+antiberta2: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.846; input_bytes=244
+antiberta2: compute_seconds=0.781; residues_per_second=292.076
+antiberta2: gpu=NVIDIA B200; peak_gpu_memory_gib=1.309
+Loading weights:   0%|          | 0/266 [00:00<?, ?it/s]Loading weights: 100%|██████████| 266/266 [00:00<00:00, 11734.29it/s]
+AntiBERTa2 (c) 2023 Alchemab Therapeutics Ltd; non-commercial research and academic use only; see /opt/model/LICENSE
+antiberta2: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.655; input_bytes=244
+antiberta2: compute_seconds=0.247; residues_per_second=921.242
+antiberta2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.802
+Loading weights:   0%|          | 0/266 [00:00<?, ?it/s]Loading weights: 100%|██████████| 266/266 [00:00<00:00, 12508.94it/s]
+AntiBERTa2 (c) 2023 Alchemab Therapeutics Ltd; non-commercial research and academic use only; see /opt/model/LICENSE
+antiberta2: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.650; input_bytes=259
+antiberta2: compute_seconds=0.256; residues_per_second=889.913
+antiberta2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.802
+Loading weights:   0%|          | 0/266 [00:00<?, ?it/s]Loading weights: 100%|██████████| 266/266 [00:00<00:00, 11599.12it/s]
+AntiBERTa2 (c) 2023 Alchemab Therapeutics Ltd; non-commercial research and academic use only; see /opt/model/LICENSE
+antiberta2: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.653; input_bytes=244
+antiberta2: compute_seconds=0.776; residues_per_second=293.657
+antiberta2: gpu=NVIDIA B200; peak_gpu_memory_gib=1.309
+Loading weights:   0%|          | 0/266 [00:00<?, ?it/s]Loading weights: 100%|██████████| 266/266 [00:00<00:00, 11444.33it/s]
+load_keys {'missing_keys': set(), 'unexpected_keys': set(), 'mismatched_keys': set()}
+paired_format Ḣ E V Q L L E S G G E V K K P G A S ... P P T F G Q G T K L E I K length 233
+pll=-305.264771; independently masked RoFormer sum=-305.264771
+embedding_max_difference 0.0
+fill exactly matches an independent RoFormer infill EVQLLESGGEVKKPGASVKVSCRASGYTFRNYGLTWVRQAPGQGLEWMGWISAYNGNTNYAQKFQGRVTLTTDTSTSTAYMELRSLRSDDTAVYFCARDVPGHGAAFMDVWGTGTTVTVSS|DIQMTQSPSSLSASVGDRVTITCRASQSISSYLNWYQQKPGKAPKLLIYAASTLQSGVPSRFSGSGSGTDFTLTISSLQPEDFATYYCQQSYSTPPTFGQGTKLEIK
+matrix (228, 20) float32 matches independent per-position RoFormer reference
+ok
+Job 9705: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9705
