@@ -16,14 +16,17 @@ def read(path):
 
 
 def encode(tokenizer, heavy, light):
-    """Tokenize the paired format directly; a literal mask is one token."""
-    text = f"Ḣ {' '.join(heavy)} [SEP] Ḷ {' '.join(light)}"
+    """Tokenize the paired format directly; X marks independently masked residues."""
+    text = f"Ḣ {' '.join(heavy.replace('<mask>', 'X'))} [SEP] Ḷ {' '.join(light.replace('<mask>', 'X'))}"
     token_list = tokenizer.tokenize(text)
     ids = tokenizer(text, return_tensors="pt")["input_ids"].to("cuda")
     positions = [index + 1 for index, token in enumerate(token_list)
-                 if token in RESIDUES or token == tokenizer.mask_token]
-    assert len(positions) == len(heavy.replace("<mask>", "M")) + len(light.replace("<mask>", "M"))
-    assert ids.shape[1] == len(positions) + 6
+                 if token in RESIDUES or token == "X"]
+    assert len(positions) == len(heavy.replace("<mask>", "M")) + len(light.replace("<mask>", "M")), (len(positions), len(heavy), len(light))
+    assert ids.shape[1] == len(positions) + 5
+    mask_positions = [position for position, token in zip(positions, token_list) if token == "X"]
+    assert len(mask_positions) == (heavy + light).count("<mask>")
+    ids[0, mask_positions] = tokenizer.mask_token_id
     assert tokenizer.convert_ids_to_tokens(ids[0, positions]) == token_list
     return ids, torch.tensor(positions, device="cuda"), text, token_list
 
