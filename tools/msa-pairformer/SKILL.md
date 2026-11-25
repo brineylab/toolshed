@@ -64,7 +64,7 @@ podman run --rm --network none --device nvidia.com/gpu=all -v "$PWD":/work -w /w
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/msa-pairformer:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/msa-pairformer:1.0.1 \
   --container-mounts="$FLYLOFT_CAMPAIGN/data:/data" --container-workdir=/data \
   msa-pairformer --in /data/msas --out /data/teacher_logits \
   --depth 128 --k 7 --min-coverage 0.8 --query-identity-cap 0.95
