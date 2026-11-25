@@ -5,19 +5,16 @@ ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility HF_HUB
 # (11.4 GB), fetched one RUN per shard after build.sh, so no single layer
 # nears a registry size limit. Everything else is one RUN (build.sh), naming
 # each stage as it starts, so a build that dies says where. The environment is
-# vendored: the pinned wheels under wheels/, installed with --no-index, so the
-# build's only network is the weights fetch, the one route the build host has
-# proven (about 100 MiB/s, every sha256 verified). Each shard is stored
+# requirements.txt: the closed set of packages, each wheel sha256-pinned. Each shard is stored
 # exactly as released, cast to bf16 at load, the same cast the test's
 # reference map was computed with; build.sh lays in the committed files --
 # the vendored modeling code under /opt/src, the wrapper on PATH, the license
 # beside the weights -- and each fetch prints its redirect hops and a
 # heartbeat while its shard streams, so a build that dies mid-download says
 # where.
-COPY wheels /incoming/wheels/
 COPY src /incoming/src/
 COPY bin /incoming/bin/
-COPY LICENSE fetch_weights.py build.sh /incoming/
+COPY LICENSE fetch_weights.py build.sh requirements.txt /incoming/
 RUN bash /incoming/build.sh
 RUN python3 -I /incoming/fetch_weights.py /opt/model config.json pytorch_model.bin.index.json tokenizer_config.json special_tokens_map.json vocab.txt
 RUN python3 -I /incoming/fetch_weights.py /opt/model pytorch_model-00001-of-00004.bin

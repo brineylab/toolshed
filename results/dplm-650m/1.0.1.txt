@@ -1,0 +1,15 @@
+---
+tool: dplm-650m
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/dplm-650m@sha256:185eff5638165308105f5bdc1c2b80c2074be23ed1c7f16587fcda20c1e6ef20
+digest: sha256:185eff5638165308105f5bdc1c2b80c2074be23ed1c7f16587fcda20c1e6ef20
+runner: srun --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-25T01:25:56Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/dplm-650m@sha256:185eff5638165308105f5bdc1c2b80c2074be23ed1c7f16587fcda20c1e6ef20
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/dplm-650m@sha256:185eff5638165308105f5bdc1c2b80c2074be23ed1c7f16587fcda20c1e6ef20
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-8ebec753-debb-ad70-0540-ce3b0d3f6252)
+ok: ubiquitin (76 residues) symmetric, r=1.0000, top-76 overlap=1.00
