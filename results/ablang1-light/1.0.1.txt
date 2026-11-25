@@ -1,0 +1,34 @@
+---
+tool: ablang1-light
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/ablang1-light@sha256:129f5d703c94bcd1a5cb46fe8f3e3d8e40c2c94e490b6232ce2d79d50d40902e
+digest: sha256:129f5d703c94bcd1a5cb46fe8f3e3d8e40c2c94e490b6232ce2d79d50d40902e
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-25T23:35:39Z
+exit: 0
+---
+Job 10228: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=10228
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/ablang1-light@sha256:129f5d703c94bcd1a5cb46fe8f3e3d8e40c2c94e490b6232ce2d79d50d40902e
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/ablang1-light@sha256:129f5d703c94bcd1a5cb46fe8f3e3d8e40c2c94e490b6232ce2d79d50d40902e
+node: slurm-b200-204-213
+GPU 0: NVIDIA B200 (UUID: GPU-5e1e20fc-782d-818f-5c2d-ae3db1bcd90e)
+ablang1-light: 1 sequence(s), 109 residues; device=cuda; model_load_seconds=0.978; input_bytes=118
+ablang1-light: compute_seconds=0.341; residues_per_second=319.508
+ablang1-light: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+ablang1-light: 1 sequence(s), 109 residues; device=cuda; model_load_seconds=0.972; input_bytes=118
+ablang1-light: compute_seconds=0.254; residues_per_second=429.645
+ablang1-light: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+ablang1-light: 1 sequence(s), 109 residues; device=cuda; model_load_seconds=0.969; input_bytes=123
+ablang1-light: compute_seconds=0.286; residues_per_second=380.751
+ablang1-light: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+ablang1-light: 1 sequence(s), 109 residues; device=cuda; model_load_seconds=0.982; input_bytes=118
+ablang1-light: compute_seconds=0.342; residues_per_second=319.171
+ablang1-light: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+chain=light; pll=-50.855000; upstream tokenizer-indexed masked-logit sum=-50.855003
+mean_per_residue_pll=-0.466560; uniform_log_probability=-2.995732
+embedding_max_difference 0.0
+fill exactly matches upstream ablang.pretrained(..., mode='restore') EVVMTQSPASLSVSPGERATLSCRARASLGISTDLAWYQQRPGQAPRLLIYGASTRATGIPARFSGSGSGTEFTLTISSLQSEDSAVYYCQQYSNWPLTFGGGTKVEIK
+matrix (109, 20) float32 matches upstream tokenizer-indexed masked logits column by column
+ok
+Job 10228: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=10228
