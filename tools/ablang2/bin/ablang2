@@ -98,7 +98,8 @@ def fill(model, pair, tokens, allowed):
     out = ids[0].clone()
     masked = out == model.tokenizer.mask_token
     out[masked] = allowed[logits[masked].argmax(-1)]
-    return name, model.tokenizer(out, mode="decode")[0].replace("<", "").replace(">", "")
+    # decode expects one sequence; __call__(mode="decode") expects a batch of them.
+    return name, model.tokenizer.decode(out).replace("<", "").replace(">", "")
 
 
 def main():
