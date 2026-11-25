@@ -2,11 +2,11 @@
 name: msa-pairformer
 description: "MSA Pairformer on Blackwell: A3M filtering, hhfilter diversity subsampling, query-only conditional (L, 20) logits in sharded Parquet, and C-beta contact score maps. Reach for it to extract masked-query teacher logits for protein language-model distillation."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # msa-pairformer
 
-Image: `ghcr.io/brineylab/toolshed/msa-pairformer:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/msa-pairformer:1.0.1`
 
 `yoakiyama/MSA-Pairformer` at revision `7563e77a87536b5572f91683c39073ef348639a4`, with code commit `875363570df1ae484cf725aba382790444223005`, PyTorch 2.12.1 on CUDA 13 and cuEquivariance 0.10.0 for Blackwell. The cuEx main checkpoint and two contact-head checkpoints are baked into `/opt/model`; no network is used at run time.
 
@@ -57,7 +57,7 @@ On a laptop with a Blackwell GPU:
 
 ```bash
 podman run --rm --network none --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/msa-pairformer:1.0.0 \
+  ghcr.io/brineylab/toolshed/msa-pairformer:1.0.1 \
   msa-pairformer --in msas/ --out teacher_logits/ --depth 128 --k 7 --min-coverage 0.8
 ```
 
@@ -65,7 +65,8 @@ On a Slurm cluster with pyxis:
 
 ```bash
 srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/msa-pairformer:1.0.0 \
-  msa-pairformer --in "$FLYLOFT_CAMPAIGN/data/msas" --out "$FLYLOFT_CAMPAIGN/data/teacher_logits" \
+  --container-mounts="$FLYLOFT_CAMPAIGN/data:/data" --container-workdir=/data \
+  msa-pairformer --in /data/msas --out /data/teacher_logits \
   --depth 128 --k 7 --min-coverage 0.8 --query-identity-cap 0.95
 ```
 
