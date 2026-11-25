@@ -95,12 +95,13 @@ def embedding(model, tokens):
 def fill(model, pair, tokens, allowed):
     (name, heavy, light), (ids, positions) = pair, tokens
     logits = forward(model, ids)[0][:, allowed]
-    out = ids[0, positions].clone()
-    masked = out == model.tokenizer.mask_token
-    out[masked] = allowed[logits[positions[masked]].argmax(-1)]
-    # Render only residue tokens; preserve the caller's chain boundaries exactly.
-    joined = "".join(model.tokenizer.token_to_aa[int(token)] for token in out.tolist())
-    return name, joined[:len(heavy)] + "|" + joined[len(heavy):]
+    # Start with the caller's residues, not a decode of the model's output:
+    # only masked positions are predictions; every other residue is input.
+    residues = list(heavy + light)
+    for index, position in enumerate(positions.tolist()):
+        if ids[0, position] == model.tokenizer.mask_token:
+            residues[index] = RESIDUES[int(allowed[logits[position].argmax(-1)])]
+    return name, "".join(residues[:len(heavy)]) + "|" + "".join(residues[len(heavy):])
 
 
 def main():
