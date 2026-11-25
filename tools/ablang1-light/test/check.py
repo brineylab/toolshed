@@ -29,7 +29,9 @@ out = pathlib.Path(sys.argv[1])
 root = pathlib.Path(__file__).parent
 sequence = (root / "sequences.fasta").read_text().splitlines()[1]
 masked_sequence = (root / "masked.fasta").read_text().splitlines()[1]
-assert len(sequence) == 109 and len(masked_sequence) == len(sequence)
+assert len(sequence) == 109
+assert masked_sequence.count("<mask>") == 1
+assert len(masked_sequence.replace("<mask>", "N")) == len(sequence)
 chain = os.environ["ABLANG1_CHAIN"]
 model = ablang.pretrained(chain=chain, model_folder=os.environ["ABLANG1_MODEL"],
                           random_init=False, ncpu=1, device="cuda")

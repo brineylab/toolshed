@@ -2,11 +2,11 @@
 name: ablang1-light
 description: "AbLang1 light-chain antibody language model: pseudo-log-likelihoods, per-sequence embeddings, masked infilling, and per-position amino-acid matrices for antibody light chains. Reach for it to score, embed, or infill a light chain, or to compute its per-position mutation profile."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # ablang1-light
 
-Image: `ghcr.io/brineylab/toolshed/ablang1-light:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/ablang1-light:1.0.1`
 
 AbLang1 (`ablang` 0.3.1), a 12-layer, 768-dimensional antibody encoder with twine-bound fairseq attention, trained on OAS light chains. The official light weights are in the image at the pin verified below, and no network is needed. The separately trained heavy-chain model is `ablang1-heavy`.
 
@@ -39,13 +39,13 @@ On a laptop, from the directory holding the FASTA:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/ablang1-light:1.0.0 ablang1-light matrix --in light.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/ablang1-light:1.0.1 ablang1-light matrix --in light.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablang1-light:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablang1-light:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work ablang1-light pll --in light.fasta --out pll.tsv
 ```
 
