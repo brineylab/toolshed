@@ -18,8 +18,12 @@ upstream_mean = float(runner.pseudo_log_likelihood([sequence], batch_size=64)[0]
 expected = upstream_mean * len(sequence)
 upstream_fill = runner.fill_masks([masked])
 # Verify that no key needed by the AntiBERTy model was silently initialized.
-model, missing, unexpected, mismatched, _ = AntiBERTy.from_pretrained(
+model, loading_info = AntiBERTy.from_pretrained(
     os.environ["ANTIBERTY_WEIGHTS_DIR"], attn_implementation="eager", output_loading_info=True)
+missing = sorted(loading_info["missing_keys"])
+unexpected = sorted(loading_info["unexpected_keys"])
+mismatched = sorted(loading_info["mismatched_keys"])
+assert not loading_info["error_msgs"], loading_info["error_msgs"]
 assert missing == [], ("randomly initialized missing weights", missing)
 print(f"load_keys: missing={missing}, unexpected={unexpected}, mismatched_sizes={mismatched}")
 print(f"upstream_expectations: mean_pll={upstream_mean:.8f}, sum_pll={expected:.6f}; fill={upstream_fill[0]}")
