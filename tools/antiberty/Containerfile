@@ -5,7 +5,7 @@ RUN pip uninstall -y --break-system-packages torchaudio torchvision && \
     pip install --no-cache-dir --break-system-packages \
       antiberty==1.0.0 transformers==5.16.1 numpy==2.5.4 requests==2.33.1 && \
     python3 -I -c "import torch, transformers, antiberty"
-RUN python3 -I -c "from huggingface_hub import snapshot_download; \
+RUN HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 python3 -I -c "from huggingface_hub import snapshot_download; \
     snapshot_download('jeffruffolo/AntiBERTy', revision='d582006e0c7dc6917d26fa60740a357e8df7b466', \
     local_dir='/opt/AntiBERTy', allow_patterns=['config.json', 'model.safetensors', 'vocab.txt'])"
 COPY LICENSE /opt/AntiBERTy/LICENSE
