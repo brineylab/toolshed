@@ -1,0 +1,79 @@
+---
+tool: msa-pairformer
+version: 1.0.2
+image: ghcr.io/brineylab/toolshed/msa-pairformer@sha256:042077cfcc6983bb91fece48c8ca438ac0a7a08acab75b175297a94ef48e33e4
+digest: sha256:042077cfcc6983bb91fece48c8ca438ac0a7a08acab75b175297a94ef48e33e4
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-25T02:43:38Z
+exit: 0
+---
+Job 9051: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9051
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/msa-pairformer@sha256:042077cfcc6983bb91fece48c8ca438ac0a7a08acab75b175297a94ef48e33e4
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/msa-pairformer@sha256:042077cfcc6983bb91fece48c8ca438ac0a7a08acab75b175297a94ef48e33e4
+node: slurm-b200-205-099
+GPU 0: NVIDIA B200 (UUID: GPU-9699b917-85be-1633-c6c4-201b75d90704)
+node: slurm-b200-205-099
+GPU 0: NVIDIA B200 (UUID: GPU-9699b917-85be-1633-c6c4-201b75d90704)
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 7, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "stage": "coverage_filter", "input_rows": 41, "retained_rows": 40, "removed_rows": 1}
+{"path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "stage": "query_clone_cap", "identity_cap": 0.99, "retained_rows": 39, "maximum_retained_homolog_identity": 0.85}
+{"path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "stage": "parsed_hhfilter_output", "retained_rows": 16, "selected_source_rows": [0, 3, 4, 6, 8, 9, 12, 15, 20, 24, 26, 27, 30, 35, 39, 40]}
+{"nll_sum": 1.6426606178283691, "entropy_sum": 7.719028472900391, "correct": 120, "ncount": 120, "length": 120, "input_rows": 41, "coverage_rows": 40, "depth": 16, "neff": 7.5625, "neff_sqrt_l": 0.6903586401888031, "neff_identity_threshold": 0.8, "query_identity_cap": 0.99, "min_coverage": 0.82, "seed": 42, "requested_depth": 16, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4", "homolog_rows_masked": false, "query_homolog_max_identity": 0.85, "msa_path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "id": "fixture", "k": 7, "logit_seconds": 3.4233103119768202, "fold_seconds": [3.0862617740640417, 0.05965028202626854, 0.05859598098322749, 0.054862285032868385, 0.0546128349378705, 0.054879290983080864, 0.05444786394946277], "preprocess_seconds": 0.007465770002454519, "inference_seconds": 3.4233103119768202, "total_seconds": 3.446719600004144, "peak_gpu_mib": 614.03271484375}
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 7, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"id": "fixture", "skipped": "complete"}
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 7, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"id": "fixture", "skipped": "complete"}
+PASS: model loaded; query-only K=7 logits are (120, 20) float16; contacts and filtering metadata valid
+Test summary: {'depth': 16, 'neff': 7.5625, 'preprocess_seconds': 0.007465770002454519, 'inference_seconds': 3.4233103119768202, 'peak_gpu_mib': 614.03271484375}
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 2, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "stage": "coverage_filter", "input_rows": 41, "retained_rows": 40, "removed_rows": 1}
+{"path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "stage": "query_clone_cap", "identity_cap": 0.99, "retained_rows": 39, "maximum_retained_homolog_identity": 0.85}
+{"path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "stage": "parsed_hhfilter_output", "retained_rows": 16, "selected_source_rows": [0, 3, 4, 6, 8, 9, 12, 15, 20, 24, 26, 27, 30, 35, 39, 40]}
+{"nll_sum": 0.6184161901473999, "entropy_sum": 2.6247341632843018, "correct": 35, "ncount": 35, "length": 120, "input_rows": 41, "coverage_rows": 40, "depth": 16, "neff": 7.5625, "neff_sqrt_l": 0.6903586401888031, "neff_identity_threshold": 0.8, "query_identity_cap": 0.99, "min_coverage": 0.82, "seed": 42, "requested_depth": 16, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4", "homolog_rows_masked": false, "query_homolog_max_identity": 0.85, "msa_path": "/tmp/tmp.iCzmE5d29Y/input/fixture.a3m.gz", "id": "fixture", "k": 2, "logit_seconds": 1.1160972469951957, "fold_seconds": [1.0495923259295523, 0.06650492106564343], "preprocess_seconds": 0.007489531068131328, "inference_seconds": 1.1160972469951957, "total_seconds": 1.241214545094408, "peak_gpu_mib": 614.03271484375}
+PASS: model loaded; query-only K=2 logits are (120, 20) float16; contacts and filtering metadata valid
+Test summary: {'depth': 16, 'neff': 7.5625, 'preprocess_seconds': 0.007489531068131328, 'inference_seconds': 1.1160972469951957, 'peak_gpu_mib': 614.03271484375}
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 7, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"path": "/tmp/tmp.iCzmE5d29Y/sharded_input/fixture.a3m.gz", "stage": "coverage_filter", "input_rows": 41, "retained_rows": 40, "removed_rows": 1}
+{"path": "/tmp/tmp.iCzmE5d29Y/sharded_input/fixture.a3m.gz", "stage": "query_clone_cap", "identity_cap": 0.99, "retained_rows": 39, "maximum_retained_homolog_identity": 0.85}
+{"path": "/tmp/tmp.iCzmE5d29Y/sharded_input/fixture.a3m.gz", "stage": "parsed_hhfilter_output", "retained_rows": 16, "selected_source_rows": [0, 3, 4, 6, 8, 9, 12, 15, 20, 24, 26, 27, 30, 35, 39, 40]}
+{"nll_sum": 1.6426606178283691, "entropy_sum": 7.719028472900391, "correct": 120, "ncount": 120, "length": 120, "input_rows": 41, "coverage_rows": 40, "depth": 16, "neff": 7.5625, "neff_sqrt_l": 0.6903586401888031, "neff_identity_threshold": 0.8, "query_identity_cap": 0.99, "min_coverage": 0.82, "seed": 42, "requested_depth": 16, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4", "homolog_rows_masked": false, "query_homolog_max_identity": 0.85, "msa_path": "/tmp/tmp.iCzmE5d29Y/sharded_input/fixture.a3m.gz", "id": "fixture", "k": 7, "logit_seconds": 1.3325617299415171, "fold_seconds": [0.9824672850081697, 0.068750457954593, 0.054214137024246156, 0.05377826502081007, 0.05359691893681884, 0.053557610022835433, 0.0661970559740439], "preprocess_seconds": 0.007643854012712836, "inference_seconds": 1.3325617299415171, "total_seconds": 1.3612174129812047, "peak_gpu_mib": 614.03271484375}
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 7, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"id": "fixture", "skipped": "complete"}
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 7, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"path": "/tmp/tmp.iCzmE5d29Y/sharded_input/other.a3m.gz", "stage": "coverage_filter", "input_rows": 41, "retained_rows": 40, "removed_rows": 1}
+{"path": "/tmp/tmp.iCzmE5d29Y/sharded_input/other.a3m.gz", "stage": "query_clone_cap", "identity_cap": 0.99, "retained_rows": 39, "maximum_retained_homolog_identity": 0.85}
+{"path": "/tmp/tmp.iCzmE5d29Y/sharded_input/other.a3m.gz", "stage": "parsed_hhfilter_output", "retained_rows": 16, "selected_source_rows": [0, 3, 4, 6, 8, 9, 12, 15, 20, 24, 26, 27, 30, 35, 39, 40]}
+{"nll_sum": 1.6426606178283691, "entropy_sum": 7.719028472900391, "correct": 120, "ncount": 120, "length": 120, "input_rows": 41, "coverage_rows": 40, "depth": 16, "neff": 7.5625, "neff_sqrt_l": 0.6903586401888031, "neff_identity_threshold": 0.8, "query_identity_cap": 0.99, "min_coverage": 0.82, "seed": 42, "requested_depth": 16, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4", "homolog_rows_masked": false, "query_homolog_max_identity": 0.85, "msa_path": "/tmp/tmp.iCzmE5d29Y/sharded_input/other.a3m.gz", "id": "other", "k": 7, "logit_seconds": 1.2764146850677207, "fold_seconds": [0.9397539790952578, 0.0587854579789564, 0.054503165069036186, 0.054051165003329515, 0.06117362703662366, 0.05409629794303328, 0.054050992941483855], "preprocess_seconds": 0.007521704072132707, "inference_seconds": 1.2764146850677207, "total_seconds": 1.3007316240109503, "peak_gpu_mib": 614.03271484375}
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+Using cuEquivariance for triangle multiplicative update
+{"command": "extract", "device": "cuda", "gpu": "NVIDIA B200", "depth": 16, "k": 7, "query_identity_cap": 0.99, "min_coverage": 0.82, "inputs": 1, "weights_revision": "7563e77a87536b5572f91683c39073ef348639a4"}
+{"id": "other", "skipped": "complete"}
+PASS: model loaded; query-only K=7 logits are (120, 20) float16; contacts and filtering metadata valid
+Test summary: {'depth': 16, 'neff': 7.5625, 'preprocess_seconds': 0.007643854012712836, 'inference_seconds': 1.3325617299415171, 'peak_gpu_mib': 614.03271484375}
+PASS: model loaded; query-only K=7 logits are (120, 20) float16; contacts and filtering metadata valid
+Test summary: {'depth': 16, 'neff': 7.5625, 'preprocess_seconds': 0.007521704072132707, 'inference_seconds': 1.2764146850677207, 'peak_gpu_mib': 614.03271484375}
+all checks passed; no network required
+Job 9051: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9051
