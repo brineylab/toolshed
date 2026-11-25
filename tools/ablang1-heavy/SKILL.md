@@ -2,11 +2,11 @@
 name: ablang1-heavy
 description: "AbLang1 heavy-chain antibody language model: pseudo-log-likelihoods, per-sequence embeddings, masked infilling, and per-position amino-acid matrices for antibody heavy chains. Reach for it to score, embed, or infill a heavy chain, or to compute its per-position mutation profile."
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 # ablang1-heavy
 
-Image: `ghcr.io/brineylab/toolshed/ablang1-heavy:1.0.1`
+Image: `ghcr.io/brineylab/toolshed/ablang1-heavy:1.0.2`
 
 AbLang1 (`ablang` 0.3.1), a 12-layer, 768-dimensional antibody encoder with twine-bound fairseq attention, trained on OAS heavy chains. The official heavy weights are in the image at the pin verified below, and no network is needed. The separately trained light-chain model is `ablang1-light`.
 
@@ -31,7 +31,7 @@ Each takes `--device cuda` or `--device cpu`; the default is the GPU when one is
 
 ## Compute
 
-One NVIDIA GPU with driver 580 or newer (CUDA 13 image). The 343 MB PyTorch checkpoint is loaded in fp32. `pll` and `matrix` cost one forward pass per residue, in batches of 32 masked sequence copies; `embed` and `fill` cost one forward pass per sequence. Each command prints measured model-load and compute seconds, residue throughput, GPU name and peak GPU memory; the hardware test record `results/ablang1-heavy/1.0.1.txt` contains measurements on the 119-residue fixture.
+One NVIDIA GPU with driver 580 or newer (CUDA 13 image). The 343 MB PyTorch checkpoint is loaded in fp32. `pll` and `matrix` cost one forward pass per residue, in batches of 32 masked sequence copies; `embed` and `fill` cost one forward pass per sequence. Each command prints measured model-load and compute seconds, residue throughput, GPU name and peak GPU memory; the hardware test record `results/ablang1-heavy/1.0.2.txt` contains measurements on the 119-residue fixture.
 
 ## Running it
 
@@ -39,13 +39,13 @@ On a laptop, from the directory holding the FASTA:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/ablang1-heavy:1.0.1 ablang1-heavy matrix --in heavy.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/ablang1-heavy:1.0.2 ablang1-heavy matrix --in heavy.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablang1-heavy:1.0.1 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablang1-heavy:1.0.2 \
   --container-mounts="$PWD":/work --container-workdir=/work ablang1-heavy pll --in heavy.fasta --out pll.tsv
 ```
 

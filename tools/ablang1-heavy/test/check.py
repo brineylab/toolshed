@@ -32,7 +32,7 @@ chain = os.environ["ABLANG1_CHAIN"]
 model = ablang.pretrained(chain=chain, model_folder=os.environ["ABLANG1_MODEL"],
                           random_init=False, ncpu=1, device="cuda")
 model.freeze()
-original_ids = model.tokenizer(sequence, pad=True, device="cuda").unsqueeze(0)
+original_ids = model.tokenizer([sequence], pad=True, device="cuda")
 positions = torch.arange(1, len(sequence) + 1, device="cuda")
 reference = reference_matrix(model, original_ids, positions)
 columns = np.array([RESIDUES.index(residue) for residue in sequence])

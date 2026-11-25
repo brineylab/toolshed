@@ -41,7 +41,7 @@ def read_fasta(path, allow_mask=False):
 def encode(model, sequence, device):
     # ablang.ABtokenizer.encode: '<' + the original residues + '>'. The package
     # has no paired constructor and freezes ordinary residues during restore.
-    ids = model.tokenizer(sequence.replace("*", "M"), pad=True, device=device).unsqueeze(0)
+    ids = model.tokenizer([sequence.replace("*", "M")], pad=True, device=device)
     positions = torch.arange(1, len(sequence) + 1, device=device)
     masked = torch.tensor([residue == "*" for residue in sequence], device=device)
     ids[0, positions[masked]] = model.tokenizer.vocab_to_token["*"]
