@@ -16,6 +16,7 @@ assert len((out / 'metrics.jsonl').read_text().splitlines()) == 1
 assert row['id'] == stem, row
 assert row['requested_depth'] == 16 and row['depth'] >= 2, row
 assert row['coverage_rows'] < 41, row
+assert 33 in row['selected_source_rows'], row
 assert row['query_homolog_max_identity'] <= .99, row
 assert row['neff'] > 1 and row['neff_sqrt_l'] > 0, row
 assert row['ncount'] == (35 if k == 2 else 120), row

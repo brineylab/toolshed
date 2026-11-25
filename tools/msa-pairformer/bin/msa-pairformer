@@ -42,6 +42,14 @@ def read_a3m(path):
     return sequences
 
 
+def project_a3m_row(row, query_length):
+    """Remove this row's insertions, retaining its query-aligned match columns."""
+    match_columns = "".join(char for char in row if char.isupper() or char == "-")
+    if len(match_columns) != query_length:
+        raise ValueError(f"A3M row has {len(match_columns)} match columns; expected {query_length}")
+    return match_columns
+
+
 def neff(alignment, threshold):
     """Sum inverse identity-cluster counts, ignoring gaps and gap-gap matches."""
     encoded = np.full(alignment.shape, 20, dtype=np.uint8)
@@ -63,7 +71,8 @@ def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
     torch.manual_seed(seed)
     rows = read_a3m(path)
     keep_columns = np.array([c.isupper() and c != "-" for c in rows[0]])
-    array = np.stack([np.array(list(row))[keep_columns] for row in rows])
+    projected = [project_a3m_row(row, len(keep_columns)) for row in rows]
+    array = np.stack([np.array(list(row))[keep_columns] for row in projected])
     coverage = (array != "-").mean(axis=1)
     keep_indices = np.flatnonzero((np.arange(len(rows)) == 0) | (coverage >= min_coverage))
     coverage_rows = len(keep_indices)
