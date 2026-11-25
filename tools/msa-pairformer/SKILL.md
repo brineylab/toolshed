@@ -2,11 +2,11 @@
 name: msa-pairformer
 description: "MSA Pairformer on Blackwell: A3M filtering, hhfilter diversity subsampling, query-only conditional (L, 20) logits in sharded Parquet, and C-beta contact score maps. Reach for it to extract masked-query teacher logits for protein language-model distillation."
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 # msa-pairformer
 
-Image: `ghcr.io/brineylab/toolshed/msa-pairformer:1.0.1`
+Image: `ghcr.io/brineylab/toolshed/msa-pairformer:1.0.2`
 
 `yoakiyama/MSA-Pairformer` at revision `7563e77a87536b5572f91683c39073ef348639a4`, with code commit `875363570df1ae484cf725aba382790444223005`, PyTorch 2.12.1 on CUDA 13 and cuEquivariance 0.10.0 for Blackwell. The cuEx main checkpoint and two contact-head checkpoints are baked into `/opt/model`; no network is used at run time.
 
@@ -57,14 +57,14 @@ On a laptop with a Blackwell GPU:
 
 ```bash
 podman run --rm --network none --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/msa-pairformer:1.0.1 \
+  ghcr.io/brineylab/toolshed/msa-pairformer:1.0.2 \
   msa-pairformer --in msas/ --out teacher_logits/ --depth 128 --k 7 --min-coverage 0.8
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/msa-pairformer:1.0.1 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/msa-pairformer:1.0.2 \
   --container-mounts="$FLYLOFT_CAMPAIGN/data:/data" --container-workdir=/data \
   msa-pairformer --in /data/msas --out /data/teacher_logits \
   --depth 128 --k 7 --min-coverage 0.8 --query-identity-cap 0.95
@@ -78,5 +78,5 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/msa-pairformer:1.
 - `--k 7` partitions every query position into seven balanced folds. `--k 2` uses two disjoint approximately 15% stretches of a seeded permutation, not two partitions of half a sequence. Other positive K values mean balanced full query partitions.
 - The standard hhfilter settings retain upstream defaults, not the hidden `qid=0/qsc` variants used in some training scripts. The query clone cap is applied before hhfilter; its metadata max identity therefore reports filtering before hhfilter's own max-90% representative selection.
 - Neff is computed from filtered selected rows, not the unfiltered database MSA. Use the same depth and identity-cap for extraction and any Neff gate, unless deliberately studying a full-MSA Neff.
-- A test fixture of 120 residues and 40 A3M rows crosses the real hhfilter and K-fold paths and confirms dtype, coverage, no-homolog masking, row filtering, source-token target indexing, C-beta map values and shape. It does not establish contact accuracy on experimental structures or quantify the longest-chain B200 memory use; these are benchmark measurements, not promises of the synthetic smoke test.
+- A test fixture of 120 residues and 40 A3M homolog rows crosses the real hhfilter and K-fold paths. Its selected source row 33 carries lowercase insertions and a dot, so the test exercises per-row insertion removal before query-column projection as well as dtype, coverage, no-homolog masking, row filtering, source-token target indexing, and C-beta map values and shape. It does not establish contact accuracy on experimental structures or quantify the longest-chain B200 memory use; these are benchmark measurements, not promises of the synthetic smoke test.
 - The checkpoint's modified MIT license (weights, Pizza edition) permits redistribution and requires copyright/permission inclusion; code has the corresponding Coffee edition. Both license texts are at `/opt/model/LICENSE` and `/opt/model/CODE_LICENSE`. Cite MSA Pairformer (`Akiyama et al.`, Cell 2026, DOI `10.1016/j.cell.2026.06.029`) in derivative analyses.

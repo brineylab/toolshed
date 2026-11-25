@@ -1,4 +1,5 @@
 #!/usr/bin/env -S python3 -I
+import ast
 import json
 from pathlib import Path
 import sys
@@ -18,6 +19,17 @@ assert row['requested_depth'] == 16 and row['depth'] >= 2, row
 assert row['coverage_rows'] < 41, row
 assert row['query_homolog_max_identity'] <= .99, row
 assert row['neff'] > 1 and row['neff_sqrt_l'] > 0, row
+# Test the insertion regression independently of hhfilter's diversity choices.
+program = Path(__file__).parents[1] / 'bin' / 'msa-pairformer'
+tree = ast.parse(program.read_text())
+helper = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'project_a3m_row')
+namespace = {}
+exec(compile(ast.Module(body=[helper], type_ignores=[]), program, 'exec'), namespace)
+assert namespace['project_a3m_row']('ACde.F-G', 5) == 'ACF-G'
+records = (Path(__file__).parent / 'fixture.a3m').read_text().split('>')[1:]
+rows = [''.join(record.splitlines()[1:]) for record in records]
+assert any(char.islower() or char == '.' for char in rows[33])
+assert all(len(namespace['project_a3m_row'](row, 120)) == 120 for row in rows)
 assert row['ncount'] == (35 if k == 2 else 120), row
 assert np.isfinite(row['nll_sum']) and np.isfinite(row['entropy_sum']), row
 assert row['entropy_sum'] > 0 and row['inference_seconds'] > 0, row
