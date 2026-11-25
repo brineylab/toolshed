@@ -52,8 +52,8 @@ assert embeddings["embeddings"].shape == (1, 768) and embeddings["embeddings"].d
 print("embedding_max_difference", np.max(np.abs(embeddings["embeddings"][0] - upstream_embedding)))
 assert np.allclose(embeddings["embeddings"][0], upstream_embedding, atol=1e-4)
 
-# Call the package's own public restore mode, not merely its logits.
-expected_fasta = [">chain1", model([masked_sequence], mode="restore")[0]]
+# Call the package's own public restore mode with its native '*' mask token.
+expected_fasta = [">chain1", model([masked_sequence.replace("<mask>", "*")], mode="restore")[0]]
 assert (out / "filled.fasta").read_text().splitlines() == expected_fasta
 assert sum(a != b for a, b in zip(expected_fasta[1], sequence)) <= 1
 print("fill exactly matches upstream ablang.pretrained(..., mode='restore')", expected_fasta[1])
