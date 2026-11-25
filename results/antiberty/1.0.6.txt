@@ -1,0 +1,38 @@
+---
+tool: antiberty
+version: 1.0.6
+image: ghcr.io/brineylab/toolshed/antiberty@sha256:d8714abb358fa1169a472bca7ea6eccd7c9338ec4ee7d9d477de74186b833d5b
+digest: sha256:d8714abb358fa1169a472bca7ea6eccd7c9338ec4ee7d9d477de74186b833d5b
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-25T17:56:45Z
+exit: 0
+---
+Job 9631: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9631
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/antiberty@sha256:d8714abb358fa1169a472bca7ea6eccd7c9338ec4ee7d9d477de74186b833d5b
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/antiberty@sha256:d8714abb358fa1169a472bca7ea6eccd7c9338ec4ee7d9d477de74186b833d5b
+node: slurm-b200-206-033
+GPU 0: NVIDIA B200 (UUID: GPU-5c708009-196e-6453-58ba-e8868cb51f5b)
+antiberty: 1 sequence(s), 121 residues; device=cuda; model_load_seconds=0.348; input_bytes=129
+antiberty: normalization=full-vocab
+antiberty: compute_seconds=0.240; residues_per_second=505.079
+antiberty: gpu=NVIDIA B200; peak_gpu_memory_gib=0.227
+antiberty: 1 sequence(s), 121 residues; device=cuda; model_load_seconds=0.365; input_bytes=129
+antiberty: compute_seconds=0.191; residues_per_second=634.220
+antiberty: gpu=NVIDIA B200; peak_gpu_memory_gib=0.133
+antiberty: 1 sequence(s), 121 residues; device=cuda; model_load_seconds=0.373; input_bytes=139
+antiberty: compute_seconds=0.246; residues_per_second=491.117
+antiberty: gpu=NVIDIA B200; peak_gpu_memory_gib=0.131
+antiberty: 1 sequence(s), 121 residues; device=cuda; model_load_seconds=0.361; input_bytes=129
+antiberty: normalization=standard
+antiberty: compute_seconds=0.241; residues_per_second=501.041
+antiberty: gpu=NVIDIA B200; peak_gpu_memory_gib=0.227
+Loading weights:   0%|          | 0/146 [00:00<?, ?it/s]Loading weights: 100%|██████████| 146/146 [00:00<00:00, 12135.96it/s]
+load_keys: missing=[], unexpected=[], mismatched_sizes=[]
+upstream_expectations: mean_pll=-0.67970741, sum_pll=-82.244596; fill=EVQLLESGGEVKKPGASVKVSCRASGYTFRNYGLTWVRQAPGQGLEWMGWISAYNGNTNYAQKFQGRVTLTTDTSTSTAYMELRSLRSDDTAVYFCARDVPGHGAAFMDVWGTGTTVTVSS
+pll=-82.244606; upstream mean*residues=-82.244596
+embedding_diagnostics: tool_range=(-2.858365, 1.805677) upstream_range=(-2.858365, 1.805677) max_difference=0.000000
+embedding matches upstream last-layer residue mean
+matrix (121, 20) float32 ; fill exactly matches upstream
+ok
+Job 9631: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9631
