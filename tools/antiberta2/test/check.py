@@ -24,7 +24,7 @@ def encode(tokenizer, heavy, light):
                  if token in RESIDUES or token == "X"]
     assert len(positions) == len(heavy.replace("<mask>", "M")) + len(light.replace("<mask>", "M")), (len(positions), len(heavy), len(light))
     assert ids.shape[1] == len(positions) + 5
-    mask_positions = [position for position, token in zip(positions, token_list) if token == "X"]
+    mask_positions = [position for position in positions if token_list[position - 1] == "X"]
     assert len(mask_positions) == (heavy + light).count("<mask>")
     assert tokenizer.convert_ids_to_tokens(ids[0, positions]) == [token_list[position - 1] for position in positions]
     ids[0, mask_positions] = tokenizer.mask_token_id
@@ -82,7 +82,9 @@ with torch.inference_mode():
     allowed = torch.tensor(tokenizer.convert_tokens_to_ids(list(RESIDUES)), device="cuda")
     predictions = logits[:, allowed].argmax(-1).tolist()
 filled = "".join(RESIDUES[predictions[position]] if int(masked_ids[0, position]) == tokenizer.mask_token_id
-                  else token for position, token in zip(masked_positions.tolist(), list(heavy + light)))
+                  else token for position, token in zip(masked_positions.tolist(),
+                                                        list(masked_heavy + masked_light)))
+filled = filled.replace("X", "M")
 expected_fasta = [">brii1", filled[:len(heavy)] + "|" + filled[len(heavy):]]
 assert (out / "filled.fasta").read_text().splitlines() == expected_fasta
 print("fill exactly matches an independent RoFormer infill", expected_fasta[1])
