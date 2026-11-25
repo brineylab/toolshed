@@ -1,0 +1,40 @@
+---
+tool: igbert
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/igbert@sha256:100d2a71ec170a54b6a064e41ac7a01167f2f77ed00fd710ed5101e52cd266fa
+digest: sha256:100d2a71ec170a54b6a064e41ac7a01167f2f77ed00fd710ed5101e52cd266fa
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-25T20:43:32Z
+exit: 0
+---
+Job 9795: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9795
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/igbert@sha256:100d2a71ec170a54b6a064e41ac7a01167f2f77ed00fd710ed5101e52cd266fa
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/igbert@sha256:100d2a71ec170a54b6a064e41ac7a01167f2f77ed00fd710ed5101e52cd266fa
+node: slurm-b200-206-037
+GPU 0: NVIDIA B200 (UUID: GPU-b47af1ed-cb71-2088-ddda-ebe5ee36f7a4)
+Loading weights:   0%|          | 0/490 [00:00<?, ?it/s]Loading weights: 100%|██████████| 490/490 [00:00<00:00, 11260.00it/s]
+igbert: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.640; input_bytes=244
+igbert: compute_seconds=1.125; residues_per_second=202.599
+igbert: gpu=NVIDIA B200; peak_gpu_memory_gib=1.907
+Loading weights:   0%|          | 0/490 [00:00<?, ?it/s]Loading weights: 100%|██████████| 490/490 [00:00<00:00, 11851.87it/s]
+igbert: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.631; input_bytes=244
+igbert: compute_seconds=0.175; residues_per_second=1301.816
+igbert: gpu=NVIDIA B200; peak_gpu_memory_gib=1.606
+Loading weights:   0%|          | 0/490 [00:00<?, ?it/s]Loading weights: 100%|██████████| 490/490 [00:00<00:00, 11657.78it/s]
+igbert: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.635; input_bytes=254
+igbert: compute_seconds=0.208; residues_per_second=1097.837
+igbert: gpu=NVIDIA B200; peak_gpu_memory_gib=1.606
+Loading weights:   0%|          | 0/490 [00:00<?, ?it/s]Loading weights: 100%|██████████| 490/490 [00:00<00:00, 11929.47it/s]
+igbert: 1 pair(s), 228 residues; device=cuda; model_load_seconds=0.634; input_bytes=244
+igbert: compute_seconds=1.113; residues_per_second=204.852
+igbert: gpu=NVIDIA B200; peak_gpu_memory_gib=1.907
+Loading weights:   0%|          | 0/490 [00:00<?, ?it/s]Loading weights: 100%|██████████| 490/490 [00:00<00:00, 11512.42it/s]
+load_keys {'missing_keys': set(), 'unexpected_keys': set(), 'mismatched_keys': set()}
+paired_format V Q L A Q S G S E L R K P ... P L T F G G G T K V E I K length 231
+pll=-126.603561; upstream BERT full-vocabulary masked sum=-126.603561
+embedding_max_difference 0.0
+fill exactly matches independent BERT argmax infilling VQLAQSGSELRKPGASVKVSCDTSGHSFTSNAIHWVRQAPGQGLEWMGWINTDTGTPTYAQGFTGRFVFSLDTSARTAYLQISSLKADDTAVFYCARERDYSDYFFDYWGQGTLVTVSS|EVVMTQSPASLSVSPGERATLSCRARASLGISTDLAWYQQRPGQAPRLLIYGASTRATGIPARFSGSGSGTEFTLTISSLQSEDSAVYYCQQYSNWPLTFGGGTKVEIK
+matrix (228, 20) float32 matches independent full-vocabulary BERT log-probabilities
+ok
+Job 9795: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9795
