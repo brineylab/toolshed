@@ -26,8 +26,8 @@ def encode(tokenizer, heavy, light):
     assert ids.shape[1] == len(positions) + 5
     mask_positions = [position for position, token in zip(positions, token_list) if token == "X"]
     assert len(mask_positions) == (heavy + light).count("<mask>")
+    assert tokenizer.convert_ids_to_tokens(ids[0, positions]) == [token_list[position - 1] for position in positions]
     ids[0, mask_positions] = tokenizer.mask_token_id
-    assert tokenizer.convert_ids_to_tokens(ids[0, positions]) == token_list
     return ids, torch.tensor(positions, device="cuda"), text, token_list
 
 
