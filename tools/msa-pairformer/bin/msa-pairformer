@@ -1,0 +1,346 @@
+#!/usr/bin/env -S python3 -I
+"""Query-masked conditional logits and C-beta contacts from MSA Pairformer."""
+import argparse
+import gzip
+import json
+import math
+import os
+import shutil
+import time
+from pathlib import Path
+
+os.environ["HF_HUB_OFFLINE"] = "1"
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn.functional as F
+from MSA_Pairformer.dataset import MSA, aa2tok_d, prepare_msa_masks
+from MSA_Pairformer.model import MSAPairformer
+
+ALPHABET = "ARNDCEQGHILKMFPSTWYV"
+AA_TO_INDEX = {a: i for i, a in enumerate(ALPHABET)}
+WEIGHTS_REVISION = "7563e77a87536b5572f91683c39073ef348639a4"
+
+
+def read_a3m(path):
+    """Read A3M records, retaining row 0 as the query."""
+    opener = gzip.open if str(path).endswith(".gz") else open
+    rows = []
+    with opener(path, "rt") as handle:
+        for line in handle:
+            if line.startswith(">"):
+                rows.append([])
+            elif line.strip():
+                if not rows:
+                    raise ValueError(f"{path}: sequence before its first header")
+                rows[-1].append(line.strip())
+    if not rows:
+        raise ValueError(f"{path}: empty MSA")
+    sequences = ["".join(row) for row in rows]
+    if any(not (c.isupper() and c != "-") for c in sequences[0]):
+        raise ValueError(f"{path}: row 0 must be an ungapped uppercase query")
+    return sequences
+
+
+def project_a3m_row(row, query_length):
+    """Remove this row's insertions, retaining its query-aligned match columns."""
+    match_columns = "".join(char for char in row if char.isupper() or char == "-")
+    if len(match_columns) != query_length:
+        raise ValueError(f"A3M row has {len(match_columns)} match columns; expected {query_length}")
+    return match_columns
+
+
+def neff(alignment, threshold):
+    """Sum inverse identity-cluster counts, ignoring gaps and gap-gap matches."""
+    encoded = np.full(alignment.shape, 20, dtype=np.uint8)
+    valid = np.zeros(alignment.shape, dtype=bool)
+    for aa, index in AA_TO_INDEX.items():
+        encoded[alignment == aa] = index
+        valid |= alignment == aa
+    matches = (encoded[:, None, :] == encoded[None, :, :]) & valid[:, None, :] & valid[None, :, :]
+    n_non_gap = np.maximum(valid.sum(axis=1), 1)
+    identities = matches.sum(axis=2, dtype=np.int32) / n_non_gap[:, None]
+    clusters = (identities > threshold).sum(axis=1)
+    weights = np.divide(1.0, clusters, out=np.zeros(len(alignment)), where=clusters > 0)
+    weights[valid.sum(axis=1) == 0] = 0.0
+    return float(weights.sum())
+
+
+def prepare(path, depth, query_identity_cap, min_coverage, seed, work):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    rows = read_a3m(path)
+    keep_columns = np.array([c.isupper() and c != "-" for c in rows[0]])
+    projected = [project_a3m_row(row, len(keep_columns)) for row in rows]
+    array = np.stack([np.array(list(row))[keep_columns] for row in projected])
+    coverage = (array != "-").mean(axis=1)
+    keep_indices = np.flatnonzero((np.arange(len(rows)) == 0) | (coverage >= min_coverage))
+    coverage_rows = len(keep_indices)
+    array = array[keep_indices]
+    print(json.dumps({"path": str(path), "stage": "coverage_filter",
+                      "input_rows": len(rows), "retained_rows": len(array),
+                      "removed_rows": len(rows) - len(array)}), flush=True)
+    # A sequence's identity to the query is its matching ungapped amino acids at
+    # query columns. It is not affected by the sequence's gaps at other columns.
+    matches = ((array[1:] == array[0]) & (array[1:] != "-")).sum(axis=1)
+    identities = matches / array.shape[1]
+    if query_identity_cap is not None:
+        keep = np.r_[0, np.flatnonzero(identities <= query_identity_cap) + 1]
+        array = array[keep]
+        keep_indices = keep_indices[keep]
+        identities = identities[identities <= query_identity_cap]
+    print(json.dumps({"path": str(path), "stage": "query_clone_cap",
+                      "identity_cap": query_identity_cap, "retained_rows": len(array),
+                      "maximum_retained_homolog_identity": float(identities.max()) if len(identities) else None}),
+          flush=True)
+    filtered_input = work / "input.a3m"
+    with filtered_input.open("w") as handle:
+        for i, row in enumerate(array):
+            handle.write(f">{i}\n{''.join(row)}\n")
+    msa = MSA(str(filtered_input), max_length=array.shape[1], max_tokens=np.inf,
+              max_seqs=min(depth, len(array)), diverse_select_method="hhfilter",
+              hhfilter_kwargs={"binary": "hhfilter", "seq_id": 90,
+                               "cov": 70, "qid": 30, "qsc": -20},
+              parser_kwargs={"keep_insertions": False, "to_upper": True})
+    selected_rows = [int(i) for i in msa.select_diverse_indices]
+    print(json.dumps({"path": str(path), "stage": "parsed_hhfilter_output",
+                      "retained_rows": msa.diverse_tokenized_msa.shape[0],
+                      "selected_source_rows": [int(keep_indices[i]) for i in selected_rows]}), flush=True)
+    tokens = msa.diverse_tokenized_msa.long()
+    effective_neff = neff(msa.select_diverse_msa, 0.8)
+    metadata = {
+        "length": int(array.shape[1]), "input_rows": len(rows),
+        "coverage_rows": coverage_rows, "depth": tokens.shape[0],
+        "neff": effective_neff, "neff_sqrt_l": effective_neff / math.sqrt(array.shape[1]),
+        "neff_identity_threshold": 0.8, "query_identity_cap": query_identity_cap,
+        "min_coverage": min_coverage, "seed": seed, "requested_depth": depth,
+        "weights_revision": WEIGHTS_REVISION, "homolog_rows_masked": False,
+        "query_homolog_max_identity": float(identities.max()) if len(identities) else None,
+        "msa_path": str(path),
+        "selected_source_rows": [int(keep_indices[i]) for i in msa.select_diverse_indices],
+    }
+    return tokens, metadata
+
+
+def query_folds(length, k, seed):
+    """Deterministic disjoint folds; K=2 reuses the first two K=7 folds."""
+    permutation = np.random.default_rng(seed).permutation(length)
+    return np.array_split(permutation, 7 if k == 2 else k)[:k]
+
+
+def get_model(device):
+    state = {}
+    for name in ("model_cuex.bin", "contact.bin", "confind_contact.bin"):
+        state.update(torch.load(Path("/opt/model") / name, weights_only=True, map_location="cpu"))
+    model = MSAPairformer()
+    result = model.load_state_dict(state, strict=False)
+    required = set(model.state_dict()) - {"mrf_head.weight", "mrf_head.bias"}
+    loaded = set(state)
+    missing = required - loaded
+    unexpected = loaded - set(model.state_dict())
+    if missing or unexpected or result.unexpected_keys:
+        raise ValueError(f"Checkpoint mismatch: missing={sorted(missing)}, unexpected={sorted(unexpected)}")
+    model.to(device).eval()
+    for parameter in model.parameters():
+        parameter.requires_grad = False
+    return model
+
+
+def tensor_inputs(tokens, positions, device):
+    masked = tokens.clone().unsqueeze(0)
+    masked[0, 0, torch.as_tensor(positions, dtype=torch.long)] = aa2tok_d["<mask>"]
+    assert torch.equal(masked[0, 1:], tokens[1:]), "Homolog rows must remain unmasked"
+    onehot = F.one_hot(masked, num_classes=len(aa2tok_d)).to(device=device, dtype=torch.bfloat16)
+    masks = [m.to(device) for m in prepare_msa_masks(masked)]
+    return onehot, masks
+
+
+def mask_metadata(length, folds, seed):
+    return {
+        "query_row": 0, "homolog_rows_masked": False,
+        "mask_scheme": "balanced disjoint query-only folds, seeded permutation",
+        "k": len(folds), "fold_sizes": [len(fold) for fold in folds], "seed": seed,
+        "logit_columns": list(ALPHABET), "logit_encoding": "little-endian float16, row-major (20,)",
+        "weights_revision": WEIGHTS_REVISION,
+    }
+
+
+def summary_metrics(logits, true_tokens):
+    valid = np.isfinite(logits).all(axis=1) & (true_tokens < 20)
+    if not valid.any():
+        return {"nll_sum": 0.0, "entropy_sum": 0.0, "correct": 0, "ncount": 0}
+    chosen = torch.from_numpy(logits[valid]).float()
+    log_probs = F.log_softmax(chosen, dim=-1)
+    probabilities = log_probs.exp()
+    target = torch.from_numpy(true_tokens[valid]).long()
+    return {
+        "nll_sum": float(-log_probs.gather(1, target[:, None]).sum()),
+        "entropy_sum": float(-(probabilities * log_probs).sum()),
+        "correct": int((chosen.argmax(dim=-1) == target).sum()), "ncount": int(valid.sum()),
+    }
+
+
+def load_completed(path):
+    return {json.loads(line)["id"]: json.loads(line) for line in path.read_text().splitlines()} if path.exists() else {}
+
+
+def validate_completed(out, input_dir, completed, args):
+    """Reject stale ledgers, mixed configurations, and incomplete artifacts."""
+    for row in completed.values():
+        destination = out / row["id"]
+        metadata = json.loads((destination / "mask.json").read_text())
+        expected = {
+            "requested_depth": args.depth, "k": args.k,
+            "query_identity_cap": args.query_identity_cap,
+            "min_coverage": args.min_coverage, "seed": args.seed,
+        }
+        for key, value in expected.items():
+            assert row.get(key) == value and metadata.get(key) == value, (row["id"], key, row.get(key), value)
+        assert row["weights_revision"] == metadata["weights_revision"] == WEIGHTS_REVISION
+        assert row["homolog_rows_masked"] is False and metadata["homolog_rows_masked"] is False
+        candidates = [input_dir / f"{row['id']}{suffix}" for suffix in (".a3m", ".a3m.gz")]
+        source = next((path for path in candidates if path.is_file()), None)
+        assert source is not None and Path(row["msa_path"]).samefile(source), row["msa_path"]
+        table = pd.read_parquet(destination / "logits.parquet")
+        assert len(table) == row["length"] == metadata["length"]
+        assert table["id"].eq(row["id"]).all()
+        assert np.array_equal(table["position"].to_numpy(), np.arange(row["length"]))
+        conditional = table["has_conditional_logits"].to_numpy()
+        assert conditional.sum() == sum(metadata["fold_sizes"])
+        assert set(table.loc[conditional, "fold"]) == set(range(args.k))
+        assert table["logits_f16"].map(len).eq(40).all()
+        logits = np.stack([np.frombuffer(value, dtype="<f2") for value in table["logits_f16"]])
+        assert np.isfinite(logits[conditional]).all() and np.isnan(logits[~conditional]).all()
+        contacts = np.load(destination / "contacts.npz")["contacts"]
+        assert contacts.shape == (row["length"], row["length"]) and np.isfinite(contacts).all()
+        assert (destination / "complete.json").is_file()
+    return completed
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--in", dest="input", required=True, type=Path, help="Directory of .a3m or .a3m.gz files")
+    parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--depth", type=int, default=128)
+    parser.add_argument("--k", type=int, default=7, help="2 for two ~15%% folds; any other value partitions the query K ways")
+    parser.add_argument("--query-identity-cap", type=float, help="Maximum homolog identity to row 0; omitted means no cap")
+    parser.add_argument("--min-coverage", type=float, default=0.8, help="Minimum nongapped query-column fraction")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--job-index", type=int, default=0)
+    parser.add_argument("--num-jobs", type=int, default=1)
+    parser.add_argument("--device", choices=["cuda", "cpu"], default="cuda")
+    args = parser.parse_args()
+    if not 0 < args.min_coverage <= 1:
+        parser.error("--min-coverage must be in (0, 1]")
+    if args.num_jobs < 1 or not 0 <= args.job_index < args.num_jobs:
+        parser.error("--job-index must be in [0, --num-jobs)")
+    if args.depth < 1 or args.k < 1:
+        parser.error("--depth and --k must be positive")
+    if args.query_identity_cap is not None and not 0 < args.query_identity_cap < 1:
+        parser.error("--query-identity-cap must be strictly between 0 and 1; omit it for unfiltered")
+    paths = sorted([*args.input.glob("*.a3m"), *args.input.glob("*.a3m.gz")])
+    if not paths:
+        raise ValueError(f"{args.input}: no .a3m or .a3m.gz inputs")
+    paths = paths[args.job_index::args.num_jobs]
+    if args.limit is not None:
+        paths = paths[:args.limit]
+    args.out.mkdir(parents=True, exist_ok=True)
+    device = torch.device(args.device)
+    model = get_model(device)
+    metrics_path = args.out / "metrics.jsonl"
+    completed = load_completed(metrics_path)
+    completed = validate_completed(args.out, args.input, completed, args)
+    print(json.dumps({"command": "extract", "device": str(device),
+                      "gpu": torch.cuda.get_device_name() if device.type == "cuda" else None,
+                      "depth": args.depth, "k": args.k, "query_identity_cap": args.query_identity_cap,
+                      "min_coverage": args.min_coverage, "inputs": len(paths),
+                      "weights_revision": WEIGHTS_REVISION}), flush=True)
+    for path in paths:
+        stem = path.name.removesuffix(".gz").removesuffix(".a3m")
+        destination = args.out / stem
+        if stem in completed:
+            print(json.dumps({"id": stem, "skipped": "complete"}), flush=True)
+            continue
+        scratch = args.out / "scratch" / stem
+        scratch.mkdir(parents=True, exist_ok=True)
+        started = time.perf_counter()
+        tokens, metadata = prepare(path, args.depth, args.query_identity_cap, args.min_coverage, args.seed, scratch)
+        metadata["id"] = stem
+        length = metadata["length"]
+        folds = query_folds(length, args.k, args.seed)
+        preprocess_seconds = time.perf_counter() - started
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats()
+        try:
+            true_tokens = tokens[0].numpy()
+            logits = np.zeros((length, 20), dtype=np.float32)
+            logits[:] = np.nan  # Canonicalize the IEEE NaN payload across NumPy versions.
+            fold_seconds = []
+            saved_contacts = None
+            for fold, positions in enumerate(folds):
+                before = time.perf_counter()
+                onehot, masks = tensor_inputs(tokens, positions, device)
+                with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=device.type == "cuda"):
+                    result = model(msa=onehot, mask=masks[0], msa_mask=masks[1],
+                                   full_mask=masks[2], pairwise_mask=masks[3],
+                                   return_cb_contacts=False, return_confind_contacts=False,
+                                   store_msa_repr_cpu=False, store_pairwise_repr_cpu=True,
+                                   return_pairwise_repr_layer_idx=[model.contact_layer])
+                    values = result["logits"][0, 0, positions][:, :20].float().cpu().numpy()
+                    contacts = result["pairwise_repr_d"][f"layer_{model.contact_layer}"]
+                    contacts = model.contact_head(contacts.to(device))[0].float().cpu().numpy() if fold == 0 else None
+                    if fold == 0:
+                        saved_contacts = contacts
+                logits[positions] = values
+                fold_seconds.append(time.perf_counter() - before)
+                del onehot, masks, result, contacts
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+            assert np.isfinite(logits).all(axis=1)[np.concatenate(folds)].all()
+            valid_targets = true_tokens < 20
+            fold_by_position = np.full(length, -1, dtype=np.int16)
+            for fold, positions in enumerate(folds):
+                fold_by_position[positions] = fold
+            destination.mkdir(exist_ok=True)
+            table = pd.DataFrame({"id": [stem] * length, "position": np.arange(length, dtype=np.int32),
+                                  "logits_f16": [row.astype("<f2").tobytes() for row in logits],
+                                  "target_index": np.where(valid_targets, true_tokens, 255).astype(np.uint8),
+                                  "fold": fold_by_position, "is_valid_target": valid_targets,
+                                  "has_conditional_logits": np.isfinite(logits).all(axis=1)})
+            # Byte-identical storage for unobserved K=2 positions makes the
+            # two-fold records directly comparable with the matching K=7 rows.
+            logits[~table["has_conditional_logits"].to_numpy()] = np.nan
+            temporary = destination / "logits.partial.parquet"
+            table.to_parquet(temporary, index=False, compression="zstd")
+            temporary.replace(destination / "logits.parquet")
+            (destination / "mask.json").write_text(json.dumps({**metadata, **mask_metadata(length, folds, args.seed)}))
+            # Masked contacts are the first query-only K-fold prediction.
+            assert saved_contacts is not None and saved_contacts.shape == (length, length)
+            np.savez_compressed(destination / "contacts.partial", contacts=saved_contacts.astype(np.float16))
+            os.replace(destination / "contacts.partial.npz", destination / "contacts.npz")
+            metrics = summary_metrics(logits, true_tokens)
+            metrics.update(metadata)
+            metrics.update({"requested_depth": args.depth, "k": args.k, "logit_seconds": sum(fold_seconds), "fold_seconds": fold_seconds,
+                            "preprocess_seconds": preprocess_seconds,
+                            "inference_seconds": sum(fold_seconds),
+                            "total_seconds": time.perf_counter() - started,
+                            "peak_gpu_mib": torch.cuda.max_memory_allocated() / (1 << 20) if device.type == "cuda" else None})
+            (destination / "complete.json").write_text(json.dumps({k: v for k, v in metrics.items() if k != "fold_seconds"}))
+            # The ledger is the commit marker. An interruption before this write
+            # leaves rerunnable files; no half-written chain is ever skipped.
+            with metrics_path.open("a") as handle:
+                handle.write(json.dumps(metrics) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            print(json.dumps({k: v for k, v in metrics.items() if k != "selected_source_rows"}), flush=True)
+            del tokens, true_tokens, logits
+        except Exception:
+            shutil.rmtree(destination, ignore_errors=True)
+            raise
+        finally:
+            shutil.rmtree(scratch, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    main()

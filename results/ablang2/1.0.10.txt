@@ -1,0 +1,31 @@
+---
+tool: ablang2
+version: 1.0.10
+image: ghcr.io/brineylab/toolshed/ablang2@sha256:6bd1147c75d20935295438650ce52656bb19784f322b71d7b26758aac624a255
+digest: sha256:6bd1147c75d20935295438650ce52656bb19784f322b71d7b26758aac624a255
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-25T06:43:05Z
+exit: 0
+---
+Job 9172: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9172
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/ablang2@sha256:6bd1147c75d20935295438650ce52656bb19784f322b71d7b26758aac624a255
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/ablang2@sha256:6bd1147c75d20935295438650ce52656bb19784f322b71d7b26758aac624a255
+node: slurm-b200-204-049
+GPU 0: NVIDIA B200 (UUID: GPU-faecf77b-bf3b-2a64-6e4e-72927fcbaaea)
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.531; input_bytes=249
+ablang2: compute_seconds=0.485; residues_per_second=480.127
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.546
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.512; input_bytes=249
+ablang2: compute_seconds=0.266; residues_per_second=875.568
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.218
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.553; input_bytes=254
+ablang2: compute_seconds=0.308; residues_per_second=755.880
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.218
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.626; input_bytes=249
+ablang2: compute_seconds=0.762; residues_per_second=305.907
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.546
+pll=-160.942600; upstream mean=-0.69074088, mean*residues=-160.942626
+matrix (233, 20) float32 ; embedding (1, 480); paired infilling preserves context
+ok
+Job 9172: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9172

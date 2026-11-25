@@ -1,0 +1,33 @@
+---
+tool: ablang1-heavy
+version: 1.0.3
+image: ghcr.io/brineylab/toolshed/ablang1-heavy@sha256:b9bfb5e455b8a526660eb654602919f904ef8468f25f1ebc178051847db66ea3
+digest: sha256:b9bfb5e455b8a526660eb654602919f904ef8468f25f1ebc178051847db66ea3
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-25T22:14:58Z
+exit: 0
+---
+Job 9885: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9885
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/ablang1-heavy@sha256:b9bfb5e455b8a526660eb654602919f904ef8468f25f1ebc178051847db66ea3
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/ablang1-heavy@sha256:b9bfb5e455b8a526660eb654602919f904ef8468f25f1ebc178051847db66ea3
+node: slurm-b200-206-037
+GPU 0: NVIDIA B200 (UUID: GPU-59d2ab83-879f-4d58-960f-c8b62296133f)
+ablang1-heavy: 1 sequence(s), 119 residues; device=cuda; model_load_seconds=0.969; input_bytes=128
+ablang1-heavy: compute_seconds=0.325; residues_per_second=366.161
+ablang1-heavy: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+ablang1-heavy: 1 sequence(s), 119 residues; device=cuda; model_load_seconds=0.985; input_bytes=128
+ablang1-heavy: compute_seconds=0.251; residues_per_second=474.919
+ablang1-heavy: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+ablang1-heavy: 1 sequence(s), 119 residues; device=cuda; model_load_seconds=0.971; input_bytes=133
+ablang1-heavy: compute_seconds=0.293; residues_per_second=406.163
+ablang1-heavy: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+ablang1-heavy: 1 sequence(s), 119 residues; device=cuda; model_load_seconds=0.968; input_bytes=128
+ablang1-heavy: compute_seconds=0.322; residues_per_second=369.737
+ablang1-heavy: gpu=NVIDIA B200; peak_gpu_memory_gib=0.639
+chain=heavy; pll=-908.513428; upstream per-position masked-logit sum=-908.513428
+embedding_max_difference 0.0
+fill exactly matches upstream ablang.pretrained(..., mode='restore') VQLAQSGSELRKPGASVKVSCDTSGHSFTSNAIHWVRQAPGQGLEWMGWINTDTGTPTYAQGFTGRFVFSLDTSARTAYLQISSLKADDTAVFYCARERDYSDYFFDYWGQGTLVTVSS
+matrix (119, 20) float32 matches upstream independent masked logits
+ok
+Job 9885: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=9885

@@ -2,11 +2,11 @@
 name: dplm-3b
 description: "DPLM v1 3B protein language model (airkingbd/dplm_3b): residue-residue contact maps computed exactly as oplm does, by the categorical-Jacobian pipeline. Reach for it when plm-evals needs a contact map for DPLM."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # dplm-3b
 
-Image: `ghcr.io/brineylab/toolshed/dplm-3b:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/dplm-3b:1.0.1`
 
 DPLM v1, the sequence model (36 layers, 2560-dimensional, about 2.8B parameters), from `airkingbd/dplm_3b`, loaded in bf16 through the modeling code vendored from bytedance/dplm. One command, `contacts`, which turns sequences into contact maps exactly the way oplm computes them. The weights are in the image, stored exactly as released (four fp32 shards, 11.4 GB) and cast to bf16 as they load; it needs no network.
 
@@ -35,13 +35,13 @@ On a laptop, from the directory holding `seqs.fasta` (drop `--device` without a 
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/dplm-3b:1.0.0 dplm contacts --in seqs.fasta --out contacts.npz
+  ghcr.io/brineylab/toolshed/dplm-3b:1.0.1 dplm contacts --in seqs.fasta --out contacts.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/dplm-3b:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/dplm-3b:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work dplm contacts --in seqs.fasta --out contacts.npz
 ```
 
