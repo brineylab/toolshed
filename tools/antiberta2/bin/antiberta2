@@ -61,16 +61,24 @@ def encode(tokenizer, pair, device):
     _, heavy, light = pair
     # Model paper: chains joined by [SEP]. Its vocabulary marks each chain with
     # the Unicode heavy/light tokens; the paired empirical probe establishes order.
-    text = f"Ḣ {' '.join(heavy)} [SEP] Ḷ {' '.join(light)}"
-    token_list = tokenizer.tokenize(text)
-    residue_positions = [index + 1 for index, token in enumerate(token_list)
-                         if token in RESIDUES or token == tokenizer.mask_token]
-    assert len(residue_positions) == len(heavy.replace("[MASK]", "M")) + len(light.replace("[MASK]", "M"))
-    ids = tokenizer(text, return_tensors="pt")["input_ids"].to(device)
-    assert ids.shape[1] == len(residue_positions) + 5
-    assert tokenizer.convert_ids_to_tokens(ids[0, residue_positions]) == [token_list[position - 1] for position in residue_positions]
+    # A literal [MASK] in an ordinary residue string would be split into characters
+    # by RoFormer's WordPiece tokenizer, so set mask ids after tokenization instead.
+    text = f"Ḣ {' '.join(heavy.replace('[MASK]', 'M'))} [SEP] Ḷ {' '.join(light.replace('[MASK]', 'M'))}"
+    encoded = tokenizer(text, return_tensors="pt")
+    token_list = tokenizer.convert_ids_to_tokens(encoded["input_ids"][0])
+    residue_positions = [index for index, token in enumerate(token_list) if token in RESIDUES]
+    expected_length = len(heavy.replace("[MASK]", "M")) + len(light.replace("[MASK]", "M"))
+    assert len(residue_positions) == expected_length
+    assert len(token_list) == expected_length + 5
+    assert tokenizer.convert_ids_to_tokens(encoded["input_ids"][0, residue_positions]) == [
+        token_list[position] for position in residue_positions]
+    ids = encoded["input_ids"].to(device)
     positions = torch.tensor(residue_positions, dtype=torch.long, device=device)
-    masked = ids[0, positions] == tokenizer.mask_token_id
+    masked = []
+    for chain in (heavy, light):
+        masked.extend(part == "[MASK]" for part in chain.replace("[MASK]", " [MASK] ").split())
+    masked = torch.tensor(masked, dtype=torch.bool, device=device)
+    ids[0, positions[masked]] = tokenizer.mask_token_id
     return ids, positions, masked
 
 

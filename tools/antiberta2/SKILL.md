@@ -2,11 +2,11 @@
 name: antiberta2
 description: "AntiBERTa2 paired antibody RoFormer language model: pseudo-log-likelihoods, per-pair embeddings, masked infilling, and per-position amino-acid matrices for heavy/light antibody pairs. Reach for it to score, embed, or infill a paired antibody, or to compute its per-position mutation profile."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # antiberta2
 
-Image: `ghcr.io/brineylab/toolshed/antiberta2:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/antiberta2:1.0.1`
 
 AntiBERTa2 (`transformers`' RoFormer implementation), a 16-layer, 1024-dimensional antibody language model. Hugging Face `alchemab/antiberta2` revision `3123350a3ee741c02a5dcf5efc771f3fb588ae77` is in the image, and no network is needed. The caller supplies chains separately; the tool constructs the model's empirically validated paired representation.
 
@@ -39,13 +39,13 @@ On a laptop, from the directory holding the FASTAs:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/antiberta2:1.0.0 antiberta2 matrix --heavy h.fasta --light l.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/antiberta2:1.0.1 antiberta2 matrix --heavy h.fasta --light l.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/antiberta2:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/antiberta2:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work antiberta2 pll --heavy h.fasta --light l.fasta --out pll.tsv
 ```
 
