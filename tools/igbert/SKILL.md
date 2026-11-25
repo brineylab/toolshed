@@ -2,11 +2,11 @@
 name: igbert
 description: "IgBert paired antibody BERT language model: pseudo-log-likelihoods, per-pair embeddings, masked infilling, and per-position amino-acid matrices for heavy/light antibody pairs. Reach for it to score, embed, or infill a paired antibody, or to compute its per-position mutation profile; use igbert-unpaired for a single chain."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # igbert
 
-Image: `ghcr.io/brineylab/toolshed/igbert:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/igbert:1.0.1`
 
 IgBert (`transformers`' BERT implementation), a 30-layer, 1024-dimensional antibody language model with 420M fp32 parameters. Hugging Face `Exscientia/IgBert` revision `81a4abb8a4dac5cdcbefc28e5b331a82224c485d` is in the image as safetensors, and no network is needed. The caller supplies separate chain FASTAs; the tool constructs heavy–`[SEP]`–light input.
 
@@ -39,13 +39,13 @@ On a laptop, from the directory holding the FASTAs:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/igbert:1.0.0 igbert matrix --heavy h.fasta --light l.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/igbert:1.0.1 igbert matrix --heavy h.fasta --light l.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/igbert:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/igbert:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work igbert pll --heavy h.fasta --light l.fasta --out pll.tsv
 ```
 

@@ -79,9 +79,8 @@ with torch.inference_mode():
     logits = model(input_ids=masked_ids).logits[0].log_softmax(-1)
     predictions = logits[:, allowed].argmax(-1).tolist()
 original = masked_heavy.replace("<mask>", "M") + masked_light.replace("<mask>", "M")
-masked = set(masked_positions.tolist())
-filled = "".join(RESIDUES[predictions[position]] if position in masked else residue
-                 for position, residue in zip(masked_positions.tolist(), original))
+filled = "".join(RESIDUES[predictions[position]] if int(masked_ids[0, position]) == tokenizer.mask_token_id
+                 else residue for position, residue in zip(masked_positions.tolist(), original))
 expected_fasta = [">pair1", filled[:len(heavy)] + "|" + filled[len(heavy):]]
 assert (out / "filled.fasta").read_text().splitlines() == expected_fasta
 assert sum(a != b for a, b in zip(filled, heavy + light)) <= 2
