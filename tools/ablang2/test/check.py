@@ -13,7 +13,7 @@ heavy = (root / "heavy.fasta").read_text().splitlines()[1]
 light = (root / "light.fasta").read_text().splitlines()[1]
 masked_heavy = (root / "masked-heavy.fasta").read_text().splitlines()[1]
 masked_light = (root / "masked-light.fasta").read_text().splitlines()[1]
-joint_masked = masked_heavy + masked_light
+joint_masked = (masked_heavy + masked_light).replace("<mask>", "*")
 joint_truth = heavy + light
 assert len(joint_masked) == len(joint_truth), "masked fixture must preserve both chain lengths"
 assert all(masked == true or masked == "*"
@@ -48,7 +48,7 @@ filled = (out / "filled.fasta").read_text().splitlines()
 assert filled[0] == ">brii1" and len(filled) == 2
 assert len(filled[1]) == len(joint_truth) + 1 and "*" not in filled[1]
 filled_sequence = filled[1].replace("|", "")
-mask_positions = [i for i, residue in enumerate(joint_masked.replace("<mask>", "*")) if residue == "*"]
+mask_positions = [i for i, residue in enumerate(joint_masked) if residue == "*"]
 assert len(mask_positions) == 2
 assert all(filled_sequence[i] == joint_truth[i]
            for i in range(len(joint_truth)) if i not in mask_positions)
