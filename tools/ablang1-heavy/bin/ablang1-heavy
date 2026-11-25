@@ -54,7 +54,7 @@ def residue_logp(model, tokens):
     for start in range(0, len(positions), BATCH):
         pos = positions[start:start + BATCH]
         index = torch.arange(len(pos), device=ids.device)
-        batch = ids.repeat(len(pos), 1)
+        batch = ids.repeat((len(pos), 1))
         batch[index, pos] = model.tokenizer.vocab_to_token["*"]
         predictions = model.AbLang(batch)
         # Upstream's likelihood head exposes its 20 logit columns directly.
