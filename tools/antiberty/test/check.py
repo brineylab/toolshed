@@ -51,8 +51,8 @@ matrix = matrices["brii1"]
 assert matrix.shape == (len(sequence), 20) and matrix.dtype == np.float32
 assert np.allclose(np.exp(matrix).sum(axis=1), 1, atol=2e-5)
 assert abs(matrix[np.arange(len(matrix)), ["ACDEFGHIKLMNPQRSTVWY".index(aa) for aa in sequence]].sum() - pll) < 0.001
-# The default normalization differs from full-vocab by a log-Z correction only.
-assert np.allclose(np.exp(matrix).sum(axis=1), 1.0, atol=2e-5)
+# Masking its five non-amino-acid logits to -inf leaves no probability outside
+# these 20 columns, so standard and full-vocab normalize identically.
 
 filled = (out / "filled.fasta").read_text().splitlines()
 assert filled == [">brii1", upstream_fill[0]], (filled, upstream_fill)

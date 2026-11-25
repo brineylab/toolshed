@@ -1,5 +1,13 @@
-# The environment and pinned weights were tested in 1.0.1. Reusing that image keeps
-# those layers unchanged while the embedding diagnostic and output test are updated.
-FROM ghcr.io/brineylab/toolshed/antiberty@sha256:bb2c34fad85065ae8661dc8d529001783070ea21d6739240e30a9a0b55537967
+FROM docker.io/pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 ANTIBERTY_WEIGHTS_DIR=/opt/AntiBERTy
+RUN pip uninstall -y --break-system-packages torchaudio torchvision && \
+    pip install --no-cache-dir --break-system-packages \
+      antiberty==1.0.0 transformers==5.16.1 numpy==2.5.4 requests==2.33.1 && \
+    python3 -I -c "import torch, transformers, antiberty"
+RUN HF_HUB_OFFLINE=0 TRANSFORMERS_OFFLINE=0 python3 -I -c "from huggingface_hub import snapshot_download; \
+    snapshot_download('jeffruffolo/AntiBERTy', revision='d582006e0c7dc6917d26fa60740a357e8df7b466', \
+    local_dir='/opt/AntiBERTy', allow_patterns=['config.json', 'model.safetensors', 'vocab.txt'])"
+COPY LICENSE /opt/AntiBERTy/LICENSE
 COPY --chmod=755 bin/antiberty /usr/local/bin/antiberty
 COPY test /toolshed/test
