@@ -36,6 +36,10 @@ print(f"pll={pll:.6f}; upstream mean*residues={expected:.6f}")
 
 embeddings = np.load(out / "emb.npz")["embeddings"]
 upstream_embedding = runner.embed([sequence])[-1][0, 1:-1].mean(0).float().cpu().numpy()
+print("embedding_diagnostics:",
+      f"tool_range=({embeddings.min():.6f}, {embeddings.max():.6f})",
+      f"upstream_range=({upstream_embedding.min():.6f}, {upstream_embedding.max():.6f})",
+      f"max_difference={np.max(np.abs(embeddings[0] - upstream_embedding)):.6f}")
 assert embeddings.shape == (1, 512) and embeddings.dtype == np.float32
 assert np.allclose(embeddings[0], upstream_embedding, atol=2e-5), np.max(np.abs(embeddings[0] - upstream_embedding))
 print("embedding matches upstream last-layer residue mean")
