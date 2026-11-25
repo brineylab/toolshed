@@ -1,0 +1,172 @@
+#!/usr/bin/env -S python3 -I
+"""antiberta2: paired pseudo-log-likelihoods, embeddings, infilling, and amino-acid matrices."""
+import argparse
+import os
+import sys
+import time
+
+import numpy as np
+import torch
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+RESIDUES = "ACDEFGHIKLMNPQRSTVWY"
+MAX_RESIDUES = 251  # 256 model positions less CLS, two SEPs and two chain markers
+BATCH = 32
+
+
+def read_fasta(path, allow_mask=False):
+    records = []
+    with open(path) as handle:
+        for line in handle:
+            line = line.strip()
+            if line.startswith(">"):
+                name = line[1:].split()[0] if line[1:].strip() else f"seq{len(records) + 1}"
+                if any(name == old for old, _ in records):
+                    sys.exit(f"antiberta2: {name} appears twice in {path}; ids must be unique")
+                records.append([name, ""])
+            elif line:
+                if not records:
+                    sys.exit(f"antiberta2: {path} is not FASTA: sequence before the first '>'")
+                records[-1][1] += line.upper().replace("<MASK>", "[MASK]") if allow_mask else line.upper()
+    if not records:
+        sys.exit(f"antiberta2: {path} holds no sequences")
+    for name, sequence in records:
+        outside = "".join(sorted(set(sequence.replace("[MASK]", "")) - set(RESIDUES)))
+        if outside or not sequence.replace("[MASK]", ""):
+            sys.exit(f"antiberta2: {name} in {path} is empty or holds unsupported characters: {outside}")
+        residues = sequence.replace("[MASK]", "M") if allow_mask else sequence
+        if len(residues) > MAX_RESIDUES:
+            sys.exit(f"antiberta2: {name} has {len(residues)} residues; a pair takes at most {MAX_RESIDUES}")
+    return records
+
+
+def read_pairs(heavy_path, light_path, fill=False):
+    heavy = read_fasta(heavy_path, allow_mask=fill)
+    light = dict(read_fasta(light_path, allow_mask=fill))
+    missing = [name for name, _ in heavy if name not in light]
+    extra = set(light) - {name for name, _ in heavy}
+    if missing or extra:
+        sys.exit(f"antiberta2: heavy/light ids differ; missing light={missing}, missing heavy={sorted(extra)}")
+    pairs = []
+    for name, heavy_sequence in heavy:
+        light_sequence = light[name]
+        length = len(heavy_sequence.replace("[MASK]", "M")) + len(light_sequence.replace("[MASK]", "M"))
+        if length > MAX_RESIDUES:
+            sys.exit(f"antiberta2: {name} has {length} residues; a pair takes at most {MAX_RESIDUES}")
+        pairs.append((name, heavy_sequence, light_sequence))
+    return pairs
+
+
+def encode(tokenizer, pair, device):
+    _, heavy, light = pair
+    # Model paper: chains joined by [SEP]. Its vocabulary marks each chain with
+    # the Unicode heavy/light tokens; the paired empirical probe establishes order.
+    text = f"Ḣ {' '.join(heavy)} [SEP] Ḷ {' '.join(light)}"
+    token_list = tokenizer.tokenize(text)
+    residue_positions = [index + 1 for index, token in enumerate(token_list)
+                         if token in RESIDUES or token == tokenizer.mask_token]
+    assert len(residue_positions) == len(heavy.replace("[MASK]", "M")) + len(light.replace("[MASK]", "M"))
+    ids = tokenizer(text, return_tensors="pt")["input_ids"].to(device)
+    assert ids.shape[1] == len(residue_positions) + 6
+    assert tokenizer.convert_ids_to_tokens(ids[0, residue_positions]) == token_list
+    positions = torch.tensor(residue_positions, dtype=torch.long, device=device)
+    masked = ids[0, positions] == tokenizer.mask_token_id
+    return ids, positions, masked
+
+
+def residue_logp(model, tokenizer, tokens, allowed):
+    ids, positions, _ = tokens
+    rows = []
+    for start in range(0, len(positions), BATCH):
+        pos = positions[start:start + BATCH]
+        index = torch.arange(len(pos), device=ids.device)
+        batch = ids.repeat(len(pos), 1)
+        batch[index, pos] = tokenizer.mask_token_id
+        logits = model(input_ids=batch).logits[index, pos]
+        rows.append(logits[:, allowed].log_softmax(-1))
+    return torch.cat(rows).float().cpu().numpy()
+
+
+def embedding(model, tokens):
+    ids, positions, _ = tokens
+    hidden = model.roformer(input_ids=ids).last_hidden_state[0, positions]
+    return hidden.mean(0).float().cpu().numpy()
+
+
+def fill(model, tokenizer, pair, tokens, allowed):
+    (_, heavy, light), (ids, positions, masked) = pair, tokens
+    logits = model(input_ids=ids).logits[0][:, allowed]
+    residues = [residue for chain in (heavy, light) for residue in chain.replace("[MASK]", "M")]
+    filled = 0
+    for index, (position, is_masked) in enumerate(zip(positions.tolist(), masked.tolist())):
+        if is_masked:
+            residues[index] = RESIDUES[int(logits[position].argmax(-1))]
+            filled += 1
+    heavy_length = len(heavy.replace("[MASK]", "M"))
+    heavy_filled = "".join(residues[:heavy_length])
+    light_filled = "".join(residues[heavy_length:])
+    assert filled == (heavy + light).count("[MASK]")
+    return heavy_filled + "|" + light_filled
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="antiberta2", description=__doc__)
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    for command, output in (("pll", "TSV: id, pll"), ("embed", "npz: ids, embeddings"),
+                            ("fill", "FASTA"), ("matrix", "npz: per-id (L, 20) matrices")):
+        p = sub.add_parser(command)
+        p.add_argument("--heavy", required=True, help="heavy-chain FASTA")
+        p.add_argument("--light", required=True, help="light-chain FASTA, matched by id")
+        p.add_argument("--out", required=True, help=output)
+        p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    args = parser.parse_args()
+    if args.device == "cuda" and not torch.cuda.is_available():
+        sys.exit("antiberta2: --device cuda was requested, but no CUDA device is available")
+    pairs = read_pairs(args.heavy, args.light, fill=args.cmd == "fill")
+    read_time = time.monotonic()
+    path = os.environ["ANTIBERTA2_MODEL"]
+    tokenizer = AutoTokenizer.from_pretrained(path)
+    model = AutoModelForMaskedLM.from_pretrained(path).eval().to(args.device)
+    loaded_time = time.monotonic()
+    residues = sum(len(heavy) + len(light) for _, heavy, light in pairs)
+    residues -= sum((heavy + light).count("[MASK]") * 5 for _, heavy, light in pairs)
+    print("AntiBERTa2 (c) 2023 Alchemab Therapeutics Ltd; non-commercial research and academic use only; "
+          "see /opt/model/LICENSE", file=sys.stderr, flush=True)
+    print(f"antiberta2: {len(pairs)} pair(s), {residues} residues; device={args.device}; "
+          f"model_load_seconds={loaded_time - read_time:.3f}; "
+          f"input_bytes={os.path.getsize(args.heavy) + os.path.getsize(args.light)}", flush=True)
+    allowed = torch.tensor(tokenizer.convert_tokens_to_ids(list(RESIDUES)), device=args.device)
+    tokens = [encode(tokenizer, pair, args.device) for pair in pairs]
+    with torch.inference_mode():
+        if args.cmd == "embed":
+            np.savez(args.out, ids=np.array([p[0] for p in pairs]),
+                     embeddings=np.stack([embedding(model, token) for token in tokens]).astype(np.float32))
+        elif args.cmd == "fill":
+            with open(args.out, "w") as handle:
+                for pair, token in zip(pairs, tokens):
+                    handle.write(f">{pair[0]}\n{fill(model, tokenizer, pair, token, allowed)}\n")
+        else:
+            matrices = [residue_logp(model, tokenizer, token, allowed) for token in tokens]
+            if args.cmd == "pll":
+                with open(args.out, "w") as handle:
+                    handle.write("id\tpll\n")
+                    for pair, token, matrix in zip(pairs, tokens, matrices):
+                        ids, positions, _ = token
+                        residues_ids = ids[0, positions].detach().cpu().tolist()
+                        token_names = tokenizer.convert_ids_to_tokens(residues_ids)
+                        columns = np.array([RESIDUES.index(name) for name in token_names])
+                        handle.write(f"{pair[0]}\t{matrix[np.arange(len(columns)), columns].sum():.6f}\n")
+            else:
+                arrays = {pair[0]: matrix.astype(np.float32) for pair, matrix in zip(pairs, matrices)}
+                np.savez(args.out, ids=np.array([p[0] for p in pairs]),
+                         amino_acids=np.array(list(RESIDUES)), **arrays)
+    compute_seconds = time.monotonic() - loaded_time
+    print(f"antiberta2: compute_seconds={compute_seconds:.3f}; "
+          f"residues_per_second={residues / compute_seconds:.3f}", flush=True)
+    if args.device == "cuda":
+        print(f"antiberta2: gpu={torch.cuda.get_device_name(0)}; "
+              f"peak_gpu_memory_gib={torch.cuda.max_memory_allocated() / 2**30:.3f}", flush=True)
+
+
+if __name__ == "__main__":
+    main()
