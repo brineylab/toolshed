@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir --break-system-packages \
 # Copy the archived 2022 package before importing compiled biotite extensions.
 # Set PYTHONPATH for this build check only; the runtime wrapper inserts /opt/esm.
 RUN python3 -I -c "import pathlib, sysconfig; (pathlib.Path(sysconfig.get_paths()['purelib'])/'esm-if1.pth').write_text('/opt/esm\\n')" \
-  && python3 -I -c "import pathlib, shutil, tarfile, urllib.request; sha='2b369911bb5b4b0dda914521b9475cad1656b2ac'; root=pathlib.Path('/tmp/esm-source'); root.mkdir(); urllib.request.urlretrieve(f'https://github.com/facebookresearch/esm/archive/{sha}.tar.gz','/tmp/esm.tar.gz'); tarfile.open('/tmp/esm.tar.gz').extractall(root); out=pathlib.Path('/opt/esm'); out.mkdir(); (root/f'esm-{sha}'/'esm').rename(out/'esm'); shutil.rmtree(root); pathlib.Path('/tmp/esm.tar.gz').unlink()" \
+  && python3 -I -c "import pathlib, shutil, tarfile, urllib.request; sha='2b369911bb5b4b0dda914521b9475cad1656b2ac'; root=pathlib.Path('/tmp/esm-source'); root.mkdir(); urllib.request.urlretrieve(f'https://github.com/facebookresearch/esm/archive/{sha}.tar.gz','/tmp/esm.tar.gz'); tarfile.open('/tmp/esm.tar.gz').extractall(root); out=pathlib.Path('/opt/esm'); out.mkdir(); (root/f'esm-archive-{sha}'/'esm').rename(out/'esm'); shutil.rmtree(root); pathlib.Path('/tmp/esm.tar.gz').unlink()" \
   && PYTHONPATH=/opt/esm python3 -I -c "import esm.inverse_folding, biotite, torch, torch_geometric; import esm; assert esm.__file__.startswith('/opt/esm/'), esm.__file__; print(esm.__file__, 'biotite', biotite.__version__, 'torch', torch.__version__, 'pyg', torch_geometric.__version__)"
 COPY LICENSE /opt/model/LICENSE
 # Weights last: 1.70 GB, downloaded only into this layer, with the exact bytes
