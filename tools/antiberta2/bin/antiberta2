@@ -59,8 +59,9 @@ def read_pairs(heavy_path, light_path, fill=False):
 
 def encode(tokenizer, pair, device):
     _, heavy, light = pair
-    # Model paper: chains joined by [SEP]. Its vocabulary marks each chain with
-    # the Unicode heavy/light tokens; the paired empirical probe establishes order.
+    # Model paper: chains are joined by [SEP], but training chain order is not
+    # documented. This heavy-first layout is the interface convention, not a
+    # validated reconstruction of upstream's order; see SKILL.md's limitation.
     # A literal [MASK] in an ordinary residue string would be split into characters
     # by RoFormer's WordPiece tokenizer, so set mask ids after tokenization instead.
     text = f"Ḣ {' '.join(heavy.replace('[MASK]', 'M'))} [SEP] Ḷ {' '.join(light.replace('[MASK]', 'M'))}"
