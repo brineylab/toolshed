@@ -21,12 +21,13 @@ RUN pip install --no-cache-dir --break-system-packages \
 # first even under `python3 -I`; PYTHONPATH and caller packages cannot replace
 # it. Upstream is a library here, not a CLI.
 RUN python3 -I -c "import pathlib, sysconfig; (pathlib.Path(sysconfig.get_paths()['purelib'])/'esm-if1.pth').write_text('/opt/esm\\n')" \
+  && ln -s /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/site-packages \
   && python3 -I -c "import pathlib, shutil, tarfile, urllib.request; sha='2b369911bb5b4b0dda914521b9475cad1656b2ac'; root=pathlib.Path('/tmp/esm-source'); root.mkdir(); urllib.request.urlretrieve(f'https://github.com/facebookresearch/esm/archive/{sha}.tar.gz','/tmp/esm.tar.gz'); tarfile.open('/tmp/esm.tar.gz').extractall(root); out=pathlib.Path('/opt/esm'); out.mkdir(); (root/f'esm-{sha}'/'esm').rename(out/'esm'); shutil.rmtree(root); pathlib.Path('/tmp/esm.tar.gz').unlink()" \
   && python3 -I -c "import esm.inverse_folding, biotite, torch, torch_geometric; import esm; assert esm.__file__.startswith('/opt/esm/'), esm.__file__; print(esm.__file__, 'biotite', biotite.__version__, 'torch', torch.__version__, 'pyg', torch_geometric.__version__)"
 COPY LICENSE /opt/model/LICENSE
 # Weights last: 1.70 GB, downloaded only into this layer, with the exact bytes
 # verified before the container test tries loading the model.
 RUN python3 -I -c "import hashlib, pathlib, urllib.request; p=pathlib.Path('/opt/model/esm_if1_gvp4_t16_142M_UR50.pt'); p.parent.mkdir(exist_ok=True); urllib.request.urlretrieve('https://dl.fbaipublicfiles.com/fair-esm/models/esm_if1_gvp4_t16_142M_UR50.pt',p); assert hashlib.sha256(p.read_bytes()).hexdigest()=='be4ba36edec22a9bfaa4946ff6b2815f1f19d8a3d7e0eada8b796d5a0eae9fd4'" \
-  && python3 -I -c "import sys; sys.path.insert(0,'/opt/esm'); import esm; m,a=esm.pretrained.load_model_and_alphabet_local('/opt/model/esm_if1_gvp4_t16_142M_UR50.pt'); print(sum(p.numel() for p in m.parameters()), 'parameters; checkpoint loads')"
+  && python3 -I -c "import esm; m,a=esm.pretrained.load_model_and_alphabet_local('/opt/model/esm_if1_gvp4_t16_142M_UR50.pt'); print(sum(p.numel() for p in m.parameters()), 'parameters; checkpoint loads')"
 COPY --chmod=755 bin/esm-if1 /usr/local/bin/esm-if1
 COPY test /toolshed/test
