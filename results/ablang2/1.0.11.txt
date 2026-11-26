@@ -1,0 +1,31 @@
+---
+tool: ablang2
+version: 1.0.11
+image: ghcr.io/brineylab/toolshed/ablang2@sha256:21952d2420a284f4ec631ed576ae6498df63113f1c27d1a6a13040b890436d07
+digest: sha256:21952d2420a284f4ec631ed576ae6498df63113f1c27d1a6a13040b890436d07
+runner: sbatch --partition=flyloft --gres=gpu:1 --time=00:30:00
+host: sunk.6af0ac-eu-south-03b-briney-b200.coreweave.app
+started: 2026-11-26T01:46:59Z
+exit: 0
+---
+Job 10872: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=10872
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/ablang2@sha256:21952d2420a284f4ec631ed576ae6498df63113f1c27d1a6a13040b890436d07
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/ablang2@sha256:21952d2420a284f4ec631ed576ae6498df63113f1c27d1a6a13040b890436d07
+node: slurm-b200-206-049
+GPU 0: NVIDIA B200 (UUID: GPU-8f2ccbb6-fc7c-7e94-9604-054cc051d9a0)
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.541; input_bytes=249
+ablang2: compute_seconds=0.491; residues_per_second=474.374
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.546
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.545; input_bytes=249
+ablang2: compute_seconds=0.274; residues_per_second=851.235
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.218
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.545; input_bytes=254
+ablang2: compute_seconds=0.309; residues_per_second=754.813
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.218
+ablang2: 1 pair(s), 233 residues; device=cuda; model_load_seconds=0.592; input_bytes=249
+ablang2: compute_seconds=0.488; residues_per_second=477.765
+ablang2: gpu=NVIDIA B200; peak_gpu_memory_gib=0.546
+pll=-160.942600; upstream mean=-0.69074088, mean*residues=-160.942626
+matrix (233, 20) float32 ; embedding (1, 480); paired infilling preserves context
+ok
+Job 10872: SUNK job dashboard: https://cks-grafana.coreweave.com/d/slurm-job-metrics/slurm-job-metrics?var-slurm_cluster=slurm&var-job_id=10872
