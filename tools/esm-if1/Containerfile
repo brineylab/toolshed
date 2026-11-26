@@ -10,16 +10,19 @@ ENV HF_HUB_OFFLINE=1
 ENV TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
 # Biotite 1.5.0 removed the legacy PDBxFile and filter_peptide_backbone names
 # imported by the pinned ESM code. 0.41.2 has both and supports Python 3.12;
-# its binary extension was built against numpy 1.x, so keep numpy 1.26.4
-# and SciPy 1.15.3 (SciPy 1.18.1 rejects numpy<2 at import).
+# keep numpy 1.x. The official PyPI wheel imports under Python 3.12 in this
+# stack; it does not need the later biotraj dependency or a build toolchain.
 RUN pip install --no-cache-dir --break-system-packages \
       numpy==1.26.4 scipy==1.15.3 biotite==0.41.2 \
       torch-geometric==2.8.1
-# Upstream is a library here, not a CLI. Keep its complete pinned package tree
-# under an explicit path; the wrapper inserts it with sys.path, so python3 -I
-# cannot be surprised by the caller's home or PYTHONPATH.
-RUN python3 -I -c "import pathlib, shutil, tarfile, urllib.request; sha='2b369911bb5b4b0dda914521b9475cad1656b2ac'; root=pathlib.Path('/tmp/esm-source'); root.mkdir(); urllib.request.urlretrieve(f'https://github.com/facebookresearch/esm/archive/{sha}.tar.gz','/tmp/esm.tar.gz'); tarfile.open('/tmp/esm.tar.gz').extractall(root); out=pathlib.Path('/opt/esm'); out.mkdir(); (root/f'esm-{sha}'/'esm').rename(out/'esm'); shutil.rmtree(root); pathlib.Path('/tmp/esm.tar.gz').unlink()" \
-  && python3 -I -c "import sys; sys.path.insert(0,'/opt/esm'); import esm.inverse_folding, biotite, torch, torch_geometric; print('esm, biotite', biotite.__version__, 'torch', torch.__version__, 'pyg', torch_geometric.__version__)"
+# The runtime base can also carry the incompatible modern `esm` library. Pin
+# an interpreter path override now, before importing any compiled biotite
+# extension in a build-time check. A .pth file keeps the archived 2022 package
+# first even under `python3 -I`; PYTHONPATH and caller packages cannot replace
+# it. Upstream is a library here, not a CLI.
+RUN python3 -I -c "import pathlib, sysconfig; (pathlib.Path(sysconfig.get_paths()['purelib'])/'esm-if1.pth').write_text('/opt/esm\\n')" \
+  && python3 -I -c "import pathlib, shutil, tarfile, urllib.request; sha='2b369911bb5b4b0dda914521b9475cad1656b2ac'; root=pathlib.Path('/tmp/esm-source'); root.mkdir(); urllib.request.urlretrieve(f'https://github.com/facebookresearch/esm/archive/{sha}.tar.gz','/tmp/esm.tar.gz'); tarfile.open('/tmp/esm.tar.gz').extractall(root); out=pathlib.Path('/opt/esm'); out.mkdir(); (root/f'esm-{sha}'/'esm').rename(out/'esm'); shutil.rmtree(root); pathlib.Path('/tmp/esm.tar.gz').unlink()" \
+  && python3 -I -c "import esm.inverse_folding, biotite, torch, torch_geometric; import esm; assert esm.__file__.startswith('/opt/esm/'), esm.__file__; print(esm.__file__, 'biotite', biotite.__version__, 'torch', torch.__version__, 'pyg', torch_geometric.__version__)"
 COPY LICENSE /opt/model/LICENSE
 # Weights last: 1.70 GB, downloaded only into this layer, with the exact bytes
 # verified before the container test tries loading the model.
