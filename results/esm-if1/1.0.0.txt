@@ -1,0 +1,84 @@
+---
+tool: esm-if1
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/esm-if1@sha256:6fe9ed55a559b102bee17f759de32c83185c63baa714cb14acb22ca271160782
+digest: sha256:6fe9ed55a559b102bee17f759de32c83185c63baa714cb14acb22ca271160782
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-26T05:10:35Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/esm-if1@sha256:6fe9ed55a559b102bee17f759de32c83185c63baa714cb14acb22ca271160782
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/esm-if1@sha256:6fe9ed55a559b102bee17f759de32c83185c63baa714cb14acb22ca271160782
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/functional.py:6829: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+  key_padding_mask = _canonical_mask(
+Wrote 1 designs for chain H (218 residues; 3 chain(s) in context) to /tmp/esm-if1.eXRFT9/antibody.cif.fa
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/functional.py:6829: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+  key_padding_mask = _canonical_mask(
+Scored 2 sequences for chain H (3 chain(s) in context) to /tmp/esm-if1.eXRFT9/selected-cif.score.tsv
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/functional.py:6829: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+  key_padding_mask = _canonical_mask(
+Scored 2 sequences for chain H (3 chain(s) in context) to /tmp/esm-if1.eXRFT9/selected-pdb.score.tsv
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/functional.py:6829: UserWarning: Support for mismatched key_padding_mask and attn_mask is deprecated. Use same type for both instead.
+  key_padding_mask = _canonical_mask(
+Scored 2 sequences for chain H (3 chain(s) in context) to /tmp/esm-if1.eXRFT9/all-cif.score.tsv
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+Embedded 218 residues of chain H with 512 features in /tmp/esm-if1.eXRFT9/antibody.embed.npz
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+Wrote 1 designs for chain C (93 residues; 1 chain(s) in context) to /tmp/esm-if1.eXRFT9/single.pdb.fa
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+Scored 2 sequences for chain C (1 chain(s) in context) to /tmp/esm-if1.eXRFT9/single-pdb.score.tsv
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/opt/esm/esm/pretrained.py:70: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  model_data = torch.load(str(model_location), map_location="cpu")
+/opt/esm/esm/pretrained.py:215: UserWarning: Regression weights not found, predicting contacts will not produce correct results.
+  warnings.warn(
+Scored 2 sequences for chain C (1 chain(s) in context) to /tmp/esm-if1.eXRFT9/single-cif.score.tsv
+/usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+PASS: mixed DNA/protein structure filters to 93-residue protein C
+PASS: 520-residue author-chain complex, unresolved H12, non-protein exclusion, both formats, native > shuffled, context, 512-D finite nondegenerate embeddings
