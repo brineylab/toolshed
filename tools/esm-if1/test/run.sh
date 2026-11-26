@@ -9,7 +9,7 @@ ESM_IF1_TEST_OUT="$T" python3 -I - <<'PY'
 import os
 from pathlib import Path
 import runpy
-api = runpy.run_path("/usr/local/bin/esm-if1", run_name="esm_if1_api")
+api = runpy.run_path("/usr/local/bin/esm-if1", run_name="esm_if1_library")
 out = Path(os.environ["ESM_IF1_TEST_OUT"])
 for stem in ("antibody-cif", "antibody-pdb", "single-cif", "single-pdb"):
     records = api["fasta"](stem + ".fasta")
@@ -35,7 +35,7 @@ esm-if1 score --structure single.cif --chain C --sequences single-cif.fasta \
 python3 -I - <<'PY'
 import runpy
 from types import SimpleNamespace
-api = runpy.run_path("/usr/local/bin/esm-if1", run_name="esm_if1_api")
+api = runpy.run_path("/usr/local/bin/esm-if1", run_name="esm_if1_library")
 assert api["prepare"](SimpleNamespace(structure="mixed.cif", chain="C", context_chains=[], multichain_backbone=False))[1] == api["fasta"]("single-cif.fasta")[0][1]
 print("PASS: mixed DNA/protein structure filters to 93-residue protein C")
 PY
