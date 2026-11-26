@@ -11,8 +11,9 @@ from transformers import BertForMaskedLM, BertTokenizer
 RESIDUES = "ACDEFGHIKLMNPQRSTVWY"
 
 
-def read(path):
-    return path.read_text().splitlines()[1]
+def read(path, identifier):
+    lines = path.read_text().splitlines()
+    return lines[lines.index(f">{identifier}") + 1]
 
 
 def encode(tokenizer, sequence):
@@ -41,8 +42,8 @@ def matrix(model, tokenizer, ids, positions, allowed):
 
 out = pathlib.Path(sys.argv[1])
 root = pathlib.Path(__file__).parent
-sequence = read(root / "sequences.fasta")
-masked_sequence = read(root / "masked.fasta")
+sequence = read(root / "sequences.fasta", "light1")
+masked_sequence = read(root / "masked.fasta", "light1")
 path = os.environ["IGBERT_UNPAIRED_MODEL"]
 tokenizer = BertTokenizer.from_pretrained(path, do_lower_case=False)
 model, loading_info = BertForMaskedLM.from_pretrained(path, output_loading_info=True)

@@ -2,11 +2,11 @@
 name: igbert-unpaired
 description: "IgBert-unpaired single-chain antibody BERT language model: pseudo-log-likelihoods, per-sequence embeddings, masked infilling, and per-position amino-acid matrices for antibody heavy or light variable domains. Reach for it to score, embed, or infill an individual antibody chain, or to compute its per-position mutation profile. Use igbert for paired heavy/light chains."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # igbert-unpaired
 
-Image: `ghcr.io/brineylab/toolshed/igbert-unpaired:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/igbert-unpaired:1.0.1`
 
 IgBert-unpaired (`transformers`' BERT implementation), a 30-layer, 1024-dimensional antibody language model with 420M fp32 parameters. Hugging Face `Exscientia/IgBert_unpaired` revision `53ed1be4a09fd30ef3f21ba0c8aae778ccdfff74` is in the image as safetensors, and no network is needed. Each input is one heavy or light chain; the separately trained paired model is `igbert`.
 
@@ -31,7 +31,7 @@ Each takes `--device cuda` or `--device cpu`; the default is the GPU when one is
 
 ## Compute
 
-One NVIDIA GPU with driver 580 or newer (CUDA 13 image). The 1.68 GB safetensors checkpoint is loaded in fp32. `pll` and `matrix` cost one forward pass per residue, in batches of 32 masked sequence copies; `embed` and `fill` cost one forward pass per sequence. Each command prints measured model-load and compute seconds, residue throughput, GPU name and peak GPU memory; `results/igbert-unpaired/1.0.0.txt` contains the hardware measurements.
+One NVIDIA GPU with driver 580 or newer (CUDA 13 image). The 1.68 GB safetensors checkpoint is loaded in fp32. `pll` and `matrix` cost one forward pass per residue, in batches of 32 masked sequence copies; `embed` and `fill` cost one forward pass per sequence. Each command prints measured model-load and compute seconds, residue throughput, GPU name and peak GPU memory; `results/igbert-unpaired/1.0.1.txt` contains the hardware measurements.
 
 ## Running it
 
@@ -39,13 +39,13 @@ On a laptop, from the directory holding the FASTAs:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/igbert-unpaired:1.0.0 igbert-unpaired matrix --in sequences.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/igbert-unpaired:1.0.1 igbert-unpaired matrix --in sequences.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/igbert-unpaired:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/igbert-unpaired:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work igbert-unpaired pll --in sequences.fasta --out pll.tsv
 ```
 
