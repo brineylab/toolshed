@@ -2,11 +2,11 @@
 name: ablang2
 description: "AbLang2 paired antibody language model: pseudo-log-likelihoods, per-sequence embeddings, masked infilling, and per-position amino-acid matrices for heavy/light antibody pairs. Reach for it to score, embed, or infill a paired antibody, or to compute its per-position mutation profile."
 metadata:
-  version: 1.0.10
+  version: 1.0.11
 ---
 # ablang2
 
-Image: `ghcr.io/brineylab/toolshed/ablang2:1.0.10`
+Image: `ghcr.io/brineylab/toolshed/ablang2:1.0.11`
 
 AbLang2 paired (`ablang2` 0.2.1; Zenodo record `10185169`, the `ablang2-weights.tar.gz` published there) with 480-dimensional representations. The caller supplies heavy and light sequence FASTAs; the tool constructs the model's own paired representation. Weights are in the image, and no network is needed.
 
@@ -33,7 +33,7 @@ The `fill` input fixtures exercise both lowercase `<mask>` and upstream's `*`; t
 
 ## Compute
 
-One GPU, any of the cluster's B200 or other NVIDIA GPUs with driver 580 or newer (CUDA 13 image). The tool loads a 168 MB weight archive and keeps fp32 weights. `matrix` and `pll` each cost one forward pass per residue over both chains; sequences are scored one pair at a time in batches of 32 positions. Test-time timings and memory are recorded in `results/ablang2/1.0.10.txt` with the full fixture outputs. `embed` and `fill` require one forward pass per pair.
+One NVIDIA GPU with driver 580 or newer (CUDA 13 image). The tool loads a 166.15 MB weight archive (166,154,117 bytes) and keeps fp32 weights. `matrix` and `pll` each cost one forward pass per residue over both chains; sequences are scored one pair at a time in batches of 32 positions. `embed` and `fill` require one forward pass per pair. Measured on one NVIDIA B200 for the 233-residue fixture, compute seconds / peak allocated memory were: `pll` 0.485 s / 0.546 GiB (480.127 residues/s); `embed` 0.266 s / 0.218 GiB (875.568 residues/s); `fill` 0.308 s / 0.218 GiB (755.880 residues/s); `matrix` 0.762 s / 0.546 GiB (305.907 residues/s). Model loads took 0.512–0.626 s. These measurements exclude the independent reference check; see the committed hardware test record.
 
 ## Running it
 
@@ -41,13 +41,13 @@ On a laptop, from the directory holding the FASTAs (drop `--device` without a GP
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/ablang2:1.0.10 ablang2 matrix --heavy h.fasta --light l.fasta --out matrix.npz
+  ghcr.io/brineylab/toolshed/ablang2:1.0.11 ablang2 matrix --heavy h.fasta --light l.fasta --out matrix.npz
 ```
 
 On a Slurm cluster with pyxis:
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablang2:1.0.10 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/ablang2:1.0.11 \
   --container-mounts="$PWD":/work --container-workdir=/work ablang2 pll --heavy h.fasta --light l.fasta --out pll.tsv
 ```
 
