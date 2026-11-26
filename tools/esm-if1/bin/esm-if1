@@ -1,0 +1,218 @@
+#!/usr/bin/env -S python3 -I
+"""Design, score and embed protein chains with the ESM-IF1 model in /opt/model."""
+import argparse
+import sys
+from pathlib import Path
+
+import numpy as np
+import torch
+from biotite.structure import (filter_amino_acids, filter_peptide_backbone,
+                               get_residue_starts)
+from biotite.structure.io import pdb, pdbx
+
+sys.path.insert(0, "/opt/esm")
+import esm
+import esm.inverse_folding
+
+CANONICAL = frozenset("ACDEFGHIKLMNPQRSTVWY")
+
+
+def fasta(path):
+    records = []
+    for line in open(path):
+        line = line.strip()
+        if line.startswith(">"):
+            records.append([line[1:].split()[0] if line[1:].strip() else f"seq{len(records) + 1}", ""])
+        elif line:
+            if not records:
+                raise ValueError(f"{path} is not FASTA: sequence before the first '>'")
+            records[-1][1] += line.upper()
+    if not records:
+        raise ValueError(f"{path} holds no sequences")
+    return records
+
+
+def load_protein_backbone(path):
+    """Read first-model N/CA/C atoms from amino-acid residues, never DNA or ligands.
+
+    Author fields keep the chain ids and residue numbering used by a PDB record.
+    Biotite's coordinate extractor supplies NaN for an atom absent from a residue.
+    """
+    path = str(path)
+    if path.lower().endswith((".cif", ".mmcif")):
+        structure = pdbx.get_structure(pdbx.PDBxFile.read(path), model=1,
+                                       altloc="first", use_author_fields=True)
+    elif path.lower().endswith(".pdb"):
+        structure = pdb.get_structure(pdb.PDBFile.read(path), model=1, altloc="first")
+    else:
+        raise ValueError("structure filename must end in .pdb, .cif or .mmcif")
+    protein = structure[filter_amino_acids(structure)]
+    backbone = filter_peptide_backbone(protein)
+    # A residue whose side chain is modeled but N/CA/C are not remains part of
+    # the chain. Keep the first marker atom: upstream makes all three backbone
+    # coordinates NaN for the whole residue rather than shortening the sequence.
+    starts = get_residue_starts(protein, add_exclusive_stop=True)
+    for start, stop in zip(starts[:-1], starts[1:]):
+        backbone[start] = True
+    return protein[backbone]
+
+
+def prepare(args):
+    """Load author-selected protein chains, with the target first for the autoregressive model."""
+    structure = load_protein_backbone(args.structure)
+    all_coords, all_seqs = esm.inverse_folding.multichain_util.extract_coords_from_complex(structure)
+    available = list(all_seqs)
+    if not available:
+        raise ValueError("the structure contains no protein backbone residues")
+    if args.chain is None:
+        if len(available) != 1:
+            raise ValueError(f"--chain is required for multiple chains; found: {','.join(available)}")
+        args.chain = available[0]
+    if args.chain not in all_seqs:
+        raise ValueError(f"chain {args.chain!r} not found; available protein chains: {','.join(available)}")
+    if args.context_chains and args.multichain_backbone:
+        raise ValueError("use either --context-chains or --multichain-backbone, not both")
+    if args.chain in args.context_chains:
+        raise ValueError("the target chain must not be repeated in --context-chains")
+    missing = [chain for chain in args.context_chains if chain not in all_seqs]
+    if missing:
+        raise ValueError(f"context chain(s) not found: {','.join(missing)}; available protein chains: {','.join(available)}")
+    context = [chain for chain in available if chain != args.chain] if args.multichain_backbone else args.context_chains
+    selected = list(dict.fromkeys([args.chain] + context))
+    coords = {}
+    for chain in selected:
+        xyz = all_coords[chain]
+        # A partially observed backbone is also unresolved: never combine real and dummy atoms.
+        xyz[~np.all(np.isfinite(xyz), axis=(-1, -2))] = np.nan
+        coords[chain] = xyz
+    if not len(coords[args.chain]):
+        raise ValueError(f"target chain {args.chain} has no protein backbone residues")
+    return coords, all_seqs[args.chain]
+
+
+def sequence_loss(model, alphabet, coords, target, sequence):
+    """Teacher-forced target loss, padding only non-target positions in a complex."""
+    all_coords = esm.inverse_folding.multichain_util._concatenate_coords(coords, target)
+    if len(sequence) != len(coords[target]):
+        raise ValueError(f"sequence length {len(sequence)} does not match target chain {target} ({len(coords[target])} residues)")
+    # Upstream's multichain example omits these pads, which makes sequence and coordinate lengths differ.
+    padded = sequence + "<pad>" * (len(all_coords) - len(sequence))
+    loss, padding_mask = esm.inverse_folding.util.get_sequence_loss(model, alphabet, all_coords, padded)
+    return loss[:len(sequence)]
+
+
+def scores(model, alphabet, coords, target, sequence):
+    loss = sequence_loss(model, alphabet, coords, target, sequence)
+    coord_mask = np.all(np.isfinite(coords[target]), axis=(-1, -2))
+    full = -float(loss.mean())
+    resolved = -float((loss * coord_mask).sum() / coord_mask.sum()) if coord_mask.any() else float("nan")
+    return full, resolved, loss
+
+
+def design(model, alphabet, args):
+    coords, native = prepare(args)
+    torch.manual_seed(args.seed)
+    if args.device == "cuda":
+        torch.cuda.manual_seed_all(args.seed)
+    name = args.id or Path(args.structure).stem
+    with open(args.out, "w") as out:
+        out.write(f">{name} chain={args.chain} num_res={len(native)} native=1\n{native}\n")
+        for i in range(args.num_designs):
+            if len(coords) == 1:
+                sampled = model.sample(coords[args.chain], temperature=args.temperature, device=torch.device(args.device))
+            else:
+                sampled = esm.inverse_folding.multichain_util.sample_sequence_in_complex(
+                    model, coords, args.chain, temperature=args.temperature)
+            full, _, _ = scores(model, alphabet, coords, args.chain, sampled)
+            if len(sampled) != len(native) or not set(sampled) <= CANONICAL or not np.isfinite(full):
+                raise ValueError("sampling or scoring returned an invalid design")
+            recovery = np.mean([a == b for a, b in zip(native, sampled)])
+            confidence = np.exp(full)
+            out.write(f">{name}, id={i + 1}, T={args.temperature:g}, seed={args.seed}, overall_confidence={confidence:.6f}, seq_rec={recovery:.6f}\n{sampled}\n")
+    print(f"Wrote {args.num_designs} designs for chain {args.chain} ({len(native)} residues; {len(coords)} chain(s) in context) to {args.out}", file=sys.stderr)
+
+
+def score(model, alphabet, args):
+    coords, _ = prepare(args)
+    coord_mask = np.all(np.isfinite(coords[args.chain]), axis=(-1, -2))
+    if not coord_mask.any():
+        raise ValueError("the target chain has no residues with complete N/CA/C coordinates")
+    records = fasta(args.sequences)
+    ids = [name for name, _ in records]
+    if any("\t" in name or "\n" in name or "\r" in name for name in ids):
+        raise ValueError("sequence ids must not contain tabs or newlines")
+    if len(set(ids)) != len(ids):
+        raise ValueError("sequence ids must be unique")
+    per_residue = {}
+    with open(args.out, "w") as out:
+        out.write("id\tll_fullseq\tll_withcoord\n")
+        for name, sequence in records:
+            unknown = sorted(set(sequence) - CANONICAL)
+            if unknown:
+                raise ValueError(f"{name}: sequence contains unsupported residue(s) {','.join(unknown)}; use the 20 canonical amino acids")
+            full, resolved, loss = scores(model, alphabet, coords, args.chain, sequence)
+            out.write(f"{name}\t{full:.6f}\t{resolved:.6f}\n")
+            per_residue[f"ll_{name}"] = (-loss).astype(np.float32)
+    if args.per_residue:
+        per_residue["ids"] = np.array(ids)
+        per_residue["resolved_coordinates"] = coord_mask
+        np.savez(args.per_residue, **per_residue)
+    print(f"Scored {len(records)} sequences for chain {args.chain} ({len(coords)} chain(s) in context) to {args.out}", file=sys.stderr)
+
+
+def embed(model, alphabet, args):
+    coords, _ = prepare(args)
+    rep = esm.inverse_folding.multichain_util.get_encoder_output_for_complex(
+        model, alphabet, coords, args.chain)
+    rep = rep.detach().float().cpu().numpy().astype(np.float32)
+    if not np.isfinite(rep).all():
+        raise ValueError("embedding is not finite")
+    if rep.ndim != 2 or rep.shape[1] != 512 or len(rep) != len(coords[args.chain]):
+        raise ValueError(f"unexpected encoder output shape {rep.shape}")
+    name = args.id or Path(args.structure).stem
+    np.savez(args.out, ids=np.array([name]), chains=np.array([args.chain]), embeddings=rep)
+    print(f"Embedded {len(rep)} residues of chain {args.chain} with {rep.shape[1]} features in {args.out}", file=sys.stderr)
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="esm-if1", description=__doc__)
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    for cmd in ("design", "score", "embed"):
+        p = sub.add_parser(cmd)
+        p.add_argument("--structure", required=True, help="input PDB or mmCIF file")
+        p.add_argument("--chain", help="author chain id to design, score or embed")
+        p.add_argument("--out", required=True)
+        p.add_argument("--id", help="identifier in output (default: structure filename stem)")
+        p.add_argument("--context-chains", nargs="+", default=[],
+                       help="author chain ids included as conditioning context (separate by spaces or commas)")
+        p.add_argument("--multichain-backbone", action="store_true", help="condition on all protein chains in the structure")
+        p.add_argument("--device", choices=("cuda", "cpu"), default="cuda" if torch.cuda.is_available() else "cpu")
+        if cmd == "design":
+            p.add_argument("--num-designs", type=int, default=1)
+            p.add_argument("--temperature", type=float, default=0.1)
+            p.add_argument("--seed", type=int, default=1)
+        if cmd == "score":
+            p.add_argument("--sequences", required=True, help="FASTA of sequences aligned to the target chain")
+            p.add_argument("--per-residue", help="optional .npz of per-residue log-likelihoods")
+    args = parser.parse_args()
+    args.context_chains = [chain for item in args.context_chains for chain in item.split(",") if chain]
+    if args.cmd == "design" and (args.num_designs < 1 or args.temperature <= 0):
+        parser.error("--num-designs must be positive and --temperature must be greater than 0")
+    if args.device == "cuda" and not torch.cuda.is_available():
+        parser.error("--device cuda requested but CUDA is not available")
+    try:
+        model, alphabet = esm.pretrained.load_model_and_alphabet_local("/opt/model/esm_if1_gvp4_t16_142M_UR50.pt")
+        model = model.eval().to(args.device)
+        with torch.inference_mode():
+            if args.cmd == "design":
+                design(model, alphabet, args)
+            elif args.cmd == "score":
+                score(model, alphabet, args)
+            else:
+                embed(model, alphabet, args)
+    except ValueError as error:
+        sys.exit(f"esm-if1: {error}")
+
+
+if __name__ == "__main__":
+    main()
