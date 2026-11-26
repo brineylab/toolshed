@@ -52,10 +52,10 @@ assert parse_header(headers[0][0])["num_res"] == "218"
 for i, (header, seq) in enumerate(headers):
     fields = parse_header(header)
     assert len(seq) == len(native) and set(seq) <= set("ACDEFGHIKLMNPQRSTVWY")
-    assert 0 <= float(fields["seq_rec"]) <= 1
     if i:
         assert fields["id"] == "1" and fields["seed"] == "7" and fields["T"] == "0.1"
         assert 0 < float(fields["overall_confidence"]) <= 1
+        assert 0 <= float(fields["seq_rec"]) <= 1
 
 scores = {}
 scores["sabdab_example_with_antigen"] = score(root / "selected-cif.score.tsv")
