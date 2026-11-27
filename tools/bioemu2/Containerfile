@@ -8,8 +8,9 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
  && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir --break-system-packages "bioemu2[cuda]==0.1.0rc0"
 # The only code this tool writes: a wrapper over upstream's cli.main that adds
-# --msa / --msa-chain (local A3M, upstream's get_msa source) and serves --pdb-id
-# from the RCSB assemblies cached in the image.
+# --msa / --msa-chain (local A3M, upstream's get_msa source), pins the default
+# named checkpoint to this image (a caller's HF_HUB_CACHE cannot redirect it)
+# and serves --pdb-id from the RCSB assemblies cached in the image.
 COPY --chmod=755 bin/bioemu2 /usr/local/bin/bioemu2
 RUN bioemu2 --help > /dev/null && bioemu2 sample-equilibrium --help | grep -- '--msa '
 # Weights/cache placement: pyxis shadows /workspace with its OVERLAYFS working
@@ -19,6 +20,7 @@ RUN bioemu2 --help > /dev/null && bioemu2 sample-equilibrium --help | grep -- '-
 # the skill and its test use, so those commands need no network at all.
 # BIOEMU2_CCD_CACHE holds the ligand templates (AP5 for 1AKE).
 ENV HF_HUB_OFFLINE=1 HF_HUB_CACHE=/opt/bioemu2/weights \
+    BIOEMU2_CHECKPOINT_CACHE=/opt/bioemu2/weights \
     BIOEMU2_MSA_CACHE=/opt/bioemu2/msa-cache \
     BIOEMU2_RCSB_CACHE=/opt/bioemu2/rcsb \
     BIOEMU2_CCD_CACHE=/opt/bioemu2/ccd

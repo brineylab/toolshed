@@ -2,10 +2,9 @@
 """Upstream's bioemu2 CLI, plus local A3M input and a cached RCSB entry lookup.
 
 ``predict-structure``, ``sample-equilibrium`` and ``propagate`` are the upstream
-``bioemu2.cli`` commands with their parameters, defaults and outputs unchanged.
-This wrapper adds only two things the upstream Python API documents but its CLI
-lacks (checkpoint resolution is untouched: the default ``bioemu2-preview`` is
-served from the image's own Hugging Face cache at ``HF_HUB_CACHE``):
+``bioemu2.cli`` commands with their sampling parameters and outputs unchanged.
+This wrapper adds local MSA and RCSB inputs from the upstream Python API and
+pins the default named checkpoint to the image's own Hugging Face cache:
 
 * ``--msa FILE.a3m`` for a system with one unique protein sequence, or repeated
   ``--msa-chain CHAIN=FILE.a3m`` for a heteromer. Files are handed to upstream's
@@ -117,6 +116,15 @@ def main() -> None:
 
     for name in ("predict-structure", "sample-equilibrium", "propagate"):
         with_msa_options(cli.main.commands[name])
+
+    # Constants fixes the default HF cache at import time. Pyxis transmits a
+    # caller's HF_HUB_CACHE, so leave only the image cache as Click's default.
+    # An explicit --checkpoint-cache-dir or --checkpoint-path takes precedence.
+    image_cache = os.environ["BIOEMU2_CHECKPOINT_CACHE"]
+    for command in cli.main.commands.values():
+        for param in command.params:
+            if param.name == "checkpoint_cache_dir":
+                param.default = Path(image_cache)
     cli.main()
 
 

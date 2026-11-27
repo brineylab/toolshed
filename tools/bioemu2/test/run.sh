@@ -12,13 +12,16 @@ cp chignolin.yaml chignolin.a3m "$inputs/"
 export HOME="$out/home"
 export TRITON_CACHE_DIR="$out/triton"
 mkdir "$HOME" "$TRITON_CACHE_DIR"
+# Pyxis passes the caller's environment through. The CLI must use the baked-in
+# checkpoint cache even when the caller asks Hugging Face to look elsewhere.
+export HF_HOME=/tmp/nowhere HF_HUB_CACHE=/tmp/nowhere
 python -I - <<'PY'
 import json
 from pathlib import Path
 import bioemu2
 from bioemu2.checkpoints import get_checkpoint_files
 print("bioemu2:", bioemu2.__file__)
-f = get_checkpoint_files("bioemu2-preview")
+f = get_checkpoint_files("bioemu2-preview", cache_dir="/opt/bioemu2/weights")
 print("checkpoint from image cache:", f)
 assert str(f.checkpoint_path).startswith("/opt/bioemu2/weights/"), f
 assert f.checkpoint_path.stat().st_size > 1_000_000_000
