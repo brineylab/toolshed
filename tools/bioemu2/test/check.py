@@ -52,9 +52,9 @@ def main() -> None:
     endpoints = frames(root / "propagate", 2, 10, 1)
     assert endpoints.n_atoms == structure.n_atoms
     assert np.allclose(endpoints.time, 1000.0), endpoints.time[:4]
-    # MDTraj prefers RCSB's author chain IDs; 1AKE gives proteins A and B
-    # but ligand C the same author ID B, so its topology reloads as two
-    # chains. The output CIF must retain the system's canonical A,B,C.
+    # The pinned 1AKE assembly has protein label A, AP5 label C and water
+    # label E (discarded). Its author IDs split the output into two MDTraj
+    # chains during reload; the CIF must retain the canonical labels A and C.
     direct = frames(root / "pdb", 1, 215, 2)
     # The two 214-residue protein chains and AP5 have 1,712 heavy atoms.
     assert direct.n_atoms == 1712, direct
@@ -67,7 +67,10 @@ def main() -> None:
     assert entities[1].get("ccd_code") == "AP5", entities
     cif = pdbx.CIFFile.read(str(root / "pdb/topology.cif"))
     atom_site = cif[next(iter(cif))]["atom_site"]
-    assert set(atom_site["label_asym_id"].as_array(str)) == {"A", "B", "C"}
+    assert set(atom_site["label_asym_id"].as_array(str)) == {"A", "C"}, {
+        "labels": dict.fromkeys(atom_site["label_asym_id"].as_array(str)),
+        "authors": dict.fromkeys(atom_site["auth_asym_id"].as_array(str)),
+    }
     print(f"predict-structure: 1 chignolin frame, {structure.n_atoms} atoms")
     print(f"sample-equilibrium: 2 chignolin frames, {ensemble.n_atoms} atoms")
     print(f"propagate: 2 endpoints at 1 ns, {endpoints.n_atoms} atoms")
