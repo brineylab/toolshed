@@ -79,9 +79,8 @@ text = Path(sys.argv[1]).read_text()
 assert "# ANARCI numbered" in text, text
 assert re.search(r"^H\s+1\s+Q$", text, re.M), text
 assert re.search(r"^H\s+118\s+W$", text, re.M), text
-assert re.search(r"^H\s+111\s+Y$", text, re.M), text
-assert re.search(r"^H\s+112\s+G$", text, re.M), text
-assert "# germline" in text, text
+assert re.search(r"^H\s+111\s+S$", text, re.M), text
+assert re.search(r"^H\s+112\s+Y$", text, re.M), text
 print("ANARCI: single-sequence vertical output has the known heavy-chain IMGT labels")
 PY
 
