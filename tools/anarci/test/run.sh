@@ -68,3 +68,55 @@ assert seen == set(seqs)
 assert importlib.resources.files("anarci").joinpath("dat/HMMs/ALL.hmm").is_file()
 print(f"ANARCI: {len(rows)} heavy chains; {len(positions)} ordered IMGT columns; exact sequences reconstructed")
 PY
+
+# The skill's exact single-sequence command (non-CSV vertical output).
+ANARCI -i QVQLVQSGAEVKKPGASVKVSCKASGYTFTSYAMYWVRQAPGQRLEWMGWINARNGNTKYSQKFQGRVTITRDTSASTAYMELSSLRSEDTAVYYCARSPYSSSWPGYYYYYYGMDVWGQGTTVTVSS -s imgt -r heavy --use_species human > "$work/single.txt"
+python3 -I - "$work/single.txt" <<'PY'
+from pathlib import Path
+import re
+import sys
+text = Path(sys.argv[1]).read_text()
+assert "# ANARCI numbered" in text, text
+assert re.search(r"^H\s+1\s+Q$", text, re.M), text
+assert re.search(r"^H\s+118\s+W$", text, re.M), text
+assert re.search(r"^H\s+111\s+Y$", text, re.M), text
+assert re.search(r"^H\s+112\s+G$", text, re.M), text
+assert "# germline" in text, text
+print("ANARCI: single-sequence vertical output has the known heavy-chain IMGT labels")
+PY
+
+# The documented light-chain CSV workflow on a known human kappa sequence.
+ANARCI -i fixture/light.fasta -o "$work/light_imgt" \
+  -s imgt -r light --use_species human --csv -p 2 --assign_germline
+[ -s "$work/light_imgt_KL.csv" ]
+[ ! -e "$work/light_imgt_H.csv" ]
+python3 -I - "$work/light_imgt_KL.csv" fixture/light.fasta <<'PY'
+import csv
+import sys
+path, fasta = sys.argv[1:]
+with open(fasta) as f:
+    lines = [line.strip() for line in f if line.strip()]
+name = lines[0][1:]
+sequence = lines[1]
+with open(path, newline="") as f:
+    reader = csv.reader(f)
+    header = next(reader)
+    rows = list(reader)
+assert len(rows) == 1, len(rows)
+row = rows[0]
+positions = header[13:]
+assert row[0] == name and row[1] == "0", row[:2]
+assert row[3] in {"K", "L"}, row[:13]
+assert row[8] == "human", row[:13]
+assert row[9].startswith(("human_", "IGKV", "IGLV")) or "IGKV" in row[9] or "IGLV" in row[9], row[9]
+assert row[11].startswith(("human_", "IGKJ", "IGLJ")) or "IGKJ" in row[11] or "IGLJ" in row[11], row[11]
+assert positions[0] == "1"
+assert row[13] == "D", row[13]
+assert row[13 + positions.index("2")] == "I"
+assert row[13 + positions.index("27")] == "R"
+assert row[13 + positions.index("38")] == "L"
+assert row[13 + positions.index("104")] == "F"
+assert row[13 + positions.index("118")] == "K"
+assert "".join("" if aa == "-" else aa for aa in row[13:]) == sequence
+print("ANARCI: human light-chain CSV has exact sequence and known kappa IMGT labels")
+PY

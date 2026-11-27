@@ -2,11 +2,11 @@
 name: anarci
 description: "Classic ANARCI/HMMER IMGT numbering with CSV output for antibody and receptor sequences. Reach for it when a reproducible analysis requires ANARCI 2026.2.13.2's HMM alignments and exact CSV numbering, including germline assignment, rather than ANARCII's learned model."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # anarci
 
-Image: `ghcr.io/brineylab/toolshed/anarci:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/anarci:1.0.1`
 
 ANARCI 2026.2.13.2 with its packaged HMMs and germline tables, HMMER 3.3.2 (`hmmscan`/`hmmpress`), Biopython 1.88, and the scientific Python/parquet stack. ANARCI classifies and numbers variable domains under IMGT, Kabat, Chothia, Martin, Wolfguy, or AHo. The image is CPU-only and self-contained; no network or model download is needed at run time.
 
@@ -50,7 +50,7 @@ On a laptop, from a directory containing `parents.fasta`:
 
 ```bash
 podman run --rm --network none -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/anarci:1.0.0 \
+  ghcr.io/brineylab/toolshed/anarci:1.0.1 \
   ANARCI -i /work/parents.fasta -o /work/parents_imgt \
   -s imgt -r heavy --use_species human --csv -p 5 --assign_germline
 ```
