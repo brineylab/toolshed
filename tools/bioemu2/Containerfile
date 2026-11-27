@@ -12,7 +12,6 @@ RUN pip install --no-cache-dir --break-system-packages "bioemu2[cuda]==0.1.0rc0"
 # named checkpoint to this image (a caller's HF_HUB_CACHE cannot redirect it)
 # and serves --pdb-id from the RCSB assemblies cached in the image.
 COPY --chmod=755 bin/bioemu2 /usr/local/bin/bioemu2
-RUN bioemu2 --help > /dev/null && bioemu2 sample-equilibrium --help | grep -- '--msa '
 # Weights/cache placement: pyxis shadows /workspace with its OVERLAYFS working
 # directory and /toolshed with the caller's committed test source. Keep the
 # checkpoint under /opt/bioemu2/weights so the runtime mount cannot hide it.
@@ -24,6 +23,8 @@ ENV HF_HUB_OFFLINE=1 HF_HUB_CACHE=/opt/bioemu2/weights \
     BIOEMU2_MSA_CACHE=/opt/bioemu2/msa-cache \
     BIOEMU2_RCSB_CACHE=/opt/bioemu2/rcsb \
     BIOEMU2_CCD_CACHE=/opt/bioemu2/ccd
+# The wrapper reads its image cache from the environment declared above.
+RUN bioemu2 --help > /dev/null && bioemu2 sample-equilibrium --help | grep -- '--msa '
 # Weights, RCSB/CCD caches and both license sets (upstream code + model card),
 # every file pinned by URL and sha256 in the committed manifest rendered by the
 # setup run from live downloads, and verified again here. ColabFold responses
