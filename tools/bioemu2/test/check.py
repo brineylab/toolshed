@@ -61,7 +61,9 @@ def main() -> None:
     assert {r.name for r in direct.topology.residues} >= {"AP5"}, "1AKE's AP5 ligand missing"
     pdb_system = yaml.safe_load((root / "pdb/system.yaml").read_text())
     entities = pdb_system["entities"]
-    assert sorted(e["asym_ids"] for e in entities) == [["A", "B"], ["C"]], entities
+    # The saved system is upstream's input schema: one protein entity for the
+    # homodimer (expanded to asym A and B during prediction), plus AP5 at C.
+    assert sorted(e["asym_ids"] for e in entities) == [["A"], ["C"]], entities
     assert entities[1].get("ccd_code") == "AP5", entities
     cif = pdbx.CIFFile.read(str(root / "pdb/topology.cif"))
     atom_site = cif[next(iter(cif))]["atom_site"]
