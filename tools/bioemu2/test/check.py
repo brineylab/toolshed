@@ -56,7 +56,8 @@ def main() -> None:
     # but ligand C the same author ID B, so its topology reloads as two
     # chains. The output CIF must retain the system's canonical A,B,C.
     direct = frames(root / "pdb", 1, 215, 2)
-    assert direct.n_atoms > 3000, direct
+    # The two 214-residue protein chains and AP5 have 1,712 heavy atoms.
+    assert direct.n_atoms == 1712, direct
     assert {r.name for r in direct.topology.residues} >= {"AP5"}, "1AKE's AP5 ligand missing"
     pdb_system = yaml.safe_load((root / "pdb/system.yaml").read_text())
     entities = pdb_system["entities"]
