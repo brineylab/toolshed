@@ -15,6 +15,7 @@ from pathlib import Path
 import mdtraj
 import numpy as np
 import yaml
+from biotite.structure.io import pdbx
 
 
 def frames(out: Path, expected_frames: int, expected_residues: int, expected_chains: int):
@@ -58,6 +59,12 @@ def main() -> None:
     entities = pdb_system["entities"]
     assert sorted(e["asym_ids"] for e in entities) == [["A", "B"], ["C"]], entities
     assert entities[1].get("ccd_code") == "AP5", entities
+    # MDTraj prefers RCSB's author chain IDs; 1AKE gives proteins A and B
+    # but ligand C the same author ID B, so its topology reloads as two
+    # chains. The output CIF must retain the system's canonical A,B,C.
+    cif = pdbx.CIFFile.read(str(root / "pdb/topology.cif"))
+    atom_site = cif[next(iter(cif))]["atom_site"]
+    assert set(atom_site["label_asym_id"].as_array(str)) == {"A", "B", "C"}
     print(f"predict-structure: 1 chignolin frame, {structure.n_atoms} atoms")
     print(f"sample-equilibrium: 2 chignolin frames, {ensemble.n_atoms} atoms")
     print(f"propagate: 2 endpoints at 1 ns, {endpoints.n_atoms} atoms")
