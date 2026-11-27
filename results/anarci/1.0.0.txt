@@ -1,0 +1,16 @@
+---
+tool: anarci
+version: 1.0.0
+image: ghcr.io/brineylab/toolshed/anarci@sha256:5e954e89211d124643c69ea9a5e2c4383ac609e92d1053da1e544d8436ee03f4
+digest: sha256:5e954e89211d124643c69ea9a5e2c4383ac609e92d1053da1e544d8436ee03f4
+runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-27T04:15:51Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/anarci@sha256:5e954e89211d124643c69ea9a5e2c4383ac609e92d1053da1e544d8436ee03f4
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/anarci@sha256:5e954e89211d124643c69ea9a5e2c4383ac609e92d1053da1e544d8436ee03f4
+node: gpu-swann-0
+gpu: none
+# HMMER 3.3.2 (Nov 2020); http://hmmer.org/
+ANARCI: 3 heavy chains; 132 ordered IMGT columns; exact sequences reconstructed
