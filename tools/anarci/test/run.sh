@@ -105,17 +105,16 @@ assert len(rows) == 1, len(rows)
 row = rows[0]
 positions = header[13:]
 assert row[0] == name and row[1] == "0", row[:2]
-assert row[3] in {"K", "L"}, row[:13]
-assert row[8] == "human", row[:13]
-assert row[9].startswith(("human_", "IGKV", "IGLV")) or "IGKV" in row[9] or "IGLV" in row[9], row[9]
-assert row[11].startswith(("human_", "IGKJ", "IGLJ")) or "IGKJ" in row[11] or "IGLJ" in row[11], row[11]
+assert row[3] == "K", row[:13]
+assert row[4:13] == ["8.6e-61", "194.7", "0", "106", "human", "IGKV1-39*01", "0.96", "IGKJ2*01", "0.92"], row[:13]
 assert positions[0] == "1"
 assert row[13] == "D", row[13]
 assert row[13 + positions.index("2")] == "I"
 assert row[13 + positions.index("27")] == "R"
-assert row[13 + positions.index("38")] == "L"
-assert row[13 + positions.index("104")] == "F"
-assert row[13 + positions.index("118")] == "K"
+assert row[13 + positions.index("34")] == "R"
+assert row[13 + positions.index("38")] == "N"
+assert row[13 + positions.index("104")] == "C"
+assert row[13 + positions.index("118")] == "F"
 assert "".join("" if aa == "-" else aa for aa in row[13:]) == sequence
 print("ANARCI: human light-chain CSV has exact sequence and known kappa IMGT labels")
 PY
