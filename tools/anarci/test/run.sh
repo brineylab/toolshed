@@ -111,7 +111,7 @@ assert positions[0] == "1"
 assert row[13] == "D", row[13]
 assert row[13 + positions.index("2")] == "I"
 assert row[13 + positions.index("27")] == "R"
-assert row[13 + positions.index("34")] == "R"
+assert row[13 + positions.index("36")] == "R"
 assert row[13 + positions.index("38")] == "N"
 assert row[13 + positions.index("104")] == "C"
 assert row[13 + positions.index("118")] == "F"
