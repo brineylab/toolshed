@@ -1,0 +1,48 @@
+FROM docker.io/pytorch/pytorch:2.13.0-cuda13.0-cudnn9-runtime
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
+# Upstream's own CLI: bioemu2 0.1.0rc0 with the cuda extra (cuEquivariance 0.11.1,
+# CUDA 13), on the base's Python 3.12, the interpreter upstream benchmarked.
+# apt's version is fixed by this image tag; PyPI's CUDA 13 pins for the
+# cuEquivariance packages come from upstream's cuda extra.
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gcc=4:13.2.0-7ubuntu1 \
+ && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir --break-system-packages "bioemu2[cuda]==0.1.0rc0"
+# The only code this tool writes: a wrapper over upstream's cli.main that adds
+# --msa / --msa-chain (local A3M, upstream's get_msa source) and serves --pdb-id
+# from the RCSB assemblies cached in the image.
+COPY --chmod=755 bin/bioemu2 /usr/local/bin/bioemu2
+RUN bioemu2 --help > /dev/null && bioemu2 sample-equilibrium --help | grep -- '--msa '
+# Weights/cache placement: /toolshed is not a WORKDIR. Pyxis mounts an OVERLAYFS
+# working directory over /workspace, so a cache under it would be shadowed.
+# The image's default MSA cache carries the ColabFold responses for the systems
+# the skill and its test use, so those commands need no network at all.
+# BIOEMU2_CCD_CACHE holds the ligand templates (AP5 for 1AKE).
+ENV HF_HUB_OFFLINE=1 HF_HUB_CACHE=/toolshed/weights \
+    BIOEMU2_MSA_CACHE=/opt/bioemu2/msa-cache \
+    BIOEMU2_RCSB_CACHE=/opt/bioemu2/rcsb \
+    BIOEMU2_CCD_CACHE=/opt/bioemu2/ccd
+# Weights, RCSB/CCD caches and both license sets (upstream code + model card),
+# every file pinned by URL and sha256 in the committed manifest rendered by the
+# setup run from live downloads, and verified again here. ColabFold responses
+# have no permanent individual URL: the setup manifest pins their exact bytes;
+# this build resolves the systems through upstream's client once and verifies
+# those exact cache keys and checksums before the image runs offline.
+COPY weights.json /tmp/weights.json
+COPY test/install-weights.py /tmp/install-weights.py
+RUN HF_HUB_OFFLINE=0 python3 -I /tmp/install-weights.py /tmp/weights.json \
+ && rm /tmp/weights.json /tmp/install-weights.py
+# Build-time proof that the default named checkpoint resolves offline from the
+# image's own HF cache and every shipped cache entry reads back uncorrupted.
+RUN python3 -I -c "import hashlib, json, pathlib
+from bioemu2.checkpoints import get_checkpoint_files
+f = get_checkpoint_files('bioemu2-preview'); print('checkpoint:', f)
+assert str(f.checkpoint_path).startswith('/toolshed/weights/')
+assert f.checkpoint_path.stat().st_size > 1000000000
+n = 0
+for p in pathlib.Path('/opt/bioemu2/msa-cache').glob('*.json'):
+    d = json.loads(p.read_text())
+    assert d['sha256'] == hashlib.sha256(json.dumps(d['a3ms']).encode('utf-8')).hexdigest(), p
+    n += 1
+assert n, 'no cached alignments'
+print(n, 'cached ColabFold alignments verified')"
+COPY test /toolshed/test

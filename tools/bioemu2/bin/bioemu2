@@ -1,0 +1,124 @@
+#!/usr/bin/env -S python3 -I
+"""Upstream's bioemu2 CLI, plus local A3M input and a cached RCSB entry lookup.
+
+``predict-structure``, ``sample-equilibrium`` and ``propagate`` are the upstream
+``bioemu2.cli`` commands with their parameters, defaults and outputs unchanged.
+This wrapper adds only two things the upstream Python API documents but its CLI
+lacks (checkpoint resolution is untouched: the default ``bioemu2-preview`` is
+served from the image's own Hugging Face cache at ``HF_HUB_CACHE``):
+
+* ``--msa FILE.a3m`` for a system with one unique protein sequence, or repeated
+  ``--msa-chain CHAIN=FILE.a3m`` for a heteromer. Files are handed to upstream's
+  ``get_msa(source=...)``, so the first record must be the query for that chain.
+* ``--pdb-id`` reads the image's cached RCSB assembly at ``BIOEMU2_RCSB_CACHE``
+  when the entry is present (the same bytes ``System.from_pdb_id`` would fetch);
+  other PDB IDs still download from RCSB, which needs network access.
+"""
+from __future__ import annotations
+
+import functools
+import os
+from pathlib import Path
+
+
+def _cached_requests_get(cache_dir: Path):
+    """Route System.from_pdb_id's one RCSB download at a cached assembly file."""
+    from bioemu2.data_interface import system as system_module
+
+    original = system_module.requests.get
+    prefix = "https://files.rcsb.org/download/"
+    suffix = ".cif.gz"
+
+    def get(url, *args, **kwargs):
+        if url.startswith(prefix) and url.endswith(suffix) and "-assembly" in url:
+            path = cache_dir / url[len(prefix):]
+            if path.is_file():
+                class CachedAssembly:
+                    content = path.read_bytes()
+
+                    @staticmethod
+                    def raise_for_status() -> None:
+                        return None
+
+                return CachedAssembly()
+        return original(url, *args, **kwargs)
+
+    return get
+
+
+def main() -> None:
+    import click
+
+    from bioemu2 import cli
+    from bioemu2.data_interface import system as system_module
+    from bioemu2.msa import alignment
+
+    cache_dir = os.environ.get("BIOEMU2_RCSB_CACHE")
+    if cache_dir:
+        system_module.requests.get = _cached_requests_get(Path(cache_dir))
+
+    upstream_get_msa = alignment.get_msa
+
+    def with_msa_options(command):
+        def make_callback(upstream_callback):
+            @functools.wraps(upstream_callback)
+            def callback(*args, **kwargs):
+                msa_path = kwargs.pop("msa_path", None)
+                msa_chains = kwargs.pop("msa_chains", ())
+                if msa_path is not None and msa_chains:
+                    raise click.UsageError("Pass only one of --msa and --msa-chain.")
+                local_msa = msa_path
+                if msa_chains:
+                    local_msa = {}
+                    for item in msa_chains:
+                        chain_id, sep, path = item.partition("=")
+                        if not sep or not chain_id or not path:
+                            raise click.UsageError(
+                                "--msa-chain takes CHAIN=FILE.a3m, one per protein chain.")
+                        local_msa[chain_id] = Path(path)
+                def patched(*args, **options):
+                    if local_msa is not None:
+                        options.pop("source", None)
+                        return upstream_get_msa(*args, source=local_msa, **options)
+                    return upstream_get_msa(*args, **options)
+                old_alignment, old_cli = alignment.get_msa, cli.get_msa
+                alignment.get_msa = cli.get_msa = patched
+                try:
+                    return upstream_callback(*args, **kwargs)
+                finally:
+                    alignment.get_msa, cli.get_msa = old_alignment, old_cli
+
+            return callback
+
+        command.callback = make_callback(command.callback)
+        command.params.extend(
+            [
+                click.Option(
+                    ["--msa", "msa_path"],
+                    type=click.Path(path_type=Path, exists=True, dir_okay=False),
+                    metavar="FILE.a3m",
+                    help=(
+                        "Local A3M alignment (query first) for a system with one unique "
+                        "protein sequence, instead of querying ColabFold. For a "
+                        "heteromer use --msa-chain CHAIN=FILE.a3m instead."
+                    ),
+                ),
+                click.Option(
+                    ["--msa-chain", "msa_chains"],
+                    multiple=True,
+                    metavar="CHAIN=FILE.a3m",
+                    help=(
+                        "Local A3M alignment for one protein chain; repeat for every "
+                        "protein chain of a heteromer. Overrides the ColabFold query."
+                    ),
+                ),
+            ]
+        )
+
+    for name in ("predict-structure", "sample-equilibrium", "propagate"):
+        with_msa_options(cli.main.commands[name])
+    cli.main()
+
+
+if __name__ == "__main__":
+    main()

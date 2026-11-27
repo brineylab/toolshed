@@ -1,0 +1,140 @@
+[
+  {
+    "url": "https://huggingface.co/microsoft/bioemu2/resolve/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/checkpoint.ckpt",
+    "dest": "/toolshed/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/checkpoint.ckpt",
+    "bytes": 2047661181,
+    "sha256": "3b4ba9236b7b458f47b40b694847b6bb4110c744becd6d2c53de7b1d04c07a81"
+  },
+  {
+    "url": "https://huggingface.co/microsoft/bioemu2/resolve/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/config.yaml",
+    "dest": "/toolshed/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/config.yaml",
+    "bytes": 1672,
+    "sha256": "90326e3b77e524420f5aad68a777355ecbbbe07bc006ddf88f7ee921b0f772e3"
+  },
+  {
+    "url": "https://huggingface.co/microsoft/bioemu2/resolve/dd4b0c1b69984b68edcb6200a544213be4d75242/MODEL_CARD.md",
+    "dest": "/opt/bioemu2/licenses/hub-MODEL_CARD.md",
+    "bytes": 80,
+    "sha256": "fa03547165664aa72a00b2c3b0bd28ff10ca7eee34902bf20670187370db0259"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/LICENSE",
+    "dest": "/opt/bioemu2/licenses/upstream-LICENSE",
+    "bytes": 1074,
+    "sha256": "7df20dcdf9197e9945c14858d41c60f11b52b93e5b69e2b63416b874d598d322"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/NOTICES.md",
+    "dest": "/opt/bioemu2/licenses/upstream-NOTICES.md",
+    "bytes": 6723,
+    "sha256": "35e81645788cc09b4362ced578dbcaa0fc317ebaa82100de36b964eaff10c699"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/licenses/LICENSE.BOLTZ-MIT",
+    "dest": "/opt/bioemu2/licenses/LICENSE.BOLTZ-MIT",
+    "bytes": 1102,
+    "sha256": "f0667fd5e66c51e1ba8ddaa0249c6d7225b30037e02c45782d8f2c2943ac2617"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/licenses/LICENSE.GEOSTD",
+    "dest": "/opt/bioemu2/licenses/LICENSE.GEOSTD",
+    "bytes": 2397,
+    "sha256": "f3874ef7235ab3d84b3a3a175b606b33db472f28702d3d9597e955a99a07608a"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/licenses/LICENSE.GPL-3.0",
+    "dest": "/opt/bioemu2/licenses/LICENSE.GPL-3.0",
+    "bytes": 34674,
+    "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/licenses/LICENSE.LGPL-3.0",
+    "dest": "/opt/bioemu2/licenses/LICENSE.LGPL-3.0",
+    "bytes": 7652,
+    "sha256": "be2a4e231f43a0cdf0dce87078173ca8cd0d4e9e275d9d03557e914c8b1748a9"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/licenses/LICENSE.NVIDIA-FOLD-CP-MIT",
+    "dest": "/opt/bioemu2/licenses/LICENSE.NVIDIA-FOLD-CP-MIT",
+    "bytes": 1150,
+    "sha256": "c0fcaecdbb21251fa717337a64aa52eb2ab612c44f80dfe08e47b7c2120c081d"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/licenses/LICENSE.PYTORCH3D-BSD",
+    "dest": "/opt/bioemu2/licenses/LICENSE.PYTORCH3D-BSD",
+    "bytes": 1534,
+    "sha256": "6da05663049417a91409fa349bfad5778ed56c9ef68226dde28dffd541481579"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/licenses/LICENSE.TORCH-SCATTER-MIT",
+    "dest": "/opt/bioemu2/licenses/LICENSE.TORCH-SCATTER-MIT",
+    "bytes": 1086,
+    "sha256": "7cbd1d9075b9cb3daa771f52d10e1a6b9c4577851f055d002449932fee4d7486"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/src/bioemu2/assets/examples/systems/ake.yaml",
+    "dest": "/opt/bioemu2/examples/ake.yaml",
+    "bytes": 362,
+    "sha256": "fb7cf415c124c338591db7a0f5b30f62200ca5e6d3463c043eb9277e166cbd7e"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/src/bioemu2/assets/examples/systems/chignolin.yaml",
+    "dest": "/opt/bioemu2/examples/chignolin.yaml",
+    "bytes": 136,
+    "sha256": "527549db876b678b27c6a076bfe3577e93354937111573eee7debdda7dff0e50"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/src/bioemu2/assets/examples/systems/meteorin_like_7tlw.yaml",
+    "dest": "/opt/bioemu2/examples/meteorin_like_7tlw.yaml",
+    "bytes": 625,
+    "sha256": "09d271a96e4130156f07dd30bd6584d555170ac0d3f8313b32e4195f49ec6e00"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/src/bioemu2/assets/examples/systems/myoglobin_101m.yaml",
+    "dest": "/opt/bioemu2/examples/myoglobin_101m.yaml",
+    "bytes": 582,
+    "sha256": "b48b248f4463d6a201521d4ede36d82ca51d3dc4d79a1ea60d90749a9d66af4a"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/microsoft/bioemu2/8d4a2b7238716a94543ceaf411dfe32f99c1ae7c/src/bioemu2/assets/examples/systems/shp2_3tkz.yaml",
+    "dest": "/opt/bioemu2/examples/shp2_3tkz.yaml",
+    "bytes": 619,
+    "sha256": "143369dd2979cc1547072d8936b17a908934073c136b01c3c36602d8e9fd363c"
+  },
+  {
+    "url": "https://files.rcsb.org/download/1AKE-assembly1.cif.gz",
+    "dest": "/opt/bioemu2/rcsb/1AKE-assembly1.cif.gz",
+    "bytes": 52681,
+    "sha256": "34604c530644e161afbc549c67b79d6f7bd8286a7d39fa4c0f8eec0c40ed41e4"
+  },
+  {
+    "url": "https://files.rcsb.org/download/1UBQ-assembly1.cif.gz",
+    "dest": "/opt/bioemu2/rcsb/1UBQ-assembly1.cif.gz",
+    "bytes": 19987,
+    "sha256": "5b9a210a00d4adc72a15c511e359e9389ffb88c9aaa220508899c5ea1420e2b0"
+  },
+  {
+    "url": "https://api.colabfold.com/ticket/msa (cached ColabFold MRIILLGAPGAG... response; use_env=True)",
+    "dest": "/opt/bioemu2/msa-cache/07eb3e24d563005c4478ac3a3540fbd2e72fc231c9b7d4b7f72ce93211baf588.json",
+    "bytes": 4976876,
+    "sha256": "703ddea6aed146e4da2035c0ccf9c5be1a1ce48e04f009d934432f7e01aafa23"
+  },
+  {
+    "url": "https://api.colabfold.com/ticket/msa (cached ColabFold MQIFVKTLTGKT... response; use_env=True)",
+    "dest": "/opt/bioemu2/msa-cache/6e4e4e4649bdaafbf434c2f0d450d2483b4042c4734d87f51be3ea4793b4eedc.json",
+    "bytes": 3239046,
+    "sha256": "462ba97481ad74e1d5016eb0df7711efec1bd486900e7a2b14b940b8483915c4"
+  },
+  {
+    "url": "https://api.colabfold.com/ticket/msa (cached ColabFold GYDPETGTWG... response; use_env=True)",
+    "dest": "/opt/bioemu2/msa-cache/6ffd910d5526b4449479c8baaee0c438ac15e1b88783ea4a68fed822ce229739.json",
+    "bytes": 237,
+    "sha256": "099db2b34b3404eb5f39248a73f8dd3a63a56f9c7bc1edc3a7808b3651215f00"
+  },
+  {
+    "url": "https://files.rcsb.org/ligands/download/AP5.cif",
+    "dest": "/opt/bioemu2/ccd/AP5.cif",
+    "bytes": 13788,
+    "sha256": "cb4bed433f1c4ecb298ab99a75879b841a68e1727b170fd7db68043c975a6e58"
+  }
+]
