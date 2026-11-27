@@ -59,7 +59,7 @@ On a Slurm cluster with pyxis:
 
 ```bash
 srun --partition=hpc-low --cpus-per-task=5 --mem=16G \
-  --container-image=ghcr.io#brineylab/toolshed/anarci:1.0.0 \
+  --container-image=ghcr.io#brineylab/toolshed/anarci:1.0.1 \
   --container-mounts="$PWD":/work --container-workdir=/work \
   ANARCI -i /work/parents.fasta -o /work/parents_imgt \
   -s imgt -r heavy --use_species human --csv -p 5 --assign_germline
