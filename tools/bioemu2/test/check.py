@@ -52,16 +52,16 @@ def main() -> None:
     endpoints = frames(root / "propagate", 2, 10, 1)
     assert endpoints.n_atoms == structure.n_atoms
     assert np.allclose(endpoints.time, 1000.0), endpoints.time[:4]
-    direct = frames(root / "pdb", 1, 215, 3)
+    # MDTraj prefers RCSB's author chain IDs; 1AKE gives proteins A and B
+    # but ligand C the same author ID B, so its topology reloads as two
+    # chains. The output CIF must retain the system's canonical A,B,C.
+    direct = frames(root / "pdb", 1, 215, 2)
     assert direct.n_atoms > 3000, direct
     assert {r.name for r in direct.topology.residues} >= {"AP5"}, "1AKE's AP5 ligand missing"
     pdb_system = yaml.safe_load((root / "pdb/system.yaml").read_text())
     entities = pdb_system["entities"]
     assert sorted(e["asym_ids"] for e in entities) == [["A", "B"], ["C"]], entities
     assert entities[1].get("ccd_code") == "AP5", entities
-    # MDTraj prefers RCSB's author chain IDs; 1AKE gives proteins A and B
-    # but ligand C the same author ID B, so its topology reloads as two
-    # chains. The output CIF must retain the system's canonical A,B,C.
     cif = pdbx.CIFFile.read(str(root / "pdb/topology.cif"))
     atom_site = cif[next(iter(cif))]["atom_site"]
     assert set(atom_site["label_asym_id"].as_array(str)) == {"A", "B", "C"}
