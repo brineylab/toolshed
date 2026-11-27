@@ -40,7 +40,8 @@ def frames(out: Path, expected_frames: int, expected_residues: int, expected_cha
 def main() -> None:
     root = Path(sys.argv[1])
     structure = frames(root / "predict", 1, 10, 1)
-    assert structure.n_atoms > 100, structure
+    # BioEmu2 writes all heavy atoms but no hydrogens: 76 for this sequence.
+    assert structure.n_atoms == 76, structure
     system = yaml.safe_load((root / "predict/system.yaml").read_text())
     assert system["entities"][0]["sequence"] == "GYDPETGTWG", system
     # The local single-sequence A3M the wrapper injected, in the saved command.
