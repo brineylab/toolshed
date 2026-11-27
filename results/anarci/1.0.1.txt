@@ -1,0 +1,18 @@
+---
+tool: anarci
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/anarci@sha256:4f475f04830ad416d778f002684b287fb184a3eb6820a3ea02613e46d6e4bf7b
+digest: sha256:4f475f04830ad416d778f002684b287fb184a3eb6820a3ea02613e46d6e4bf7b
+runner: sbatch --partition=l40s --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-27T05:27:14Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/anarci@sha256:4f475f04830ad416d778f002684b287fb184a3eb6820a3ea02613e46d6e4bf7b
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/anarci@sha256:4f475f04830ad416d778f002684b287fb184a3eb6820a3ea02613e46d6e4bf7b
+node: gpu-swann-0
+gpu: none
+# HMMER 3.3.2 (Nov 2020); http://hmmer.org/
+ANARCI: 3 heavy chains; 132 ordered IMGT columns; exact sequences reconstructed
+ANARCI: single-sequence vertical output has the known heavy-chain IMGT labels
+ANARCI: human light-chain CSV has exact sequence and known kappa IMGT labels

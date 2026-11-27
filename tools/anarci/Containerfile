@@ -1,0 +1,12 @@
+FROM docker.io/library/python:3.11-slim-bookworm@sha256:0f6686ddd2ccdb042d2b5b15f1cc6f015b2fdf5dc159fcccd9d4ad9d70904898
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git hmmer=3.3.2+dfsg-1 \
+  && rm -rf /var/lib/apt/lists/* \
+  && git config --system --add safe.directory '*'
+# ANARCI carries its HMMs and germline tables in the wheel. The remaining pins
+# make the image usable for parquet-to-IMGT dataset recipes as well as its CLI.
+RUN pip install --no-cache-dir \
+    anarci==2026.2.13.2 biopython==1.88 pandas==3.1.1 pyarrow==26.0.1 polars==2.1.0 \
+    duckdb==2.0.0 huggingface_hub==2.4.0
+ENV HF_HUB_OFFLINE=1 PYTHONNOUSERSITE=1
+COPY test /toolshed/test
