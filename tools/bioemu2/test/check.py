@@ -45,7 +45,7 @@ def main() -> None:
     system = yaml.safe_load((root / "predict/system.yaml").read_text())
     assert system["entities"][0]["sequence"] == "GYDPETGTWG", system
     # The local single-sequence A3M the wrapper injected, in the saved command.
-    assert " chignolin.a3m" in (root / "predict/command.txt").read_text() + " ", "no --msa used"
+    assert "/chignolin.a3m" in (root / "predict/command.txt").read_text(), "no --msa used"
     ensemble = frames(root / "ensemble", 2, 10, 1)
     assert ensemble.n_atoms == structure.n_atoms
     endpoints = frames(root / "propagate", 2, 10, 1)
