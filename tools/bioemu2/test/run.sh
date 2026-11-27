@@ -20,7 +20,7 @@ from bioemu2.checkpoints import get_checkpoint_files
 print("bioemu2:", bioemu2.__file__)
 f = get_checkpoint_files("bioemu2-preview")
 print("checkpoint from image cache:", f)
-assert str(f.checkpoint_path).startswith("/toolshed/weights/"), f
+assert str(f.checkpoint_path).startswith("/opt/bioemu2/weights/"), f
 assert f.checkpoint_path.stat().st_size > 1_000_000_000
 assert Path("/opt/bioemu2/licenses/upstream-LICENSE").stat().st_size > 1000
 import hashlib

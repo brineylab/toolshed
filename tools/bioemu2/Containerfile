@@ -12,12 +12,13 @@ RUN pip install --no-cache-dir --break-system-packages "bioemu2[cuda]==0.1.0rc0"
 # from the RCSB assemblies cached in the image.
 COPY --chmod=755 bin/bioemu2 /usr/local/bin/bioemu2
 RUN bioemu2 --help > /dev/null && bioemu2 sample-equilibrium --help | grep -- '--msa '
-# Weights/cache placement: /toolshed is not a WORKDIR. Pyxis mounts an OVERLAYFS
-# working directory over /workspace, so a cache under it would be shadowed.
+# Weights/cache placement: pyxis shadows /workspace with its OVERLAYFS working
+# directory and /toolshed with the caller's committed test source. Keep the
+# checkpoint under /opt/bioemu2/weights so the runtime mount cannot hide it.
 # The image's default MSA cache carries the ColabFold responses for the systems
 # the skill and its test use, so those commands need no network at all.
 # BIOEMU2_CCD_CACHE holds the ligand templates (AP5 for 1AKE).
-ENV HF_HUB_OFFLINE=1 HF_HUB_CACHE=/toolshed/weights \
+ENV HF_HUB_OFFLINE=1 HF_HUB_CACHE=/opt/bioemu2/weights \
     BIOEMU2_MSA_CACHE=/opt/bioemu2/msa-cache \
     BIOEMU2_RCSB_CACHE=/opt/bioemu2/rcsb \
     BIOEMU2_CCD_CACHE=/opt/bioemu2/ccd

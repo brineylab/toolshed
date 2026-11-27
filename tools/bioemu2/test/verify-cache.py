@@ -7,7 +7,7 @@ from bioemu2.checkpoints import get_checkpoint_files
 
 f = get_checkpoint_files("bioemu2-preview")
 print("checkpoint:", f)
-assert str(f.checkpoint_path).startswith("/toolshed/weights/")
+assert str(f.checkpoint_path).startswith("/opt/bioemu2/weights/")
 assert f.checkpoint_path.stat().st_size > 1000000000
 n = 0
 for p in pathlib.Path("/opt/bioemu2/msa-cache").glob("*.json"):

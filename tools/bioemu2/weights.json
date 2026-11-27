@@ -1,13 +1,13 @@
 [
   {
     "url": "https://huggingface.co/microsoft/bioemu2/resolve/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/checkpoint.ckpt",
-    "dest": "/toolshed/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/checkpoint.ckpt",
+    "dest": "/opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/checkpoint.ckpt",
     "bytes": 2047661181,
     "sha256": "3b4ba9236b7b458f47b40b694847b6bb4110c744becd6d2c53de7b1d04c07a81"
   },
   {
     "url": "https://huggingface.co/microsoft/bioemu2/resolve/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/config.yaml",
-    "dest": "/toolshed/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/config.yaml",
+    "dest": "/opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/config.yaml",
     "bytes": 1672,
     "sha256": "90326e3b77e524420f5aad68a777355ecbbbe07bc006ddf88f7ee921b0f772e3"
   },

@@ -10,7 +10,7 @@ Image: `ghcr.io/brineylab/toolshed/bioemu2:1.0.0`
 
 Microsoft Research AI for Science's BioEmu2 public preview (MIT), upstream release 0.1.0rc0 with the `cuda` extra (cuEquivariance 0.11.1, CUDA 13), run through the upstream `bioemu2` command line on PyTorch 2.13 / Python 3.12, the interpreter upstream benchmarked. It folds one structure, samples independent equilibrium all-atom frames and samples endpoints a chosen time lag after a starting conformation — independent samples, not a molecular-dynamics trajectory. One GPU only: multi-GPU context-parallel sampling (`bioemu2 cp`) is out of this tool's scope.
 
-The checkpoint `bioemu2-preview` from `microsoft/bioemu2` revision `dd4b0c1b69984b68edcb6200a544213be4d75242` (~2 GB, Hub `checkpoints/bioemu2-preview/checkpoint.ckpt` + `config.yaml`) is **in the image** at `HF_HUB_CACHE=/toolshed/weights`, in the standard `models--microsoft--bioemu2/snapshots/<commit>/` cache layout, so upstream's default named-checkpoint lookup never downloads anything; the local alternative is `--checkpoint-path FILE.ckpt` with its `config.yaml` beside it.
+The checkpoint `bioemu2-preview` from `microsoft/bioemu2` revision `dd4b0c1b69984b68edcb6200a544213be4d75242` (~2 GB, Hub `checkpoints/bioemu2-preview/checkpoint.ckpt` + `config.yaml`) is **in the image** at `HF_HUB_CACHE=/opt/bioemu2/weights`, in the standard `models--microsoft--bioemu2/snapshots/<commit>/` cache layout, so upstream's default named-checkpoint lookup never downloads anything; the local alternative is `--checkpoint-path FILE.ckpt` with its `config.yaml` beside it.
 
 ## Commands
 
