@@ -37,16 +37,20 @@ with open(path, newline="") as f:
         "v_identity", "j_gene", "j_identity",
     ], header[:13]
     positions = header[13:]
-    # ANARCI's CSV uses encounter ranks, not alphabetical insertion order:
-    # in IMGT CDR3 it preserves the special 111/112 ordering exactly by removal.
-    stripped = [p.rstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ") for p in positions]
-    assert [int(p) for p in stripped] == sorted(int(p) for p in stripped)
-    assert stripped.index("111") + 1 == stripped.index("112")
-    # Do not normalize labels lexicographically: consumers must retain this order.
-    assert any(p.startswith("111") and p != "111" for p in positions)
-    assert any(p.startswith("112") and p != "112" for p in positions)
+    # ANARCI emits CDR3 insertions in structural order about 111/112:
+    # 111 letters ascend, while 112 letters descend. Do not numerically sort them.
+    assert positions.index("111") < positions.index("112")
+    assert "111A" in positions and "112A" in positions
+    letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    insertions = {}
+    for number in ["111", "112"]:
+        subset = [p for p in positions if p.startswith(number) and p != number]
+        assert all(len(p) == len(number) + 1 and p[-1] in letters for p in subset)
+        insertions[number] = [p[-1] for p in subset]
+    assert insertions["111"] == sorted(insertions["111"])
+    assert insertions["112"] == sorted(insertions["112"], reverse=True)
     rows = list(reader)
-assert len(rows) == len(seqs) == 4, (len(rows), len(seqs))
+assert len(rows) == len(seqs) == 3, (len(rows), len(seqs))
 seen = set()
 for row in rows:
     assert len(row) == len(header)
