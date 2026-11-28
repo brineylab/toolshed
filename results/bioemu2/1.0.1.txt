@@ -1,0 +1,73 @@
+---
+tool: bioemu2
+version: 1.0.1
+image: ghcr.io/brineylab/toolshed/bioemu2@sha256:e13025dcfd71dcd2f47f204467d773872e50d76e28d9c71536db77d01bd0cdd8
+digest: sha256:e13025dcfd71dcd2f47f204467d773872e50d76e28d9c71536db77d01bd0cdd8
+runner: sbatch --partition=a100 --gres=gpu:1 --time=00:30:00
+host: bcr.scripps.edu
+started: 2026-11-28T00:11:26Z
+exit: 0
+---
+pyxis: importing docker image: ghcr.io#brineylab/toolshed/bioemu2@sha256:e13025dcfd71dcd2f47f204467d773872e50d76e28d9c71536db77d01bd0cdd8
+pyxis: imported docker image: ghcr.io#brineylab/toolshed/bioemu2@sha256:e13025dcfd71dcd2f47f204467d773872e50d76e28d9c71536db77d01bd0cdd8
+node: gpu-cedric-0
+GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+[2026-11-28T00:13:03Z] gpu-cedric-0: GPU 0: NVIDIA A100-SXM4-80GB (UUID: GPU-2febfa46-99d8-bb12-299b-332d581f67db)
+bioemu2: /usr/local/lib/python3.12/dist-packages/bioemu2/__init__.py
+checkpoint from image cache: CheckpointFiles(checkpoint_path=PosixPath('/opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/checkpoint.ckpt'), config_path=PosixPath('/opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview/config.yaml'))
+licences, checkpoint and cached MSA checksums verified
+[2026-11-28T00:13:11Z] 1/4 predict-structure, system YAML + local A3M (--msa)
+[2026-11-28 00:13:17,248] [INFO] Using cached checkpoint 'bioemu2-preview' from microsoft/bioemu2 at /opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview.
+[2026-11-28 00:13:21,508] [INFO] Loaded EMA parameters.
+Sampling:   0%|          | 0/1 [00:00<?, ?it/s]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.47s/it]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.47s/it]
+[2026-11-28 00:13:24,100] [INFO] 1/1 frames pass protein physicality checks (non-protein chains are not checked).
+[2026-11-28 00:13:24,108] [INFO] Saved CIF to /tmp/tmp.DUaQ3qujIZ/predict/topology.cif
+[2026-11-28 00:13:24,109] [INFO] Wrote 1 samples and physicality results to /tmp/tmp.DUaQ3qujIZ/predict
+[2026-11-28T00:13:25Z] 2/4 sample-equilibrium, cached ColabFold MSA
+[2026-11-28 00:13:31,244] [INFO] Using cached checkpoint 'bioemu2-preview' from microsoft/bioemu2 at /opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview.
+[2026-11-28 00:13:35,633] [INFO] Loaded EMA parameters.
+Sampling:   0%|          | 0/1 [00:00<?, ?it/s]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.03s/it]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.03s/it]
+[2026-11-28 00:13:37,785] [INFO] 2/2 frames pass protein physicality checks (non-protein chains are not checked).
+[2026-11-28 00:13:37,793] [INFO] Saved CIF to /tmp/tmp.DUaQ3qujIZ/ensemble/topology.cif
+[2026-11-28 00:13:37,794] [INFO] Wrote 2 samples and physicality results to /tmp/tmp.DUaQ3qujIZ/ensemble
+[2026-11-28T00:13:39Z] 3/4 propagate one endpoint per sampled frame, 1 ns
+[2026-11-28 00:13:44,764] [INFO] Extracted schema from CIF file /tmp/tmp.DUaQ3qujIZ/ensemble/topology.cif:
+```
+- protein:
+    id:
+    - A
+    mods: []
+    sequence: GYDPETGTWG
+```
+[2026-11-28 00:13:44,901] [INFO] Using cached checkpoint 'bioemu2-preview' from microsoft/bioemu2 at /opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview.
+[2026-11-28 00:13:49,169] [INFO] Loaded EMA parameters.
+Sampling:   0%|          | 0/1 [00:00<?, ?it/s]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.02s/it]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.02s/it]
+[2026-11-28 00:13:51,327] [INFO] Saved CIF to /tmp/tmp.DUaQ3qujIZ/propagate/topology.cif
+[2026-11-28 00:13:51,330] [INFO] 2/2 frames pass protein physicality checks (non-protein chains are not checked).
+[2026-11-28 00:13:51,330] [INFO] 2/2 endpoints passed physicality checks; results saved in /tmp/tmp.DUaQ3qujIZ/propagate
+[2026-11-28T00:13:52Z] 4/4 predict-structure --pdb-id 1AKE (monomeric protein + AP5 ligand)
+[2026-11-28 00:13:58,328] [INFO] Extracted schema from CIF file /tmp/tmpz02mm262/1AKE.cif:
+```
+- protein:
+    id:
+    - A
+    mods: []
+    sequence: MRIILLGAPGAGKGTQAQFIMEKYGIPQISTGDMLRAAVKSGSELGKQAKDIMDAGKLVTDELVIALVKERIAQEDCRNGFLLDGFPRTIPQADAMKEAGINVDYVLEFDVPDELIVDRIVGRRVHAPSGRVYHVKFNPPKVEGKDDVTGEELTTRKDDQEETVRKRLVEYHQMTAPLIGYYSKEAEAGNTKYAKVDGTKPVAEVRADLEKILG
+- ligand:
+    ccd: AP5
+    id:
+    - C
+```
+[2026-11-28 00:13:58,443] [INFO] Using cached checkpoint 'bioemu2-preview' from microsoft/bioemu2 at /opt/bioemu2/weights/models--microsoft--bioemu2/snapshots/dd4b0c1b69984b68edcb6200a544213be4d75242/checkpoints/bioemu2-preview.
+[2026-11-28 00:14:02,752] [INFO] Loaded EMA parameters.
+Sampling:   0%|          | 0/1 [00:00<?, ?it/s]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.01s/it]Sampling: 100%|██████████| 1/1 [00:01<00:00,  1.01s/it]
+[2026-11-28 00:14:10,116] [INFO] 1/1 frames pass protein physicality checks (non-protein chains are not checked).
+[2026-11-28 00:14:10,203] [INFO] Saved CIF to /tmp/tmp.DUaQ3qujIZ/pdb/topology.cif
+[2026-11-28 00:14:10,204] [INFO] Wrote 1 samples and physicality results to /tmp/tmp.DUaQ3qujIZ/pdb
+[2026-11-28T00:14:11Z] checking outputs
+predict-structure: 1 chignolin frame, 76 atoms
+sample-equilibrium: 2 chignolin frames, 76 atoms
+propagate: 2 endpoints at 1 ns, 76 atoms
+predict-structure --pdb-id 1AKE: monomer protein chain A + AP5 ligand C, 215 residues, 1712 atoms
+all checks passed
+[2026-11-28T00:14:12Z] all checks passed
