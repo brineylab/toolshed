@@ -45,7 +45,7 @@ bioemu2 sample-equilibrium --system "$inputs/chignolin.yaml" --num-samples 2 \
 echo "[$(stamp)] 3/4 propagate one endpoint per sampled frame, 1 ns"
 bioemu2 propagate --x0-cif "$out/ensemble/topology.cif" --x0-xtc "$out/ensemble/samples.xtc" \
   --lag-time-ns 1 "${steps[@]}" --out "$out/propagate"
-echo "[$(stamp)] 4/4 predict-structure --pdb-id 1AKE (two chains, AP5 ligand)"
+echo "[$(stamp)] 4/4 predict-structure --pdb-id 1AKE (monomeric protein + AP5 ligand)"
 bioemu2 predict-structure --pdb-id 1AKE --num-samples 1 "${steps[@]}" --out "$out/pdb"
 echo "[$(stamp)] checking outputs"
 python3 -I check.py "$out"

@@ -2,11 +2,11 @@
 name: bioemu2
 description: "BioEmu2 (microsoft/bioemu2): a ~500M-parameter diffusion model that predicts folded structures, samples equilibrium all-atom ensembles and propagates structures forward in time from the bioemu2 CLI. Reach for it for conformational heterogeneity and time-lagged dynamics of proteins, complexes, nucleic acids and ligands at a fraction of MD's cost; use boltz-2 for plain structure+confidence and openmm for explicit-solvent MD."
 metadata:
-  version: 1.0.0
+  version: 1.0.1
 ---
 # bioemu2
 
-Image: `ghcr.io/brineylab/toolshed/bioemu2:1.0.0`
+Image: `ghcr.io/brineylab/toolshed/bioemu2:1.0.1`
 
 Microsoft Research AI for Science's BioEmu2 public preview (MIT), upstream release 0.1.0rc0 with the `cuda` extra (cuEquivariance 0.11.1, CUDA 13), run through the upstream `bioemu2` command line on PyTorch 2.13 / Python 3.12, the interpreter upstream benchmarked. It folds one structure, samples independent equilibrium all-atom frames and samples endpoints a chosen time lag after a starting conformation — independent samples, not a molecular-dynamics trajectory. One GPU only: multi-GPU context-parallel sampling (`bioemu2 cp`) is out of this tool's scope.
 
@@ -66,14 +66,14 @@ On a laptop, from the directory holding your YAML/A3M:
 
 ```bash
 podman run --rm --device nvidia.com/gpu=all -v "$PWD":/work -w /work \
-  ghcr.io/brineylab/toolshed/bioemu2:1.0.0 \
+  ghcr.io/brineylab/toolshed/bioemu2:1.0.1 \
   bioemu2 sample-equilibrium --system system.yaml --msa protein.a3m --num-samples 8 --out out
 ```
 
 On a Slurm cluster with pyxis (the same three commands as above where the mounts hold the input):
 
 ```bash
-srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/bioemu2:1.0.0 \
+srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/bioemu2:1.0.1 \
   --container-mounts="$PWD":/work,/data/my-campaign:/cache \
   --container-workdir=/work --container-env=BIOEMU2_MSA_CACHE=/cache/msa \
   bioemu2 predict-structure --pdb-id 1UBQ --num-samples 1 --out out
@@ -85,7 +85,7 @@ srun --gres=gpu:1 --container-image=ghcr.io#brineylab/toolshed/bioemu2:1.0.0 \
 - `--pdb-id` needs an entry in the image's RCSB cache (currently 1AKE and 1UBQ) *or* network access to files.rcsb.org; the wrapper upstream-caches those two assemblies so this skill's examples work offline. Arbitrary PDB IDs download live, as upstream does.
 - ColabFold's public server is the default MSA source and needs network on a cache miss; prefer your own A3M (`--msa`, `--msa-chain`) or a named writable `BIOEMU2_MSA_CACHE` for reproducibility and for bulk jobs (ColabFold asks that queries be serial from one IP).
 - A system YAML with SMILES/InChI ligands or unusual CCD codes fetches CCD component files at run time into `BIOEMU2_CCD_CACHE` (only AP5 is pre-cached, for 1AKE); truly offline runs of novel ligand systems need those files pre-seeded or network.
-- `--num-steps 20` is what this tool's own test does for its 30-minute budget; production commands should keep upstream's default 200 (or 500 for guided samplers). The test checks output shape, system composition and offline data/weights plumbing — Chignolin crosses no size-related kernel crossover upstream documents, so large-system triton paths are not covered by the fixture; AKE (214 residues, homodimer + AP5 ligand) covers multi-chain and ligand paths.
+- `--num-steps 20` is what this tool's own test does for its 30-minute budget; production commands should keep upstream's default 200 (or 500 for guided samplers). The test checks output shape, system composition and offline data/weights plumbing. Chignolin crosses no size-related kernel crossover upstream documents, so its runs do not cover large-system Triton paths. The monomeric 1AKE assembly (one 214-residue protein chain + AP5 ligand) exercises the >100-residue Triton/gcc path and the ligand path; multi-chain systems are not exercised by the test.
 - Propagation endpoints are independent samples at the chosen lag, not a time-ordered trajectory; `propagate` refuses to overwrite existing `samples.xtc` in `--out`.
 - Weights and code are MIT-licensed: upstream's `LICENSE`/`NOTICES.md` and third-party notices are at `/opt/bioemu2/licenses/`, the model card at `hub-MODEL_CARD.md` beside them.
 - Keep `HF_HUB_OFFLINE=1` (the image's default): any named checkpoint other than the shipped `bioemu2-preview` fails offline as intended. The test deliberately sets a different caller `HF_HUB_CACHE`; the CLI still loads the image's checkpoint as production jobs must.

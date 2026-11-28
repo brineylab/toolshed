@@ -56,13 +56,13 @@ def main() -> None:
     # label E (discarded). Its author IDs split the output into two MDTraj
     # chains during reload; the CIF must retain the canonical labels A and C.
     direct = frames(root / "pdb", 1, 215, 2)
-    # The two 214-residue protein chains and AP5 have 1,712 heavy atoms.
+    # The 214-residue protein chain and AP5 have 1,712 heavy atoms.
     assert direct.n_atoms == 1712, direct
     assert {r.name for r in direct.topology.residues} >= {"AP5"}, "1AKE's AP5 ligand missing"
     pdb_system = yaml.safe_load((root / "pdb/system.yaml").read_text())
     entities = pdb_system["entities"]
     # The saved system is upstream's input schema: one protein entity for the
-    # homodimer (expanded to asym A and B during prediction), plus AP5 at C.
+    # monomer at asym A, plus AP5 at C.
     assert sorted(e["asym_ids"] for e in entities) == [["A"], ["C"]], entities
     assert entities[1].get("ccd_code") == "AP5", entities
     cif = pdbx.CIFFile.read(str(root / "pdb/topology.cif"))
@@ -74,7 +74,7 @@ def main() -> None:
     print(f"predict-structure: 1 chignolin frame, {structure.n_atoms} atoms")
     print(f"sample-equilibrium: 2 chignolin frames, {ensemble.n_atoms} atoms")
     print(f"propagate: 2 endpoints at 1 ns, {endpoints.n_atoms} atoms")
-    print(f"predict-structure --pdb-id 1AKE: homodimer chains A,B + AP5 ligand C, "
+    print(f"predict-structure --pdb-id 1AKE: monomer protein chain A + AP5 ligand C, "
           f"215 residues, {direct.n_atoms} atoms")
     print("all checks passed")
 
