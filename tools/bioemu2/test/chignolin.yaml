@@ -1,0 +1,6 @@
+entities:
+  - entity_type: protein
+    asym_ids: [A]
+    sequence: GYDPETGTWG
+    mods: []
+bonds: []
